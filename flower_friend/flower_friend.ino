@@ -1,11 +1,9 @@
 // Measures soil dryness and pours if needed.
 
 /*
-  Status: working prototype
+  Status: working
   Generation: 4
-  Last mod.: 2017-03-24
-  Notes:
-    RTC module added.
+  Last mod.: 2017-07-16
 */
 
 #include "humidity_measurer.h"
@@ -14,7 +12,7 @@
 #include "RTClib.h"
 
 const uint8_t pour_hours[24] =
-  {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0};
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0};
 
 const int num_blocks = 2;
 
@@ -77,6 +75,7 @@ void setup() {
     Serial.println("RTC lost power, setting current time.");
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
+  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
   last_print_time = millis();
 }
@@ -85,7 +84,7 @@ unsigned long min_debug_message_gap_ms = 100;
 
 const int pour_on_percent = 70;
 const int pour_off_percent = 80;
-const uint32_t idle_measurement_delay = uint32_t(100) * 1000;
+const uint32_t idle_measurement_delay = uint32_t(60) * 12 * 1000;
 const uint32_t pour_measurement_delay = uint32_t(5) * 1000;
 uint32_t next_request_time[num_blocks];
 
@@ -169,17 +168,11 @@ String pad_zeroes(String s, uint8_t value) {
 void print_status() {
   String msg = "";
   if (cur_time - last_print_time > min_debug_message_gap_ms) {
-    Serial.print("idle_measurement_delay: ");
-    Serial.print((float)idle_measurement_delay / 1000);
-    Serial.print(", ");
-    Serial.print("pour_measurement_delay: ");
-    Serial.print((float)pour_measurement_delay / 1000);
-    Serial.println("");
-    Serial.print("cur_time: ");
+    String msg;
+
+    Serial.print("time_secs: ");
     Serial.print((float)cur_time / 1000);
     Serial.println("");
-
-    String msg;
 
     msg = "";
     msg =
@@ -191,12 +184,26 @@ void print_status() {
       pad_zeroes(msg, rtc_time.hour()) + ":" +
       pad_zeroes(msg, rtc_time.minute()) + ":" +
       pad_zeroes(msg, rtc_time.second()) + " " +
-      "(" + rtc_time.dayOfTheWeek() + ")";
+      "(day " + rtc_time.dayOfTheWeek() + ")";
     Serial.println(msg);
 
     msg = "";
     msg = msg + "is_pour_hour: " + pour_hours[rtc_time.hour()];
     Serial.println(msg);
+
+    msg = "";
+    msg =
+      msg +
+      "pour_on_percent: " + pour_on_percent + ", " +
+      "pour_off_percent: " + pour_off_percent;
+    Serial.println(msg);
+
+    Serial.print("idle_measurement_delay: ");
+    Serial.print((float)idle_measurement_delay / 1000);
+    Serial.print(", ");
+    Serial.print("pour_measurement_delay: ");
+    Serial.print((float)pour_measurement_delay / 1000);
+    Serial.println("");
 
     for (int i = 0; i < num_blocks; i++) {
       msg = "";
@@ -222,33 +229,27 @@ void do_business() {
         (next_request_time[block] >= 0x80000000)
       )
     ) {
-      int val = measurer[block].get_value();
-      if (measurer[block].is_line_problem) {
-        if (motor[block].is_on)
+      if (pour_hours[rtc_time.hour()] || motor[block].is_on) {
+        int val = measurer[block].get_value();
+        if (measurer[block].is_line_problem) {
           motor[block].switch_off();
-      }
-      else {
-        if (
-          (val <= pour_on_percent) &&
-          !motor[block].is_on &&
-          pour_hours[rtc_time.hour()]
-        ) {
-          motor[block].switch_on();
-          // print_status();
         }
-        if (
-          (val >= pour_off_percent) &&
-          (motor[block].is_on)
-        ) {
-          motor[block].switch_off();
-          // print_status();
+        else {
+          if ((val <= pour_on_percent) && !motor[block].is_on) {
+            motor[block].switch_on();
+            // print_status();
+          }
+          if ((val >= pour_off_percent) && (motor[block].is_on)) {
+            motor[block].switch_off();
+            // print_status();
+          }
         }
-      }
 
-      if (motor[block].is_on)
-        next_request_time[block] = cur_time + pour_measurement_delay;
-      else
-        next_request_time[block] = cur_time + idle_measurement_delay;
+        if (motor[block].is_on)
+          next_request_time[block] = cur_time + pour_measurement_delay;
+        else
+          next_request_time[block] = cur_time + idle_measurement_delay;
+      }
     }
   }
 }
@@ -274,4 +275,6 @@ void loop() {
   2017-01-05
   2017-03-24
   2017-06-30
+    RTC module added.
+  2017-07-16
 */
