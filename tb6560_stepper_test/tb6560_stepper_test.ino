@@ -27,9 +27,9 @@ void loop()
   {
     for (int k = 0; k < 5; k++)
       tic();
-    clock_pulse_width_mcrs += d;
-    if ((clock_pulse_width_mcrs < 175) || (clock_pulse_width_mcrs > 800))
-      d = -d;
+      clock_pulse_width_mcrs += d;
+      if ((clock_pulse_width_mcrs < 175) || (clock_pulse_width_mcrs > 800))
+        d = -d;
   }
 }
 
