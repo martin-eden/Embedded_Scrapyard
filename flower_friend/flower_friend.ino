@@ -2,7 +2,7 @@
 
 /*
   Status: working
-  Generation: 4
+  Generation: 4.0.1
   Last mod.: 2017-07-16
 */
 
@@ -206,12 +206,19 @@ void print_status() {
     Serial.println("");
 
     for (int i = 0; i < num_blocks; i++) {
+      /*
+        <is_line_problem> is actual after <get_value()>.
+        In string constructor "a() + b()" actual order is b(), a().
+        So we force correct order via direct assignments.
+      */
+      uint8_t value = measurer[i].get_value();
+      uint8_t is_line_problem = measurer[i].is_line_problem; //
       msg = "";
       msg =
         msg +
         "block: " + i + ", " +
-        "sensor: " + measurer[i].get_value() + ", " +
-        "is_line_problem: " + measurer[i].is_line_problem + ", " +
+        "sensor: " + value + ", " +
+        "is_line_problem: " + is_line_problem + ", " +
         "motor: " + motor[i].is_on;
       Serial.println(msg);
     }
