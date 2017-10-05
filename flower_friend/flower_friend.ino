@@ -2,8 +2,8 @@
 
 /*
   Status: working
-  Generation: 4.0.1
-  Last mod.: 2017-07-16
+  Generation: 4.0.2
+  Last mod.: 2017-10-05
 */
 
 #include "humidity_measurer.h"
@@ -94,8 +94,7 @@ int parse_block_num(char c) {
   else if (c == '1')
     return 1;
   else
-    ;
-  return -1;
+    return -1;
 }
 
 int parse_on_off(char c) {
@@ -104,8 +103,7 @@ int parse_on_off(char c) {
   else if (c == '1')
     return 1;
   else
-    ;
-  return -1;
+    return -1;
 }
 
 void send_measurement(uint8_t value) {
@@ -114,9 +112,24 @@ void send_measurement(uint8_t value) {
   Serial.println(msg);
 }
 
-const uint8_t cmd_measure = 'M';
-const uint8_t cmd_execute = 'X';
-const uint8_t cmd_get_state = 'G';
+const char CMD_MEASURE = 'M';
+const char CMD_EXECUTE = 'X';
+const char CMD_GET_STATE = 'G';
+
+void print_usage() {
+  String msg = "";
+  msg =
+    msg +
+    "--" + "\n" +
+    "Usage:" + "\n" +
+    "  " + CMD_MEASURE + " <block_num>" + "\n" +
+    "    Measure probe <block_num>." + "\n" +
+    "  " + CMD_EXECUTE + " <block_num> (0 | 1)" + "\n" +
+    "    Motor on/off for given <block_num>." + "\n" +
+    "  " + CMD_GET_STATE + " " + "\n" +
+    "    Print current status." + "\n";
+  Serial.print(msg);
+}
 
 void handle_command() {
   char cmd = Serial.peek();
@@ -125,17 +138,17 @@ void handle_command() {
   int8_t on_off;
   uint8_t value;
   switch (cmd) {
-    case cmd_measure:
+    case CMD_MEASURE:
       if (data_length < 2)
         break;
       Serial.read();
       block_num = parse_block_num(Serial.read());
       if (block_num < 0)
         break;
-      value = measurer[block_num].get_raw_value();
+      value = measurer[block_num].get_value();
       send_measurement(value);
       break;
-    case cmd_execute:
+    case CMD_EXECUTE:
       if (data_length < 3)
         break;
       Serial.read();
@@ -148,21 +161,48 @@ void handle_command() {
       else
         motor[block_num].switch_off();
       break;
-    case cmd_get_state:
+    case CMD_GET_STATE:
       Serial.read();
       print_status();
       break;
     default:
       Serial.read();
+      print_usage();
       break;
   }
 }
 
-String pad_zeroes(String s, uint8_t value) {
+String pad_zeroes(uint8_t value) {
+  String result = "";
   if (value < 10)
-    s = s + "0";
-  s = s + value;
-  return s;
+    result = result + "0";
+  result = result + value;
+  return result;
+}
+
+String get_rtc_time() {
+  String result = "";
+  result =
+    result +
+    // rtc_time.year() + "-" +
+    // pad_zeroes(rtc_time.month()) + "-" +
+    // pad_zeroes(rtc_time.day()) + " " +
+    pad_zeroes(rtc_time.hour()) + ":" +
+    pad_zeroes(rtc_time.minute()) + ":" +
+    pad_zeroes(rtc_time.second()) + " " +
+    // "(day " + rtc_time.dayOfTheWeek() + ")" +
+    "";
+  return result;
+}
+
+String get_pour_hours() {
+  String result = "";
+  for (uint8_t i = 0; i < 24; i++) {
+    if (pour_hours[i]) {
+      result = result + i + " ";
+    }
+  }
+  return result;
 }
 
 void print_status() {
@@ -170,39 +210,24 @@ void print_status() {
   if (cur_time - last_print_time > min_debug_message_gap_ms) {
     String msg;
 
-    Serial.print("time_secs: ");
-    Serial.print((float)cur_time / 1000);
-    Serial.println("");
-
     msg = "";
     msg =
       msg +
-      "rtc_time: " +
-      rtc_time.year() + "-" +
-      pad_zeroes(msg, rtc_time.month()) + "-" +
-      pad_zeroes(msg, rtc_time.day()) + " " +
-      pad_zeroes(msg, rtc_time.hour()) + ":" +
-      pad_zeroes(msg, rtc_time.minute()) + ":" +
-      pad_zeroes(msg, rtc_time.second()) + " " +
-      "(day " + rtc_time.dayOfTheWeek() + ")";
-    Serial.println(msg);
-
-    msg = "";
-    msg = msg + "is_pour_hour: " + pour_hours[rtc_time.hour()];
-    Serial.println(msg);
-
-    msg = "";
-    msg =
-      msg +
+      "--" + "\n" +
+      "rtc_time: " + get_rtc_time() + "\n" +
+      "pour_hours: " + get_pour_hours() + "\n" +
       "pour_on_percent: " + pour_on_percent + ", " +
-      "pour_off_percent: " + pour_off_percent;
-    Serial.println(msg);
+      "pour_off_percent: " + pour_off_percent + "\n";
+    Serial.print(msg);
 
     Serial.print("idle_measurement_delay: ");
     Serial.print((float)idle_measurement_delay / 1000);
     Serial.print(", ");
     Serial.print("pour_measurement_delay: ");
     Serial.print((float)pour_measurement_delay / 1000);
+    Serial.println("");
+    Serial.print("uptime_secs: ");
+    Serial.print((float)cur_time / 1000);
     Serial.println("");
 
     for (int i = 0; i < num_blocks; i++) {
@@ -216,11 +241,12 @@ void print_status() {
       msg = "";
       msg =
         msg +
-        "block: " + i + ", " +
+        "block " + i + ":" + "\n" +
+        "  " +
         "sensor: " + value + ", " +
         "is_line_problem: " + is_line_problem + ", " +
-        "motor: " + motor[i].is_on;
-      Serial.println(msg);
+        "motor: " + motor[i].is_on + "\n";
+      Serial.print(msg);
     }
   }
 
@@ -284,4 +310,5 @@ void loop() {
   2017-06-30
     RTC module added.
   2017-07-16
+  2017-10-05
 */
