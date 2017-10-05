@@ -14,7 +14,7 @@
   Anyway motor "bzuus" and slowly stopping but electomagnet switches
   still heared and feeled if gently rotate motor by hand.
   --
-  Burned today two same cheap L298N boards from eBay. First disabled
+  Burned today two same cheap L298N boards from eBay. First died
   OUT1, OUT2 ports on both boards. Today broke OUT3, OUT4 ports on
   first board. So I have just two phases from three needed to spin in
   right direction. Tweaked code to use disc inertion to maintain
