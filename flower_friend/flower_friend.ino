@@ -2,8 +2,8 @@
 
 /*
   Status: working
-  Generation: 4.0.2
-  Last mod.: 2017-10-05
+  Generation: 4.0.3
+  Last mod.: 2018-12-04
 */
 
 #include "humidity_measurer.h"
@@ -232,8 +232,9 @@ void print_status() {
 
     for (int i = 0; i < num_blocks; i++) {
       /*
-        <is_line_problem> is actual after <get_value()>.
-        In string constructor "a() + b()" actual order is b(), a().
+        <is_line_problem> is set inside <get_value()>.
+        In string constructor "a() + b()" the actual call order
+          is b(), a().
         So we force correct order via direct assignments.
       */
       uint8_t value = measurer[i].get_value();
@@ -311,4 +312,5 @@ void loop() {
     RTC module added.
   2017-07-16
   2017-10-05
+  2018-12-04
 */
