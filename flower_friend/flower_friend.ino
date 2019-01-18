@@ -117,14 +117,14 @@ void print_usage() {
   String msg = "";
   msg =
     msg +
-    "--" + "\n" +
     "Usage:" + "\n" +
     "  " + CMD_MEASURE + " <block_num>" + "\n" +
-    "    Measure probe <block_num>." + "\n" +
+    "  " + "  " + "Measure probe <block_num>." + "\n" +
     "  " + CMD_TOGGLE + " <block_num> (0 | 1)" + "\n" +
-    "    Toggle motor for given <block_num>." + "\n" +
+    "  " + "  " + "Toggle motor for given <block_num>." + "\n" +
     "  " + CMD_GET_STATE + "\n" +
-    "    Print current status." + "\n";
+    "  " + "  " + "Print current status." + "\n" +
+    "\n";
   Serial.print(msg);
 }
 
@@ -192,16 +192,16 @@ String get_rtc_time() {
   return result;
 }
 
-String get_init_time() {
+String get_upload_time() {
   String result = "";
-  DateTime init_time = DateTime(F(__DATE__), F(__TIME__));
+  DateTime upload_time = DateTime(F(__DATE__), F(__TIME__));
   result =
-    result + init_time.year() +
-    "-" + pad_zeroes(init_time.month()) +
-    "-" + pad_zeroes(init_time.day()) +
-    " " + pad_zeroes(init_time.hour()) +
-    ":" + pad_zeroes(init_time.minute()) +
-    ":" + pad_zeroes(init_time.second()) +
+    result + upload_time.year() +
+    "-" + pad_zeroes(upload_time.month()) +
+    "-" + pad_zeroes(upload_time.day()) +
+    " " + pad_zeroes(upload_time.hour()) +
+    ":" + pad_zeroes(upload_time.minute()) +
+    ":" + pad_zeroes(upload_time.second()) +
     "";
   return result;
 }
@@ -222,26 +222,31 @@ void print_status() {
   String msg = "";
   msg =
     msg +
-    "--" + "\n" +
-    "pour_hours: " + get_pour_hours() + "\n" +
-    "pour_on_percent: " + pour_on_percent + ", " +
-    "pour_off_percent: " + pour_off_percent + "\n" +
-    "rtc_time: " + get_rtc_time() + ", " +
-    "init_time: " + get_init_time() + "\n" +
+    "Status:" + "\n" +
+    "  " + "Pour settings:" + "\n" +
+    "  " + "  " + "pour_hours: " + get_pour_hours() + "\n" +
+    "  " + "  " + "pour_on_percent: " + pour_on_percent + "\n" +
+    "  " + "  " + "pour_off_percent: " + pour_off_percent + "\n" +
+    "  " + "Time:" + "\n" +
+    "  " + "  " + "rtc_time: " + get_rtc_time() + "\n" +
+    "  " + "  " + "upload_time: " + get_upload_time() + "\n" +
     "";
   Serial.print(msg);
 
-  Serial.print("uptime_secs: ");
+  Serial.print("    uptime_secs: ");
   Serial.print((float)cur_time / 1000);
-  Serial.println("");
+  Serial.print("\n");
 
-  Serial.print("idle_measurement_delay: ");
+  Serial.println("  Delays:");
+
+  Serial.print("    idle_measurement_delay: ");
   Serial.print((float)idle_measurement_delay / 1000);
-  Serial.print(", ");
-  Serial.print("pour_measurement_delay: ");
+  Serial.print("\n");
+  Serial.print("    pour_measurement_delay: ");
   Serial.print((float)pour_measurement_delay / 1000);
-  Serial.println("");
+  Serial.print("\n");
 
+  Serial.println("  Blocks:");
   for (int i = 0; i < num_blocks; i++) {
     /*
       <is_line_problem> is set inside <get_value()>.
@@ -254,13 +259,14 @@ void print_status() {
     msg = "";
     msg =
       msg +
-      "block " + i + ":" + "\n" +
-      "  " +
-      "sensor: " + value + ", " +
-      "is_line_problem: " + is_line_problem + ", " +
-      "motor: " + motor[i].is_on + "\n";
+      "  " + "  " + "block[" + i + "]:" + "\n" +
+      "  " + "  " + "  " + "sensor: " + value + ", " +
+        "is_line_problem: " + is_line_problem + ", " +
+        "motor: " + motor[i].is_on + "\n";
     Serial.print(msg);
   }
+
+  Serial.print("\n");
 }
 
 void do_business() {
