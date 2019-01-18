@@ -68,10 +68,23 @@ void setup() {
   }
 
   if (rtc.lostPower()) {
-    Serial.println("RTC lost power, setting current time.");
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    Serial.println("RTC lost power.");
   }
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
+  /*
+    Enable this block to set RTC to time at the moment of uploading
+    sketch to board. Upload sketch. Disable block and upload sketch
+    again.
+
+    Constant added to time to compensate time between compilation
+    on main computer and execution of setup() on board.
+  */
+  /*
+  rtc.adjust(
+    DateTime(F(__DATE__), F(__TIME__)) +
+    TimeSpan(9)
+  );
+  */
 
   print_usage();
   print_status();
