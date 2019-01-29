@@ -2,17 +2,20 @@
 
 /*
   Status: working
-  Generation: 4.1.5
-  Last mod.: 2019-01-18
+  Generation: 4.1.8
+  Last mod.: 2019-01-19
 */
 
 #include "humidity_measurer.h"
 #include "switch.h"
 #include <Wire.h>
-#include <RTClib.h>
+#include "RTClib.h"
 
 const uint8_t pour_hours[24] =
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0};
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+
+const int desired_rh_min = 75;
+const int desired_rh_max = 85;
 
 const int num_blocks = 2;
 
@@ -82,7 +85,7 @@ void setup() {
   /*
   rtc.adjust(
     DateTime(F(__DATE__), F(__TIME__)) +
-    TimeSpan(9)
+    TimeSpan(7)
   );
   */
 
@@ -90,10 +93,6 @@ void setup() {
   print_status();
 }
 
-unsigned long min_debug_message_gap_ms = 100;
-
-const int pour_on_percent = 70;
-const int pour_off_percent = 80;
 const uint32_t idle_measurement_delay = uint32_t(1000) * 60 * 12;
 const uint32_t pour_measurement_delay = uint32_t(1000) * 5;
 uint32_t next_request_time[num_blocks];
@@ -229,6 +228,58 @@ String get_pour_hours() {
   return result;
 }
 
+// This function is from "ShowInfo" sketch.
+float get_board_temp()
+{
+  unsigned int wADC;
+  float result;
+
+  // The internal temperature has to be used
+  // with the internal reference of 1.1V.
+
+  // This code is not valid for the Arduino Mega,
+  // and the Arduino Mega 2560.
+
+  // Set the internal reference and mux.
+  ADMUX = (_BV(REFS1) | _BV(REFS0) | _BV(MUX3));
+  ADCSRA |= _BV(ADEN); // enable the ADC
+
+  delay(20); // wait for voltages to become stable.
+
+  ADCSRA |= _BV(ADSC); // Start the ADC
+
+  while (bit_is_set(ADCSRA,ADSC));
+
+  wADC = ADCW;
+
+  // The offset of 337.0 could be wrong. It is just an indication.
+  result = (wADC - 337.0 ) / 1.22;
+
+  return result;
+}
+
+String represent_time_passed(uint32_t seconds) {
+  String result = "";
+  TimeSpan time_span = seconds;
+  bool construction_started = false;
+
+  if (time_span.days() > 0) {
+    result = result + time_span.days() + "d ";
+    construction_started = true;
+  }
+  if (construction_started || (time_span.hours() > 0)) {
+    result = result + time_span.hours() + "h ";
+    construction_started = true;
+  }
+  if (construction_started || (time_span.minutes() > 0)) {
+    result = result + time_span.minutes() + "m ";
+    construction_started = true;
+  }
+  result = result + time_span.seconds() + "s";
+
+  return result;
+}
+
 uint32_t cur_time;
 
 void print_status() {
@@ -238,8 +289,8 @@ void print_status() {
     "Status:" + "\n" +
     "  " + "Pour settings:" + "\n" +
     "  " + "  " + "pour_hours: " + get_pour_hours() + "\n" +
-    "  " + "  " + "pour_on_percent: " + pour_on_percent + "\n" +
-    "  " + "  " + "pour_off_percent: " + pour_off_percent + "\n" +
+    "  " + "  " + "desired_rh_min: " + desired_rh_min + "\n" +
+    "  " + "  " + "desired_rh_max: " + desired_rh_max + "\n" +
     "  " + "Time:" + "\n" +
     "  " + "  " + "rtc_time: " + get_rtc_time() + "\n" +
     "  " + "  " + "upload_time: " + get_upload_time() + "\n" +
@@ -247,7 +298,15 @@ void print_status() {
   Serial.print(msg);
 
   Serial.print("    uptime_secs: ");
-  Serial.print((float)cur_time / 1000);
+  Serial.print(represent_time_passed(cur_time / 1000));
+  Serial.print("\n");
+
+  Serial.print("    board_temperature: ");
+  Serial.print(get_board_temp(), 2);
+  Serial.print("\n");
+
+  Serial.print("    rtc_temperature: ");
+  Serial.print(rtc.getTemp(), 2);
   Serial.print("\n");
 
   Serial.println("  Delays:");
@@ -299,11 +358,11 @@ void do_business() {
           motor[block].switch_off();
         }
         else {
-          if ((val <= pour_on_percent) && !motor[block].is_on) {
+          if ((val <= desired_rh_min) && !motor[block].is_on) {
             motor[block].switch_on();
             // print_status();
           }
-          if ((val >= pour_off_percent) && (motor[block].is_on)) {
+          if ((val >= desired_rh_max) && (motor[block].is_on)) {
             motor[block].switch_off();
             // print_status();
           }
@@ -343,4 +402,5 @@ void loop() {
   2018-12-04
   2019-01-12
   2019-01-18
+    Correct RTC usage.
 */
