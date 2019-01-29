@@ -2,8 +2,8 @@
 
 /*
   Status: working
-  Generation: 4.1.8
-  Last mod.: 2019-01-19
+  Generation: 4.1.9
+  Last mod.: 2019-01-29
 */
 
 #include "humidity_measurer.h"
@@ -122,7 +122,7 @@ void send_measurement(uint8_t value) {
 }
 
 const char CMD_MEASURE = 'M';
-const char CMD_TOGGLE = 'T';
+const char CMD_MOTOR = 'T';
 const char CMD_GET_STATE = 'G';
 
 void print_usage() {
@@ -132,8 +132,8 @@ void print_usage() {
     "Usage:" + "\n" +
     "  " + CMD_MEASURE + " <block_num>" + "\n" +
     "  " + "  " + "Measure probe <block_num>." + "\n" +
-    "  " + CMD_TOGGLE + " <block_num> (0 | 1)" + "\n" +
-    "  " + "  " + "Toggle motor for given <block_num>." + "\n" +
+    "  " + CMD_MOTOR + " <block_num> (0 | 1)" + "\n" +
+    "  " + "  " + "Enable/disable motor for given <block_num>." + "\n" +
     "  " + CMD_GET_STATE + "\n" +
     "  " + "  " + "Print current status." + "\n" +
     "\n";
@@ -157,7 +157,7 @@ void handle_command() {
       value = measurer[block_num].get_value();
       send_measurement(value);
       break;
-    case CMD_TOGGLE:
+    case CMD_MOTOR:
       if (data_length < 3)
         break;
       Serial.read();
@@ -403,4 +403,5 @@ void loop() {
   2019-01-12
   2019-01-18
     Correct RTC usage.
+  2019-01-29
 */
