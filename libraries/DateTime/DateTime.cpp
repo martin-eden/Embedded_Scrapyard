@@ -30,12 +30,10 @@ static uint32_t get_num_secs(
   uint8_t second
 )
 {
-    return ((days * 24L + hour) * 60 + minute) * 60 + second;
+  return ((days * 24L + hour) * 60 + minute) * 60 + second;
 }
 
-DateTime::DateTime(
-  uint32_t t
-)
+DateTime::DateTime(uint32_t t)
 {
   t -= seconds_from_1970_to_2000;
 
@@ -91,7 +89,8 @@ DateTime::DateTime(const DateTime& copy):
   ss(copy.ss)
 {}
 
-static uint8_t conv2d(const char* p) {
+static uint8_t conv2d(const char* p)
+{
   uint8_t v = 0;
   if ('0' <= *p && *p <= '9')
     v = *p - '0';
@@ -103,19 +102,36 @@ static uint8_t conv2d(const char* p) {
 // A convenient constructor for using "the compiler's time":
 //   DateTime now (__DATE__, __TIME__);
 // NOTE: using F() would further reduce the RAM footprint, see below.
-DateTime::DateTime (const char* date, const char* time) {
+DateTime::DateTime(const char* date, const char* time)
+{
   // sample input: date = "Dec 26 2009", time = "12:34:56"
   yOff = conv2d(date + 9);
   // Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
   switch (date[0]) {
-    case 'J': m = (date[1] == 'a') ? 1 : ((date[2] == 'n') ? 6 : 7); break;
-    case 'F': m = 2; break;
-    case 'A': m = date[2] == 'r' ? 4 : 8; break;
-    case 'M': m = date[2] == 'r' ? 3 : 5; break;
-    case 'S': m = 9; break;
-    case 'O': m = 10; break;
-    case 'N': m = 11; break;
-    case 'D': m = 12; break;
+    case 'J':
+      m = (date[1] == 'a') ? 1 : ((date[2] == 'n') ? 6 : 7);
+      break;
+    case 'F':
+      m = 2;
+      break;
+    case 'A':
+      m = date[2] == 'r' ? 4 : 8;
+      break;
+    case 'M':
+      m = date[2] == 'r' ? 3 : 5;
+      break;
+    case 'S':
+      m = 9;
+      break;
+    case 'O':
+      m = 10;
+      break;
+    case 'N':
+      m = 11;
+      break;
+    case 'D':
+      m = 12;
+      break;
   }
   d = conv2d(date + 4);
   hh = conv2d(time);
@@ -126,22 +142,43 @@ DateTime::DateTime (const char* date, const char* time) {
 // A convenient constructor for using "the compiler's time":
 // This version will save RAM by using PROGMEM to store it by using the F macro.
 //   DateTime now (F(__DATE__), F(__TIME__));
-DateTime::DateTime (const __FlashStringHelper* date, const __FlashStringHelper* time) {
+DateTime::DateTime(
+  const __FlashStringHelper* date,
+  const __FlashStringHelper* time
+)
+{
   // sample input: date = "Dec 26 2009", time = "12:34:56"
   char buff[11];
   memcpy_P(buff, date, 11);
   yOff = conv2d(buff + 9);
   // Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
   switch (buff[0]) {
-    case 'J': m = (buff[1] == 'a') ? 1 : ((buff[2] == 'n') ? 6 : 7); break;
-    case 'F': m = 2; break;
-    case 'A': m = buff[2] == 'r' ? 4 : 8; break;
-    case 'M': m = buff[2] == 'r' ? 3 : 5; break;
-    case 'S': m = 9; break;
-    case 'O': m = 10; break;
-    case 'N': m = 11; break;
-    case 'D': m = 12; break;
+    case 'J':
+      m = (buff[1] == 'a') ? 1 : ((buff[2] == 'n') ? 6 : 7);
+      break;
+    case 'F':
+      m = 2;
+      break;
+    case 'A':
+      m = buff[2] == 'r' ? 4 : 8;
+      break;
+    case 'M':
+      m = buff[2] == 'r' ? 3 : 5;
+      break;
+    case 'S':
+      m = 9;
+      break;
+    case 'O':
+      m = 10;
+      break;
+    case 'N':
+      m = 11;
+      break;
+    case 'D':
+      m = 12;
+      break;
   }
+
   d = conv2d(buff + 4);
   memcpy_P(buff, time, 8);
   hh = conv2d(buff);
@@ -149,12 +186,14 @@ DateTime::DateTime (const __FlashStringHelper* date, const __FlashStringHelper* 
   ss = conv2d(buff + 6);
 }
 
-uint8_t DateTime::dow() const {
+uint8_t DateTime::dow() const
+{
   uint16_t day = get_num_days(yOff, m, d);
   return (day + 6) % 7; // Jan 1, 2000 is a Saturday, i.e. returns 6
 }
 
-uint32_t DateTime::unixtime(void) const {
+uint32_t DateTime::unixtime(void) const
+{
   uint32_t t;
   uint16_t days = get_num_days(yOff, m, d);
   t = get_num_secs(days, hh, mm, ss);
@@ -163,16 +202,18 @@ uint32_t DateTime::unixtime(void) const {
   return t;
 }
 
-
-DateTime DateTime::operator + (const TimeSpan& span) {
+DateTime DateTime::operator + (const TimeSpan& span)
+{
   return DateTime(unixtime() + span.totalseconds());
 }
 
-DateTime DateTime::operator - (const TimeSpan& span) {
+DateTime DateTime::operator - (const TimeSpan& span)
+{
   return DateTime(unixtime() - span.totalseconds());
 }
 
-TimeSpan DateTime::operator - (const DateTime& right) {
+TimeSpan DateTime::operator - (const DateTime& right)
+{
   return TimeSpan(unixtime() - right.unixtime());
 }
 
@@ -185,7 +226,8 @@ TimeSpan::TimeSpan(
   int16_t days,
   int8_t hours,
   int8_t minutes,
-  int8_t seconds):
+  int8_t seconds
+):
   _seconds(
     (int32_t)days * 86400L +
     (int32_t)hours * 3600 +
@@ -194,14 +236,16 @@ TimeSpan::TimeSpan(
   )
 {}
 
-TimeSpan::TimeSpan (const TimeSpan& copy):
+TimeSpan::TimeSpan(const TimeSpan& copy):
   _seconds(copy._seconds)
 {}
 
-TimeSpan TimeSpan::operator + (const TimeSpan& right) {
+TimeSpan TimeSpan::operator + (const TimeSpan& right)
+{
   return TimeSpan(_seconds + right._seconds);
 }
 
-TimeSpan TimeSpan::operator - (const TimeSpan& right) {
+TimeSpan TimeSpan::operator - (const TimeSpan& right)
+{
   return TimeSpan(_seconds - right._seconds);
 }
