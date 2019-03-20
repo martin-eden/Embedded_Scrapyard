@@ -1,51 +1,33 @@
-const int pause = 1500;
-const int duration = 4000;
-const int piezo_pin = 9;
-const long base = 1;
-const int step = 1;
+const uint8_t piezo_pin = 13;
 
-void setup() {
+const uint16_t duration = 1000;
+const uint16_t pause = 500;
+
+const uint32_t start_fq = 110;
+const float k = 1.2;
+const uint32_t max_fq = 64000;
+
+void setup()
+{
+  pinMode(piezo_pin, OUTPUT);
+
   Serial.begin(9600);
-  //38
-  //680
-  //1980
-  //4480
-  //5030
-  //12930
-  //14330--
-  //18830
-  //25380
-  //28680
-/*
-  tone(piezo_pin, 440, duration);
-  delay(pause);
-*/
 
-  int i = 0;
-  long fq = base;
-  for (; !Serial.available(); i++, fq = base + (long)step * i)
+  uint32_t fq = start_fq;
+  while (1)
   {
-    tone(piezo_pin, fq, duration);
-    delay(pause);
+    if (Serial.available() || (fq > max_fq))
+      break;
+
     Serial.println(fq);
+    tone(piezo_pin, fq, duration);
+    delay(duration + pause);
+
+    fq = k * fq;
   }
-/*
-  analogWrite(piezo_pin, 20);
-  delay(duration);
-  analogWrite(piezo_pin, 0);
-  delay(pause);
-
-  analogWrite(piezo_pin, 40);
-  delay(duration);
-  analogWrite(piezo_pin, 0);
-  delay(pause);
-*/
 }
 
-void loop() {
+void loop()
+{
 
 }
-
-
-
-
