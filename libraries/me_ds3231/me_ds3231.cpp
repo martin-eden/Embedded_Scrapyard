@@ -65,6 +65,25 @@ void writeBytes(uint8_t offs, uint8_t numBytes, uint8_t* buf)
   Wire.endTransmission();
 }
 
+bool getBit(uint8_t byte_offs, uint8_t bit_offs)
+{
+  return getByte(byte_offs) & _BV(bit_offs);
+}
+
+void setBit(uint8_t byte_offs, uint8_t bit_offs)
+{
+  uint8_t byte_val = getByte(byte_offs);
+  byte_val |= _BV(bit_offs);
+  setByte(byte_offs, byte_val);
+}
+
+void clearBit(uint8_t byte_offs, uint8_t bit_offs)
+{
+  uint8_t byte_val = getByte(byte_offs);
+  byte_val &= ~_BV(bit_offs);
+  setByte(byte_offs, byte_val);
+}
+
 me_ds3231::me_ds3231()
 {
   Wire.begin();
@@ -140,18 +159,14 @@ float me_ds3231::measureTemp()
     CONTROL_CONV = 5,
     STATUS_BUSY = 2;
 
-  while (getByte(STATUS) & _BV(STATUS_BUSY));
-
-  uint8_t control_reg;
-  control_reg = getByte(CONTROL);
-  control_reg |= _BV(CONTROL_CONV);
-  setByte(CONTROL, control_reg);
-
-  while (getByte(CONTROL) & _BV(CONTROL_CONV));
+  while (getBit(STATUS, STATUS_BUSY));
+  setBit(CONTROL, CONTROL_CONV);
+  while (getBit(CONTROL, CONTROL_CONV));
 
   return getTemp();
 }
 
+// RS - (r)ate (s)elect
 /*
   mode | RS2,RS1 | freq (Hz)
   -----+---------+----------
@@ -198,90 +213,72 @@ uint8_t me_ds3231::getSqwMode()
 }
 
 
+// INTCN - (int)errupt (c)o(n)trol
 const uint8_t INTCN = 2;
 
 bool me_ds3231::isSqw()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  bool result = !(control_reg & _BV(INTCN));
-  return result;
+  return !getBit(CONTROL, INTCN);
 }
 
 void me_ds3231::enableSqw()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  control_reg &= ~_BV(INTCN);
-  setByte(CONTROL, control_reg);
+  clearBit(CONTROL, INTCN);
 }
 
 void me_ds3231::disableSqw()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  control_reg |= _BV(INTCN);
-  setByte(CONTROL, control_reg);
+  setBit(CONTROL, INTCN);
 }
 
 
+// BBSQW - (b)attery (b)acked (sq)uare (w)ave
 const uint8_t BBSQW = 6;
 
 bool me_ds3231::isSqwAtBattery()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  bool result = (control_reg & _BV(BBSQW));
-  return result;
+  return getBit(CONTROL, BBSQW);
 }
 
 void me_ds3231::enableSqwAtBattery()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  control_reg |= _BV(BBSQW);
-  setByte(CONTROL, control_reg);
+  setBit(CONTROL, BBSQW);
 }
 
 void me_ds3231::disableSqwAtBattery()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  control_reg &= ~_BV(BBSQW);
-  setByte(CONTROL, control_reg);
+  clearBit(CONTROL, BBSQW);
 }
 
 
+// EOSC - not (e)nabled (osc)illator
 const uint8_t EOSC = 7;
 
 bool me_ds3231::isOscillatorAtBattery()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  bool result = !(control_reg & _BV(EOSC));
-  return result;
+  return !getBit(CONTROL, EOSC);
 }
 
 void me_ds3231::enableOscillatorAtBattery()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  control_reg &= ~_BV(EOSC);
-  setByte(CONTROL, control_reg);
+  clearBit(CONTROL, EOSC);
 }
 
 void me_ds3231::disableOscillatorAtBattery()
 {
-  uint8_t control_reg = getByte(CONTROL);
-  control_reg |= _BV(EOSC);
-  setByte(CONTROL, control_reg);
+  setBit(CONTROL, EOSC);
 }
 
 
+// OSF - (os)cillator (f)lag
 const uint8_t OSF = 7;
 
 bool me_ds3231::oscillatorWasStopped()
 {
-  uint8_t status_reg = getByte(STATUS);
-  bool result = (status_reg & _BV(OSF));
-  return result;
+  return getBit(STATUS, OSF);
 }
 
 void me_ds3231::clearOscillatorWasStopped()
 {
-  uint8_t status_reg = getByte(STATUS);
-  status_reg &= ~_BV(OSF);
-  setByte(STATUS, status_reg);
+  clearBit(STATUS, OSF);
 }
