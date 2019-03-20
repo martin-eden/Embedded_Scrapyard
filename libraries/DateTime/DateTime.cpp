@@ -13,8 +13,7 @@ static uint16_t get_num_days(
   uint8_t day
 )
 {
-  assert((year >= 2000) && (year <= 2099));
-  year -= 2000;
+  assert((year >= 0) && (year <= 99));
   uint16_t days = day;
   for (uint8_t i = 1; i < month; ++i)
     days += pgm_read_byte(days_in_month + i - 1);
@@ -186,9 +185,43 @@ DateTime::DateTime(
   ss = conv2d(buff + 6);
 }
 
+void DateTime::represent_date(char* pszResult, uint8_t capacity) const
+{
+  snprintf(pszResult, capacity, "%04d-%02d-%02d", year(), month(), day());
+}
+
+void DateTime::represent_time(char* pszResult, uint8_t capacity) const
+{
+  snprintf(pszResult, capacity, "%02d:%02d:%02d", hour(), minute(), second());
+}
+
+const uint8_t dow_name_size = 4;
+const uint8_t num_dows = 7;
+const char dow_name[num_dows][dow_name_size] =
+  {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
+void DateTime::represent_dow(char* pszResult, uint8_t capacity) const
+{
+  strncpy(pszResult, dow_name[dow()], dow_name_size);
+}
+
+// TODO: debug
+/*
+void DateTime::represent(char* pszResult, uint8_t capacity) const
+{
+  const uint8_t buf_size;
+  const char buf_date[buf_size];
+  const char buf_time[buf_size];
+  represent_date(buf_date, buf_size);
+  represent_time(buf_time, buf_size);
+  snprintf(pszResult, capacity, "%s %s", buf_date, buf_time);
+}
+*/
+
 uint8_t DateTime::dow() const
 {
   uint16_t day = get_num_days(yOff, m, d);
+
   return (day + 6) % 7; // Jan 1, 2000 is a Saturday, i.e. returns 6
 }
 

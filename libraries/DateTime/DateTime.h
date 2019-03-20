@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Arduino.h>
 
 class TimeSpan;
@@ -19,6 +21,7 @@ class DateTime {
     DateTime(const DateTime& copy);
     DateTime(const char* date, const char* time);
     DateTime(const __FlashStringHelper* date, const __FlashStringHelper* time);
+
     uint16_t year() const {
       return 2000 + yOff;
     }
@@ -38,6 +41,11 @@ class DateTime {
       return ss;
     }
     uint8_t dow() const;
+
+    void represent_date(char* pszResult, uint8_t capacity) const;
+    void represent_time(char* pszResult, uint8_t capacity) const;
+    void represent_dow(char* pszResult, uint8_t capacity) const;
+    // void represent(char* pszResult, uint8_t capacity) const; // -- need debugging
 
     // 32-bit times as seconds since 1/1/1970
     uint32_t unixtime(void) const;
