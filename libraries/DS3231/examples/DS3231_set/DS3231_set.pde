@@ -20,10 +20,10 @@ byte Hour;
 byte Minute;
 byte Second;
 
-void GetDateStuff(byte& Year, byte& Month, byte& Day, byte& DoW, 
+void GetDateStuff(byte& Year, byte& Month, byte& Day, byte& DoW,
 		byte& Hour, byte& Minute, byte& Second) {
-	// Call this if you notice something coming in on 
-	// the serial port. The stuff coming in should be in 
+	// Call this if you notice something coming in on
+	// the serial port. The stuff coming in should be in
 	// the order YYMMDDwHHMMSS, with an 'x' at the end.
 	boolean GotString = false;
 	char InChar;
@@ -55,7 +55,7 @@ void GetDateStuff(byte& Year, byte& Month, byte& Day, byte& DoW,
 	Temp2 = (byte)InString[5] -48;
 	Day = Temp1*10 + Temp2;
 	// now Day of Week
-	DoW = (byte)InString[6] - 48;		
+	DoW = (byte)InString[6] - 48;
 	// now Hour
 	Temp1 = (byte)InString[7] -48;
 	Temp2 = (byte)InString[8] -48;
@@ -99,10 +99,10 @@ void loop() {
 		// Test of alarm functions
 		// set A1 to one minute past the time we just set the clock
 		// on current day of week.
-		Clock.setA1Time(DoW, Hour, Minute+1, Second, 0x0, true, 
+		Clock.setA1Time(DoW, Hour, Minute+1, Second, 0x0, true,
 			false, false);
 		// set A2 to two minutes past, on current day of month.
-		Clock.setA2Time(Date, Hour, Minute+2, 0x0, false, false, 
+		Clock.setA2Time(Date, Hour, Minute+2, 0x0, false, false,
 			false);
 		// Turn on both alarms, with external interrupt
 		Clock.turnOnAlarm(1);
