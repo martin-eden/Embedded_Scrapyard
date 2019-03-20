@@ -2,14 +2,15 @@
 
 /*
   Status: working
-  Generation: 4.1.9
-  Last mod.: 2019-01-29
+  Generation: 4.2
+  Last mod.: 2019-02-27
 */
 
 #include "humidity_measurer.h"
 #include "switch.h"
 #include <Wire.h>
-#include "RTClib.h"
+#include "DateTime.h"
+#include "me_ds3231.h"
 
 const uint8_t pour_hours[24] =
   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
@@ -21,7 +22,7 @@ const int num_blocks = 2;
 
 humidity_measurer measurer[num_blocks];
 c_switch motor[num_blocks];
-RTC_DS3231 rtc;
+me_ds3231 rtc;
 
 struct t_measurer_params {
   int sensor_pin;
@@ -65,13 +66,14 @@ void setup() {
     }
   }
 
-  if (!rtc.begin()) {
-    Serial.println("Couldn't find RTC.");
-    while (!rtc.begin());
+  if (!rtc.isOscillatorAtBattery()) {
+    Serial.println("Oscillator was disabled at battery mode. Enabling.");
+    rtc.enableOscillatorAtBattery();
   }
 
-  if (rtc.lostPower()) {
-    Serial.println("RTC lost power.");
+  if (rtc.oscillatorWasStopped()) {
+    Serial.println("Clock was stopped. Battery is over?");
+    rtc.clearOscillatorWasStopped();
   }
 
   /*
@@ -83,9 +85,9 @@ void setup() {
     on main computer and execution of setup() on board.
   */
   /*
-  rtc.adjust(
+  rtc.setDateTime(
     DateTime(F(__DATE__), F(__TIME__)) +
-    TimeSpan(7)
+    TimeSpan(8)
   );
   */
 
@@ -191,7 +193,7 @@ String pad_zeroes(uint8_t value) {
 
 String get_rtc_time() {
   String result = "";
-  DateTime rtc_time = rtc.now();
+  DateTime rtc_time = rtc.getDateTime();
   result =
     result + rtc_time.year() +
     "-" + pad_zeroes(rtc_time.month()) +
@@ -351,7 +353,7 @@ void do_business() {
         (next_request_time[block] >= 0x80000000)
       )
     ) {
-      rtc_time = rtc.now();
+      rtc_time = rtc.getDateTime();
       if (pour_hours[rtc_time.hour()] || motor[block].is_on) {
         int val = measurer[block].get_value();
         if (measurer[block].is_line_problem) {
@@ -404,4 +406,5 @@ void loop() {
   2019-01-18
     Correct RTC usage.
   2019-01-29
+  2019-02-27
 */
