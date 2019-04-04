@@ -2,8 +2,8 @@
 
 /*
   Status: working
-  Generation: 4.2
-  Last mod.: 2019-02-27
+  Generation: 4.3
+  Last mod.: 2019-03-30
 */
 
 #include "humidity_measurer.h"
@@ -12,16 +12,18 @@
 #include "DateTime.h"
 #include "me_ds3231.h"
 
-const uint8_t pour_hours[24] =
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+const uint8_t
+  pour_hours[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1},
+  light_hours[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0};
 
-const int desired_rh_min = 75;
+const int desired_rh_min = 80;
 const int desired_rh_max = 85;
 
 const int num_blocks = 2;
 
 humidity_measurer measurer[num_blocks];
 c_switch motor[num_blocks];
+c_switch lamp;
 me_ds3231 rtc;
 
 struct t_measurer_params {
@@ -39,10 +41,15 @@ const t_measurer_params sensor_params[num_blocks] =
     {A0, -1, -1, true, false, 7}
   };
 
-const int motor_pins[num_blocks] = {2, 3};
+const uint8_t
+  motor_pins[num_blocks] = {2, 3},
+  lamp_pin = 8;
 
 void setup() {
   Serial.begin(9600);
+
+  lamp.state_pin = lamp_pin;
+  lamp.init();
 
   for (int i = 0; i < num_blocks; i++) {
     motor[i].state_pin = motor_pins[i];
@@ -71,10 +78,7 @@ void setup() {
     rtc.enableOscillatorAtBattery();
   }
 
-  if (rtc.oscillatorWasStopped()) {
-    Serial.println("Clock was stopped. Battery is over?");
-    rtc.clearOscillatorWasStopped();
-  }
+  rtc.disableSqwAtBattery();
 
   /*
     Enable this block to set RTC to time at the moment of uploading
@@ -90,6 +94,8 @@ void setup() {
     TimeSpan(8)
   );
   */
+
+  loop();
 
   print_usage();
   print_status();
@@ -123,9 +129,11 @@ void send_measurement(uint8_t value) {
   Serial.println(msg);
 }
 
-const char CMD_MEASURE = 'M';
-const char CMD_MOTOR = 'T';
-const char CMD_GET_STATE = 'G';
+const char
+  CMD_CLEAR_CLOCK_ERROR = 'C',
+  CMD_MEASURE = 'M',
+  CMD_MOTOR = 'T',
+  CMD_GET_STATE = 'G';
 
 void print_usage() {
   String msg = "";
@@ -138,6 +146,8 @@ void print_usage() {
     "  " + "  " + "Enable/disable motor for given <block_num>." + "\n" +
     "  " + CMD_GET_STATE + "\n" +
     "  " + "  " + "Print current status." + "\n" +
+    "  " + CMD_CLEAR_CLOCK_ERROR + "\n" +
+    "  " + "  " + "Clear clock error flag." + "\n" +
     "\n";
   Serial.print(msg);
 }
@@ -175,6 +185,11 @@ void handle_command() {
     case CMD_GET_STATE:
       Serial.read();
       print_status();
+      break;
+    case CMD_CLEAR_CLOCK_ERROR:
+      Serial.read();
+      rtc.clearOscillatorWasStopped();
+      Serial.println("Clock-was-stopped flag is cleared.");
       break;
     default:
       Serial.read();
@@ -224,6 +239,16 @@ String get_pour_hours() {
   String result = "";
   for (uint8_t i = 0; i < 24; i++) {
     if (pour_hours[i]) {
+      result = result + i + " ";
+    }
+  }
+  return result;
+}
+
+String get_light_hours() {
+  String result = "";
+  for (uint8_t i = 0; i < 24; i++) {
+    if (light_hours[i]) {
       result = result + i + " ";
     }
   }
@@ -285,21 +310,41 @@ String represent_time_passed(uint32_t seconds) {
 uint32_t cur_time;
 
 void print_status() {
-  String msg = "";
+  String msg;
+
+  msg = "";
   msg =
     msg +
     "Status:" + "\n" +
     "  " + "Pour settings:" + "\n" +
+    "  " + "  " + "light_hours: " + get_light_hours() + "\n" +
     "  " + "  " + "pour_hours: " + get_pour_hours() + "\n" +
     "  " + "  " + "desired_rh_min: " + desired_rh_min + "\n" +
-    "  " + "  " + "desired_rh_max: " + desired_rh_max + "\n" +
+    "  " + "  " + "desired_rh_max: " + desired_rh_max + "\n";
+  Serial.print(msg);
+
+
+  msg = "";
+  msg =
+    msg +
     "  " + "Time:" + "\n" +
     "  " + "  " + "rtc_time: " + get_rtc_time() + "\n" +
+    "  " + "  " + "rtc_status: ";
+  if (rtc.oscillatorWasStopped())
+    msg = msg + "Clock was stopped. Battery is over?";
+  else
+    msg = msg + "ok";
+  msg = msg + "\n";
+  Serial.print(msg);
+
+  msg = "";
+  msg =
+    msg +
     "  " + "  " + "upload_time: " + get_upload_time() + "\n" +
     "";
   Serial.print(msg);
 
-  Serial.print("    uptime_secs: ");
+  Serial.print("    uptime: ");
   Serial.print(represent_time_passed(cur_time / 1000));
   Serial.print("\n");
 
@@ -320,6 +365,11 @@ void print_status() {
   Serial.print((float)pour_measurement_delay / 1000);
   Serial.print("\n");
 
+  uint8_t lamp_is_on = lamp.is_on;
+  msg = "";
+  msg = msg + "  Lamp: " + lamp_is_on + "\n";
+  Serial.print(msg);
+
   Serial.println("  Blocks:");
   for (int i = 0; i < num_blocks; i++) {
     /*
@@ -334,48 +384,82 @@ void print_status() {
     msg =
       msg +
       "  " + "  " + "block[" + i + "]:" + "\n" +
-      "  " + "  " + "  " + "sensor: " + value + ", " +
-        "is_line_problem: " + is_line_problem + ", " +
-        "motor: " + motor[i].is_on + "\n";
+      "  " + "  " + "  " +
+      "sensor: " + value + ", " +
+      "is_line_problem: " + is_line_problem + ", " +
+      "motor: " + motor[i].is_on + "\n";
     Serial.print(msg);
   }
 
   Serial.print("\n");
 }
 
-void do_business() {
-  DateTime rtc_time;
-  for (int block = 0; block < num_blocks; block++) {
-    if (
-      (cur_time >= next_request_time[block]) ||
-      (
-        (cur_time < 0x80000000) &&
-        (next_request_time[block] >= 0x80000000)
-      )
-    ) {
-      rtc_time = rtc.getDateTime();
-      if (pour_hours[rtc_time.hour()] || motor[block].is_on) {
-        int val = measurer[block].get_value();
-        if (measurer[block].is_line_problem) {
-          motor[block].switch_off();
-        }
-        else {
-          if ((val <= desired_rh_min) && !motor[block].is_on) {
-            motor[block].switch_on();
-            // print_status();
-          }
-          if ((val >= desired_rh_max) && (motor[block].is_on)) {
-            motor[block].switch_off();
-            // print_status();
-          }
-        }
+void do_common_business(DateTime rtc_time)
+{
+  if (light_hours[rtc_time.hour()] && !lamp.is_on)
+    lamp.switch_on();
+  if (!light_hours[rtc_time.hour()] && lamp.is_on)
+    lamp.switch_off();
+}
+
+void do_block_business(DateTime rtc_time, uint8_t block_num)
+{
+  if (
+    (cur_time < next_request_time[block_num]) ||
+    (
+      (cur_time >= 0x80000000) && (next_request_time[block_num] < 0x80000000)
+    )
+  )
+    return;
+
+  if (pour_hours[rtc_time.hour()] || motor[block_num].is_on) {
+    int val = measurer[block_num].get_value();
+    if (measurer[block_num].is_line_problem) {
+      motor[block_num].switch_off();
+    }
+    else {
+      if ((val <= desired_rh_min) && !motor[block_num].is_on) {
+        motor[block_num].switch_on();
+        // print_status();
       }
-      if (motor[block].is_on)
-        next_request_time[block] = cur_time + pour_measurement_delay;
-      else
-        next_request_time[block] = cur_time + idle_measurement_delay;
+      if ((val >= desired_rh_max) && (motor[block_num].is_on)) {
+        motor[block_num].switch_off();
+        // print_status();
+      }
     }
   }
+
+  if (motor[block_num].is_on)
+    next_request_time[block_num] = cur_time + pour_measurement_delay;
+  else
+    next_request_time[block_num] = cur_time + idle_measurement_delay;
+}
+
+void do_business()
+{
+  DateTime rtc_time;
+  bool time_to_work = false;
+
+  for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
+  {
+    if (
+      (cur_time >= next_request_time[block_num]) ||
+      (
+        (cur_time < 0x80000000) && (next_request_time[block_num] >= 0x80000000)
+      )
+    )
+      time_to_work = true;
+  }
+
+  if (!time_to_work)
+    return;
+
+  rtc_time = rtc.getDateTime();
+
+  do_common_business(rtc_time);
+
+  for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
+    do_block_business(rtc_time, block_num);
 }
 
 void serialEvent() {
@@ -407,4 +491,7 @@ void loop() {
     Correct RTC usage.
   2019-01-29
   2019-02-27
+  2019-03-21
+  2019-03-30
+    Lamp support.
 */
