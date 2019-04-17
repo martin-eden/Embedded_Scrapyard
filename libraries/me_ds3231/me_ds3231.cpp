@@ -270,7 +270,7 @@ void me_ds3231::disableOscillatorAtBattery()
 }
 
 
-// OSF - (os)cillator (f)lag
+// OSF - (o)scillator (s)topped (f)lag
 const uint8_t OSF = 7;
 
 bool me_ds3231::oscillatorWasStopped()
@@ -281,4 +281,23 @@ bool me_ds3231::oscillatorWasStopped()
 void me_ds3231::clearOscillatorWasStopped()
 {
   clearBit(STATUS, OSF);
+}
+
+
+// EN32K - 32768Hz output at corresponding pin
+const uint8_t EN32K = 3;
+
+bool me_ds3231::wave32kEnabled()
+{
+  return getBit(STATUS, EN32K);
+}
+
+void me_ds3231::enable32kWave()
+{
+  setBit(STATUS, EN32K);
+}
+
+void me_ds3231::disable32kWave()
+{
+  clearBit(STATUS, EN32K);
 }

@@ -3,7 +3,7 @@
 /*
   Status: working
   Generation: 4.3
-  Last mod.: 2019-03-30
+  Last mod.: 2019-04-13
 */
 
 #include "humidity_measurer.h"
@@ -13,8 +13,8 @@
 #include "me_ds3231.h"
 
 const uint8_t
-  pour_hours[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1},
-  light_hours[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0};
+  pour_hours[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0},
+  light_hours[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0};
 
 const int desired_rh_min = 80;
 const int desired_rh_max = 85;
@@ -93,6 +93,7 @@ void setup() {
     DateTime(F(__DATE__), F(__TIME__)) +
     TimeSpan(8)
   );
+  rtc.clearOscillatorWasStopped();
   */
 
   loop();
