@@ -33,4 +33,8 @@ class me_ds3231
 
     bool oscillatorWasStopped();
     void clearOscillatorWasStopped();
+
+    bool wave32kEnabled();
+    void enable32kWave();
+    void disable32kWave();
 };
