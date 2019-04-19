@@ -23,6 +23,12 @@ void setup()
   ds3231.setSqwMode(0);
   ds3231.enableSqw();
 
+  if (ds3231.wave32kEnabled())
+  {
+    Serial.println("32K output enabled. Disabling.");
+    ds3231.disable32kWave();
+  }
+
   if (ds3231.oscillatorWasStopped())
   {
     Serial.println("Clock was stopped. Battery is over?");
