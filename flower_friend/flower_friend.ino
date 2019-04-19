@@ -2,8 +2,8 @@
 
 /*
   Status: working
-  Generation: 4.3
-  Last mod.: 2019-04-13
+  Generation: 4.4
+  Last mod.: 2019-04-19
 */
 
 #include "humidity_measurer.h"
@@ -12,9 +12,29 @@
 #include "DateTime.h"
 #include "me_ds3231.h"
 
+struct t_suntime {
+  uint8_t sunrise;
+  uint8_t sunset;
+};
+
+const t_suntime sun_month[12] =
+  {
+    {8, 17},
+    {7, 17},
+    {6, 18},
+    {5, 20},
+    {4, 23},
+    {4, 23},
+    {4, 23},
+    {4, 20},
+    {6, 19},
+    {7, 18},
+    {7, 17},
+    {8, 17},
+  };
+
 const uint8_t
-  pour_hours[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0},
-  light_hours[24] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0};
+  pour_hours[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0};
 
 const int desired_rh_min = 80;
 const int desired_rh_max = 85;
@@ -207,9 +227,11 @@ String pad_zeroes(uint8_t value) {
   return result;
 }
 
+DateTime rtc_time;
+
 String get_rtc_time() {
   String result = "";
-  DateTime rtc_time = rtc.getDateTime();
+  rtc_time = rtc.getDateTime();
   result =
     result + rtc_time.year() +
     "-" + pad_zeroes(rtc_time.month()) +
@@ -246,13 +268,9 @@ String get_pour_hours() {
   return result;
 }
 
-String get_light_hours() {
+String get_light_hours(uint8_t month) {
   String result = "";
-  for (uint8_t i = 0; i < 24; i++) {
-    if (light_hours[i]) {
-      result = result + i + " ";
-    }
-  }
+  result = result + sun_month[month - 1].sunrise + ".." + sun_month[month - 1].sunset;
   return result;
 }
 
@@ -318,7 +336,7 @@ void print_status() {
     msg +
     "Status:" + "\n" +
     "  " + "Pour settings:" + "\n" +
-    "  " + "  " + "light_hours: " + get_light_hours() + "\n" +
+    "  " + "  " + "light_hours: " + get_light_hours(rtc_time.month()) + "\n" +
     "  " + "  " + "pour_hours: " + get_pour_hours() + "\n" +
     "  " + "  " + "desired_rh_min: " + desired_rh_min + "\n" +
     "  " + "  " + "desired_rh_max: " + desired_rh_max + "\n";
@@ -395,15 +413,19 @@ void print_status() {
   Serial.print("\n");
 }
 
-void do_common_business(DateTime rtc_time)
+void do_common_business()
 {
-  if (light_hours[rtc_time.hour()] && !lamp.is_on)
+  uint8_t
+    sunrise = sun_month[rtc_time.month() - 1].sunrise,
+    sunset = sun_month[rtc_time.month() - 1].sunset,
+    hour = rtc_time.hour();
+  if (!lamp.is_on && (hour >= sunrise) && (hour < sunset))
     lamp.switch_on();
-  if (!light_hours[rtc_time.hour()] && lamp.is_on)
+  if (lamp.is_on && ((hour < sunrise) || (hour >= sunset)))
     lamp.switch_off();
 }
 
-void do_block_business(DateTime rtc_time, uint8_t block_num)
+void do_block_business(uint8_t block_num)
 {
   if (
     (cur_time < next_request_time[block_num]) ||
@@ -438,7 +460,6 @@ void do_block_business(DateTime rtc_time, uint8_t block_num)
 
 void do_business()
 {
-  DateTime rtc_time;
   bool time_to_work = false;
 
   for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
@@ -457,10 +478,10 @@ void do_business()
 
   rtc_time = rtc.getDateTime();
 
-  do_common_business(rtc_time);
+  do_common_business();
 
   for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
-    do_block_business(rtc_time, block_num);
+    do_block_business(block_num);
 }
 
 void serialEvent() {
@@ -495,4 +516,6 @@ void loop() {
   2019-03-21
   2019-03-30
     Lamp support.
+  2019-04-19
+    Lighting depends on month.
 */
