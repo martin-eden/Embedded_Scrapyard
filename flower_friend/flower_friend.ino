@@ -2,8 +2,8 @@
 
 /*
   Status: working
-  Generation: 4.4
-  Last mod.: 2019-04-19
+  Generation: 4.4.1
+  Last mod.: 2019-04-21
 */
 
 #include "humidity_measurer.h"
@@ -467,7 +467,7 @@ void do_business()
     if (
       (cur_time >= next_request_time[block_num]) ||
       (
-        (cur_time < 0x80000000) && (next_request_time[block_num] >= 0x80000000)
+        (cur_time < 0x10000000) && (next_request_time[block_num] >= 0x80000000)
       )
     )
       time_to_work = true;
