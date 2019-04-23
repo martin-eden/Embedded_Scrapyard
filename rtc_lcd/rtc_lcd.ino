@@ -3,12 +3,12 @@
 #include <LiquidCrystal.h>
 
 const uint8_t
-  rs = 12,
-  en = 11,
-  d4 = 5,
-  d5 = 4,
-  d6 = 3,
-  d7 = 2;
+  rs = 7,
+  en = 8,
+  d4 = 9,
+  d5 = 10,
+  d6 = 11,
+  d7 = 12;
 
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
