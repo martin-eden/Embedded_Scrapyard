@@ -8,7 +8,9 @@ const uint8_t
   d4 = 9,
   d5 = 10,
   d6 = 11,
-  d7 = 12;
+  d7 = 12,
+
+  tick_pin = 3;
 
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
@@ -44,6 +46,10 @@ void setup()
     DateTime(F(__DATE__), F(__TIME__)) +
     TimeSpan(7)
   );*/
+
+  pinMode(tick_pin, INPUT_PULLUP);
+  uint8_t internal_pin_no = digitalPinToInterrupt(tick_pin);
+  attachInterrupt(internal_pin_no, tick_handler, RISING);
 }
 
 const uint8_t max_msg_len = 40;
@@ -73,8 +79,19 @@ void do_business()
   // Serial.println("\337C");
 }
 
+volatile bool tick_registered;
+
 void loop()
 {
-  do_business();
-  delay(1000);
+  if (tick_registered)
+  {
+    do_business();
+    tick_registered = false;
+  }
+}
+
+void tick_handler()
+{
+  // Serial.println("beep");
+  tick_registered = true;
 }
