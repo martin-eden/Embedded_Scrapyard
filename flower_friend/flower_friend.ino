@@ -1,9 +1,9 @@
 // Measures soil dryness and pours if needed.
 
 /*
-  Status: working
-  Generation: 4.4.1
-  Last mod.: 2019-04-21
+  Status: stable
+  Generation: 4.5.1
+  Last mod.: 2019-05-01
 */
 
 #include "humidity_measurer.h"
@@ -12,72 +12,106 @@
 #include "DateTime.h"
 #include "me_ds3231.h"
 
-struct t_suntime {
-  uint8_t sunrise;
-  uint8_t sunset;
-};
+String
+  code_descr = "\"Flower friend\" gardening system",
+  version = "4.5.1";
 
-const t_suntime sun_month[12] =
+struct t_suntime
   {
-    {8, 17},
-    {7, 17},
-    {6, 18},
-    {5, 20},
-    {4, 23},
-    {4, 23},
-    {4, 23},
-    {4, 20},
-    {6, 19},
-    {7, 18},
-    {7, 17},
-    {8, 17},
+    uint8_t sunrise;
+    uint8_t sunset;
   };
 
+const t_suntime
+  sun_month[12] =
+    {
+      {8, 17},
+      {7, 17},
+      {6, 18},
+      {5, 20},
+      {4, 23},
+      {4, 23},
+      {4, 23},
+      {4, 20},
+      {6, 19},
+      {7, 18},
+      {7, 17},
+      {8, 17},
+    };
+
 const uint8_t
-  pour_hours[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0};
+  pour_hours[24] =
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0},
 
-const int desired_rh_min = 80;
-const int desired_rh_max = 85;
+  desired_rh_min = 80,
+  desired_rh_max = 85,
 
-const int num_blocks = 2;
+  num_blocks = 2;
 
 humidity_measurer measurer[num_blocks];
 c_switch motor[num_blocks];
 c_switch lamp;
 me_ds3231 rtc;
 
-struct t_measurer_params {
-  int sensor_pin;
-  int min_value;
-  int max_value;
-  bool power_off_between_measures;
-  bool high_means_dry;
-  int power_pin;
-};
+struct t_measurer_params
+  {
+    uint8_t power_pin;
+    uint8_t sensor_pin;
+    int16_t min_value;
+    int16_t max_value;
+    bool power_off_between_measures;
+    bool high_means_dry;
+  };
 
 const t_measurer_params sensor_params[num_blocks] =
   {
-    {A1, -1, -1, true, false, 6},
-    {A0, -1, -1, true, false, 7}
+    {6, A1, -1, -1, true, false},
+    {7, A0, -1, -1, true, false}
   };
 
 const uint8_t
   motor_pins[num_blocks] = {2, 3},
   lamp_pin = 8;
 
-void setup() {
+void setup()
+{
   Serial.begin(9600);
 
+  init_lamp();
+  init_motors();
+  init_moisture_sensors();
+  init_clock();
+  // setup_clock();
+
+  // assure normal business logic was done before printing status:
+  loop();
+
+  print_signature();
+  print_usage();
+  print_status();
+}
+
+void init_lamp()
+{
   lamp.state_pin = lamp_pin;
   lamp.init();
+}
 
-  for (int i = 0; i < num_blocks; i++) {
+void init_motors()
+{
+  for (int i = 0; i < num_blocks; i++)
+  {
     motor[i].state_pin = motor_pins[i];
     motor[i].init();
   }
+}
 
-  for (int i = 0; i < num_blocks; i++) {
-    if (sensor_params[i].sensor_pin != -1) {
+void init_moisture_sensors()
+{
+  for (int i = 0; i < num_blocks; i++)
+  {
+    if (sensor_params[i].sensor_pin != -1)
+    {
       pinMode(sensor_params[i].sensor_pin, INPUT);
       measurer[i].sensor_pin = sensor_params[i].sensor_pin;
     }
@@ -87,46 +121,50 @@ void setup() {
       measurer[i].max_value = sensor_params[i].max_value;
     measurer[i].power_off_between_measures = sensor_params[i].power_off_between_measures;
     measurer[i].high_means_dry = sensor_params[i].high_means_dry;
-    if (sensor_params[i].power_pin != -1) {
+    if (sensor_params[i].power_pin != -1)
+    {
       pinMode(sensor_params[i].power_pin, OUTPUT);
       measurer[i].power_pin = sensor_params[i].power_pin;
     }
   }
+}
 
-  if (!rtc.isOscillatorAtBattery()) {
+void init_clock()
+{
+  if (!rtc.isOscillatorAtBattery())
+  {
     Serial.println("Oscillator was disabled at battery mode. Enabling.");
     rtc.enableOscillatorAtBattery();
   }
-
   rtc.disableSqwAtBattery();
+}
 
+void setup_clock()
+{
   /*
-    Enable this block to set RTC to time at the moment of uploading
-    sketch to board. Upload sketch. Disable block and upload sketch
-    again.
+    Call this function from setup() to set RTC to time to the moment
+    of uploading sketch to board. Upload sketch. Disable this function
+    call and upload sketch again.
 
     Constant added to time to compensate time between compilation
     on main computer and execution of setup() on board.
   */
-  /*
+
+  uint8_t time_from_compile_to_setup_secs = 8;
+
   rtc.setDateTime(
     DateTime(F(__DATE__), F(__TIME__)) +
-    TimeSpan(8)
+    TimeSpan(time_from_compile_to_setup_secs)
   );
   rtc.clearOscillatorWasStopped();
-  */
-
-  loop();
-
-  print_usage();
-  print_status();
 }
 
 const uint32_t idle_measurement_delay = uint32_t(1000) * 60 * 12;
 const uint32_t pour_measurement_delay = uint32_t(1000) * 5;
 uint32_t next_request_time[num_blocks];
 
-int parse_block_num(char c) {
+int parse_block_num(char c)
+{
   if (c == '0')
     return 0;
   else if (c == '1')
@@ -135,7 +173,8 @@ int parse_block_num(char c) {
     return -1;
 }
 
-int parse_on_off(char c) {
+int parse_on_off(char c)
+{
   if (c == '0')
     return 0;
   else if (c == '1')
@@ -144,10 +183,33 @@ int parse_on_off(char c) {
     return -1;
 }
 
-void send_measurement(uint8_t value) {
+void send_measurement(uint8_t value)
+{
   String msg = "";
   msg = msg + "value: " + value;
   Serial.println(msg);
+}
+
+void print_signature()
+{
+  Serial.println("-----------------------------------");
+
+  Serial.print(code_descr);
+  Serial.println();
+
+  Serial.print("  Version: ");
+  Serial.print(version);
+  Serial.println();
+
+  Serial.print("  Uploaded: ");
+  Serial.print(get_upload_time());
+  Serial.println();
+
+  Serial.print("  File: ");
+  Serial.print(F(__FILE__));
+  Serial.println();
+
+  Serial.println("-----------------------------------");
 }
 
 const char
@@ -156,7 +218,8 @@ const char
   CMD_MOTOR = 'T',
   CMD_GET_STATE = 'G';
 
-void print_usage() {
+void print_usage()
+{
   String msg = "";
   msg =
     msg +
@@ -173,13 +236,15 @@ void print_usage() {
   Serial.print(msg);
 }
 
-void handle_command() {
+void handle_command()
+{
   char cmd = Serial.peek();
   uint8_t data_length = Serial.available();
   int8_t block_num;
   int8_t on_off;
   uint8_t value;
-  switch (cmd) {
+  switch (cmd)
+  {
     case CMD_MEASURE:
       if (data_length < 2)
         break;
@@ -219,7 +284,8 @@ void handle_command() {
   }
 }
 
-String pad_zeroes(uint8_t value) {
+String pad_zeroes(uint8_t value)
+{
   String result = "";
   if (value < 10)
     result = result + "0";
@@ -229,7 +295,8 @@ String pad_zeroes(uint8_t value) {
 
 DateTime rtc_time;
 
-String get_rtc_time() {
+String get_rtc_time()
+{
   String result = "";
   rtc_time = rtc.getDateTime();
   result =
@@ -244,7 +311,8 @@ String get_rtc_time() {
   return result;
 }
 
-String get_upload_time() {
+String get_upload_time()
+{
   String result = "";
   DateTime upload_time = DateTime(F(__DATE__), F(__TIME__));
   result =
@@ -258,23 +326,29 @@ String get_upload_time() {
   return result;
 }
 
-String get_pour_hours() {
+String get_pour_hours()
+{
   String result = "";
-  for (uint8_t i = 0; i < 24; i++) {
-    if (pour_hours[i]) {
+  for (uint8_t i = 0; i < 24; i++)
+    if (pour_hours[i])
       result = result + i + " ";
-    }
-  }
   return result;
 }
 
-String get_light_hours(uint8_t month) {
+String get_light_hours(uint8_t month)
+{
   String result = "";
-  result = result + sun_month[month - 1].sunrise + ".." + sun_month[month - 1].sunset;
+  result =
+    result +
+    sun_month[month - 1].sunrise + ".." + sun_month[month - 1].sunset;
   return result;
 }
 
-// This function is from "ShowInfo" sketch.
+/*
+  This function is from "ShowInfo" sketch.
+
+  I've changed constants to better fit my case.
+*/
 float get_board_temp()
 {
   unsigned int wADC;
@@ -298,26 +372,30 @@ float get_board_temp()
 
   wADC = ADCW;
 
-  // The offset of 337.0 could be wrong. It is just an indication.
-  result = (wADC - 337.0 ) / 1.22;
+  // The constants could be wrong. It is just an adjustment.
+  result = (wADC - 325.0 ) / 1.04;
 
   return result;
 }
 
-String represent_time_passed(uint32_t seconds) {
+String represent_time_passed(uint32_t seconds)
+{
   String result = "";
   TimeSpan time_span = seconds;
   bool construction_started = false;
 
-  if (time_span.days() > 0) {
+  if (time_span.days() > 0)
+  {
     result = result + time_span.days() + "d ";
     construction_started = true;
   }
-  if (construction_started || (time_span.hours() > 0)) {
+  if (construction_started || (time_span.hours() > 0))
+  {
     result = result + time_span.hours() + "h ";
     construction_started = true;
   }
-  if (construction_started || (time_span.minutes() > 0)) {
+  if (construction_started || (time_span.minutes() > 0))
+  {
     result = result + time_span.minutes() + "m ";
     construction_started = true;
   }
@@ -328,7 +406,8 @@ String represent_time_passed(uint32_t seconds) {
 
 uint32_t cur_time;
 
-void print_status() {
+void print_status()
+{
   String msg;
 
   msg = "";
@@ -354,13 +433,6 @@ void print_status() {
   else
     msg = msg + "ok";
   msg = msg + "\n";
-  Serial.print(msg);
-
-  msg = "";
-  msg =
-    msg +
-    "  " + "  " + "upload_time: " + get_upload_time() + "\n" +
-    "";
   Serial.print(msg);
 
   Serial.print("    uptime: ");
@@ -390,7 +462,8 @@ void print_status() {
   Serial.print(msg);
 
   Serial.println("  Blocks:");
-  for (int i = 0; i < num_blocks; i++) {
+  for (int i = 0; i < num_blocks; i++)
+  {
     /*
       <is_line_problem> is set inside <get_value()>.
       In string constructor "a() + b()" the actual call order
@@ -435,17 +508,20 @@ void do_block_business(uint8_t block_num)
   )
     return;
 
-  if (pour_hours[rtc_time.hour()] || motor[block_num].is_on) {
+  if (pour_hours[rtc_time.hour()] || motor[block_num].is_on)
+  {
     int val = measurer[block_num].get_value();
-    if (measurer[block_num].is_line_problem) {
+    if (measurer[block_num].is_line_problem)
       motor[block_num].switch_off();
-    }
-    else {
-      if ((val <= desired_rh_min) && !motor[block_num].is_on) {
+    else
+    {
+      if ((val <= desired_rh_min) && !motor[block_num].is_on)
+      {
         motor[block_num].switch_on();
         // print_status();
       }
-      if ((val >= desired_rh_max) && (motor[block_num].is_on)) {
+      if ((val >= desired_rh_max) && (motor[block_num].is_on))
+      {
         motor[block_num].switch_off();
         // print_status();
       }
@@ -484,11 +560,13 @@ void do_business()
     do_block_business(block_num);
 }
 
-void serialEvent() {
+void serialEvent()
+{
   handle_command();
 }
 
-void loop() {
+void loop()
+{
   cur_time = millis();
   do_business();
 }
@@ -518,4 +596,5 @@ void loop() {
     Lamp support.
   2019-04-19
     Lighting depends on month.
+  2019-05-01
 */
