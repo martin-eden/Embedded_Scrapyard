@@ -20,8 +20,8 @@ class me_ds3231
     uint8_t getSqwMode();
 
     bool isSqw();
-    void enableSqw();
-    void disableSqw();
+    void emitSqwNoAlarm();
+    void emitAlarmNoSqw();
 
     bool isSqwAtBattery();
     void enableSqwAtBattery();

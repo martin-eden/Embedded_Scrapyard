@@ -221,12 +221,12 @@ bool me_ds3231::isSqw()
   return !getBit(CONTROL, INTCN);
 }
 
-void me_ds3231::enableSqw()
+void me_ds3231::emitSqwNoAlarm()
 {
   clearBit(CONTROL, INTCN);
 }
 
-void me_ds3231::disableSqw()
+void me_ds3231::emitAlarmNoSqw()
 {
   setBit(CONTROL, INTCN);
 }
