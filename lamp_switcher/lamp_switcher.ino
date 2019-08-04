@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Generation: 4.6.0
-  Last mod.: 2019-05-05
+  Generation: 4.6.2
+  Last mod.: 2019-05-28
 */
 
 #include "switch.h"
@@ -13,7 +13,7 @@
 
 String
   code_descr = "\"Lamp switcher\" (trucated \"Flower friend\") gardening system",
-  version = "1.0.0";
+  version = "1.0.2";
 
 struct t_suntime
   {
@@ -42,7 +42,7 @@ c_switch lamp;
 me_ds3231 rtc;
 
 const uint8_t
-  lamp_pin = 7;
+  lamp_pin = 6;
 
 void setup()
 {
@@ -74,6 +74,8 @@ void init_clock()
     rtc.enableOscillatorAtBattery();
   }
   rtc.disableSqwAtBattery();
+  rtc.disable32kWave();
+  // rtc.setDateTime(DateTime(2089, 5, 1));
 }
 
 void setup_clock()
@@ -96,7 +98,7 @@ void setup_clock()
   rtc.clearOscillatorWasStopped();
 }
 
-const uint32_t idle_measurement_delay = uint32_t(1000) * 60 * 12;
+const uint32_t idle_measurement_delay = 1000;
 uint32_t next_request_time;
 
 void print_signature()
@@ -110,8 +112,8 @@ void print_signature()
   Serial.print(version);
   Serial.println();
 
-  Serial.print("  Uploaded: ");
-  Serial.print(get_upload_time());
+  Serial.print("  Compiled: ");
+  Serial.print(get_compile_time());
   Serial.println();
 
   Serial.print("  File: ");
@@ -154,6 +156,8 @@ void handle_command()
       Serial.println("Clock-was-stopped flag is cleared.");
       break;
     default:
+      Serial.print("Unknown command: 0x");
+      Serial.println(cmd, HEX);
       Serial.read();
       print_usage();
       break;
@@ -187,7 +191,7 @@ String get_rtc_time()
   return result;
 }
 
-String get_upload_time()
+String get_compile_time()
 {
   String result = "";
   DateTime upload_time = DateTime(F(__DATE__), F(__TIME__));
@@ -235,7 +239,7 @@ float get_board_temp()
 
   ADCSRA |= _BV(ADSC); // Start the ADC
 
-  while (bit_is_set(ADCSRA,ADSC));
+  while (bit_is_set(ADCSRA, ADSC));
 
   wADC = ADCW;
 
@@ -312,7 +316,7 @@ void print_status()
   Serial.print(rtc.getTemp(), 2);
   Serial.print("\n");
 
-  Serial.println("  Delays:");
+  Serial.print("  Delays:\n");
 
   Serial.print("    idle_measurement_delay: ");
   Serial.print((float)idle_measurement_delay / 1000);
@@ -322,6 +326,8 @@ void print_status()
   msg = "";
   msg = msg + "  Lamp: " + lamp_is_on + "\n";
   Serial.print(msg);
+
+  Serial.print("\n");
 }
 
 void do_common_business()
