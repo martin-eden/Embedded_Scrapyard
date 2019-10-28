@@ -2,7 +2,7 @@
 
 /*
   Status: stable
-  Generation: 5.0.2
+  Generation: 5.0.3
   Last mod.: 2019-10-28
 */
 
@@ -14,7 +14,7 @@
 
 String
   code_descr = "\"Flower friend\" gardening system",
-  version = "5.0.2";
+  version = "5.0.3";
 
 const uint8_t
   pour_hours[24] =
@@ -42,7 +42,7 @@ struct t_measurer_params
 const t_measurer_params sensor_params[num_blocks] =
   {
     {8, A0, 18, 70, true, true},
-    {9, A2, 30, 720, true, false}
+    {9, A2, 30, 170, true, false}
   };
 
 const uint8_t motor_pins[num_blocks] =
