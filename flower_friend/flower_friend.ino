@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Generation: 5.0.0
-  Last mod.: 2019-08-04
+  Generation: 5.0.1
+  Last mod.: 2019-08-31
 */
 
 #include "humidity_measurer.h"
@@ -14,7 +14,7 @@
 
 String
   code_descr = "\"Flower friend\" gardening system",
-  version = "5.0.0";
+  version = "5.0.1";
 
 const uint8_t
   pour_hours[24] =
@@ -465,7 +465,7 @@ void do_block_business(uint8_t block_num)
         motor[block_num].switch_on();
         // print_status();
       }
-      if ((val >= desired_rh_max) && (motor[block_num].is_on))
+      else if ((val >= desired_rh_max) && (motor[block_num].is_on))
       {
         motor[block_num].switch_off();
         // print_status();
