@@ -32,6 +32,15 @@ int humidity_measurer::get_raw_value() {
   }
   raw_value = sum / num_measures;
 
+  /*
+  Serial.print(sensor_pin);
+  Serial.print(" ");
+  Serial.print(sum);
+  Serial.print(" ");
+  Serial.print(raw_value);
+  Serial.println();
+  */
+
   if (power_off_between_measures)
     digitalWrite(power_pin, LOW);
 
