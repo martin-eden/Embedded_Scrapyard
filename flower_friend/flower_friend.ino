@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Generation: 5.0.3
-  Last mod.: 2019-10-28
+  Generation: 5.1.0
+  Last mod.: 2019-12-05
 */
 
 #include "humidity_measurer.h"
@@ -14,16 +14,20 @@
 
 String
   code_descr = "\"Flower friend\" gardening system",
-  version = "5.0.3";
+  version = "5.1.0";
 
 const uint8_t
+  measurer_1_signal = A0,
+  measurer_1_power = 8,
+  motor_1_control = 4,
+
   pour_hours[24] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
 
   desired_rh_min = 60,
   desired_rh_max = 85,
 
-  num_blocks = 2;
+  num_blocks = 1;
 
 humidity_measurer measurer[num_blocks];
 c_switch motor[num_blocks];
@@ -41,23 +45,26 @@ struct t_measurer_params
 
 const t_measurer_params sensor_params[num_blocks] =
   {
-    {8, A0, 18, 70, true, true},
-    {9, A2, 30, 170, true, false}
+    {measurer_1_power, measurer_1_signal, 30, 680, true, false} //funduino
+    // {8, A0, 18, 70, true, true},
   };
 
-const uint8_t motor_pins[num_blocks] =
-  {4, 5};
+const uint8_t motor_pins[num_blocks] = {motor_1_control};
 
 void setup()
 {
   Serial.begin(9600);
 
+  Serial.println("Setup. Motors.");
   init_motors();
+  Serial.println("Setup. Sensors.");
   init_moisture_sensors();
+  Serial.println("Setup. Clock. Init.");
   init_clock();
   // setup_clock();
 
   // assure normal business logic was done before printing status:
+  Serial.println("Setup. Loop.");
   loop();
 
   print_signature();
@@ -547,4 +554,6 @@ void loop()
   2019-05-01
   2019-08-04
     Dropped lamp support.
+  2019-12-05
+    Dropped second humidity and motor modules.
 */
