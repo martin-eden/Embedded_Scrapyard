@@ -23,7 +23,7 @@ void setup()
   Serial.begin(9600);
 
   ds3231.setSqwMode(0);
-  ds3231.enableSqw();
+  ds3231.disableSqwAtBattery();
 
   if (ds3231.wave32kEnabled())
   {
