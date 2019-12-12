@@ -59,7 +59,7 @@ struct t_measurer_params
 
 const t_measurer_params sensor_params[num_blocks] =
   {
-    {measurer_1_power, measurer_1_signal, 30, 680, true, false} //funduino
+    {measurer_1_power, measurer_1_signal, 30, 550, true, false} //funduino
     // {8, A0, 18, 70, true, true},
   };
 
