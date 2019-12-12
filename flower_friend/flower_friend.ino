@@ -2,32 +2,46 @@
 
 /*
   Status: stable
-  Generation: 5.1.0
-  Last mod.: 2019-12-05
+  Generation: 5.2.0
+  Last mod.: 2019-12-12
 */
+
+#include <Wire.h>
+#include <TM1637Display.h>
 
 #include "humidity_measurer.h"
 #include "switch.h"
-#include <Wire.h>
 #include "DateTime.h"
 #include "me_ds3231.h"
 
 String
   code_descr = "\"Flower friend\" gardening system",
-  version = "5.1.0";
+  version = "5.2.0";
 
 const uint8_t
   measurer_1_signal = A0,
   measurer_1_power = 8,
   motor_1_control = 4,
 
+  led_display_input = 2,
+  led_display_clock = 3,
+
+  led_display_brightness = 13, // 00..15
+
   pour_hours[24] =
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    // {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
 
   desired_rh_min = 60,
-  desired_rh_max = 85,
+  desired_rh_max = 80,
 
   num_blocks = 1;
+
+const uint32_t
+  idle_measurement_delay = uint32_t(1000) * 60 * 12,
+  pour_measurement_delay = uint32_t(1000) * 5;
+
+TM1637Display led_display(led_display_clock, led_display_input);
 
 humidity_measurer measurer[num_blocks];
 c_switch motor[num_blocks];
@@ -53,6 +67,8 @@ const uint8_t motor_pins[num_blocks] = {motor_1_control};
 
 void setup()
 {
+  led_display.setBrightness(led_display_brightness);
+
   Serial.begin(9600);
 
   Serial.println("Setup. Motors.");
@@ -134,8 +150,6 @@ void setup_clock()
   rtc.clearOscillatorWasStopped();
 }
 
-const uint32_t idle_measurement_delay = uint32_t(1000) * 60 * 12;
-const uint32_t pour_measurement_delay = uint32_t(1000) * 5;
 uint32_t next_request_time[num_blocks];
 
 int parse_block_num(char c)
@@ -185,6 +199,19 @@ void print_signature()
   Serial.println();
 
   Serial.println("-----------------------------------");
+}
+
+void display_number(uint16_t value)
+{
+  led_display.showNumberDec(value, true);
+}
+
+void display_time()
+{
+  DateTime rtc_time = rtc.getDateTime();
+  uint16_t value = rtc_time.hour() * 100 + rtc_time.minute();
+
+  display_number(value);
 }
 
 const char
@@ -463,6 +490,7 @@ void do_block_business(uint8_t block_num)
   if (pour_hours[rtc_time.hour()] || motor[block_num].is_on)
   {
     int val = measurer[block_num].get_value();
+    display_number(val);
     if (measurer[block_num].is_line_problem)
     {
       motor[block_num].switch_off();
