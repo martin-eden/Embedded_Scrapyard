@@ -2,9 +2,13 @@
 
 class c_switch {
   public:
-    bool is_on;
-    int state_pin;
-    void init();
+    c_switch(uint8_t state_pin);
     void switch_on();
     void switch_off();
+    bool is_on();
+    bool is_off();
+  private:
+    bool _is_on;
+    int _state_pin;
+    void init();
 };
