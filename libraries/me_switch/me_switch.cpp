@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "switch.h"
+#include "me_switch.h"
 
 void c_switch::init() {
   pinMode(state_pin, OUTPUT);
