@@ -1,7 +1,12 @@
 // Table clock
 
 /*
-  Built on: 16x2 LCD display, DS3231 RTC, relay module, Arduino Uno
+  Built on:
+    16x2 LCD display
+    DS3231 RTC
+    relay module
+    Dallas 18B20 thermometer
+    Arduino Uno
 
   It sets DS3231 to emit square wave at 1Hz, connects output to
   interrupt pin and use it to update display. Also it reads
@@ -12,13 +17,14 @@
     Connect LCD to <LCD_..> pins.
     Connect DS3231.BBSQW to <TICK_PIN> pin which accepts interrupts.
     Connect relay to <SWITCH_PIN>.
+    Connect 18B20 to <TEMP_PIN>.
     Adjust <DESIRED_TEMP_..> to required temperature band.
 */
 
 /*
   Status: stable, extending
-  Last mod.: 2019-12-16
-  Version: 1.1.0
+  Last mod.: 2019-12-17
+  Version: 1.2.0
 */
 
 #include "me_ds3231.h"
@@ -26,6 +32,8 @@
 #include "me_DateTime.h"
 
 #include <LiquidCrystal.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 const uint8_t
   LCD_RS = 7,
@@ -35,19 +43,23 @@ const uint8_t
   LCD_D6 = 11,
   LCD_D7 = 12,
 
+  TEMP_PIN = 2,
+
   TICK_PIN = 3,
 
   SWITCH_PIN = 4;
 
 const float
-  DESIRED_TEMP_MIN = 24.0,
-  DESIRED_TEMP_MAX = 24.9;
+  DESIRED_TEMP_MIN = 23.10,
+  DESIRED_TEMP_MAX = 24.25;
 
 const uint8_t MAX_MSG_LEN = 2 * 16;
 char msg_buf[MAX_MSG_LEN];
 
-me_ds3231 ds3231 = me_ds3231();
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+OneWire one_wire(TEMP_PIN);
+DallasTemperature sensors(&one_wire);
+me_ds3231 ds3231 = me_ds3231();
 c_switch thermostat = c_switch(SWITCH_PIN);
 
 void setup()
@@ -56,6 +68,8 @@ void setup()
   Serial.println("Hello.");
 
   lcd.begin(16, 2);
+
+  sensors.begin();
 
   // SQW mode 0 - 1Hz square wave
   ds3231.setSqwMode(0);
@@ -89,7 +103,10 @@ void setup()
 void do_business()
 {
   DateTime dt = ds3231.getDateTime();
-  float temperature = ds3231.getTemp();
+  float temperature;
+
+  sensors.requestTemperatures();
+  temperature = sensors.getTempCByIndex(0);
 
   dt.represent_date(msg_buf, MAX_MSG_LEN);
   lcd.setCursor(0, 0);
