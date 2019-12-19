@@ -2,16 +2,16 @@
 
 /*
   Status: stable
-  Generation: 5.2.0
-  Last mod.: 2019-12-12
+  Generation: 5.2.1
+  Last mod.: 2019-12-19
 */
 
 #include <Wire.h>
 #include <TM1637Display.h>
 
 #include "humidity_measurer.h"
-#include "switch.h"
-#include "DateTime.h"
+#include "me_switch.h"
+#include "me_DateTime.h"
 #include "me_ds3231.h"
 
 String
@@ -44,7 +44,7 @@ const uint32_t
 TM1637Display led_display(led_display_clock, led_display_input);
 
 humidity_measurer measurer[num_blocks];
-c_switch motor[num_blocks];
+c_switch motor[num_blocks] = {c_switch(motor_1_control)};
 me_ds3231 rtc;
 
 struct t_measurer_params
@@ -72,7 +72,6 @@ void setup()
   Serial.begin(9600);
 
   Serial.println("Setup. Motors.");
-  init_motors();
   Serial.println("Setup. Sensors.");
   init_moisture_sensors();
   Serial.println("Setup. Clock. Init.");
@@ -86,15 +85,6 @@ void setup()
   print_signature();
   print_usage();
   print_status();
-}
-
-void init_motors()
-{
-  for (int i = 0; i < num_blocks; i++)
-  {
-    motor[i].state_pin = motor_pins[i];
-    motor[i].init();
-  }
 }
 
 void init_moisture_sensors()
@@ -466,11 +456,21 @@ void print_status()
       "  " + "  " + "  " +
       "sensor: " + value + ", " +
       "is_line_problem: " + is_line_problem + ", " +
-      "motor: " + motor[i].is_on + "\n";
+      "motor: " + motor[i].is_on() + "\n";
     Serial.print(msg);
   }
 
   Serial.print("\n");
+}
+
+bool is_time_to_work(uint8_t block_num)
+{
+  return
+    (cur_time >= next_request_time[block_num]) ||
+    (
+      (cur_time < 0x10000000) &&
+      (next_request_time[block_num] >= 0x80000000)
+    );
 }
 
 void do_common_business()
@@ -479,15 +479,7 @@ void do_common_business()
 
 void do_block_business(uint8_t block_num)
 {
-  if (
-    (cur_time < next_request_time[block_num]) ||
-    (
-      (cur_time >= 0x80000000) && (next_request_time[block_num] < 0x80000000)
-    )
-  )
-    return;
-
-  if (pour_hours[rtc_time.hour()] || motor[block_num].is_on)
+  if (pour_hours[rtc_time.hour()] || motor[block_num].is_on())
   {
     int val = measurer[block_num].get_value();
     display_number(val);
@@ -498,12 +490,12 @@ void do_block_business(uint8_t block_num)
     }
     else
     {
-      if ((val <= desired_rh_min) && !motor[block_num].is_on)
+      if ((val <= desired_rh_min) && motor[block_num].is_off())
       {
         motor[block_num].switch_on();
         print_status();
       }
-      else if ((val >= desired_rh_max) && (motor[block_num].is_on))
+      else if ((val >= desired_rh_max) && (motor[block_num].is_on()))
       {
         motor[block_num].switch_off();
         print_status();
@@ -511,7 +503,7 @@ void do_block_business(uint8_t block_num)
     }
   }
 
-  if (motor[block_num].is_on)
+  if (motor[block_num].is_on())
     next_request_time[block_num] = cur_time + pour_measurement_delay;
   else
     next_request_time[block_num] = cur_time + idle_measurement_delay;
@@ -522,15 +514,7 @@ void do_business()
   bool time_to_work = false;
 
   for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
-  {
-    if (
-      (cur_time >= next_request_time[block_num]) ||
-      (
-        (cur_time < 0x10000000) && (next_request_time[block_num] >= 0x80000000)
-      )
-    )
-      time_to_work = true;
-  }
+    time_to_work = time_to_work || is_time_to_work(block_num);
 
   if (!time_to_work)
     return;
@@ -540,7 +524,8 @@ void do_business()
   do_common_business();
 
   for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
-    do_block_business(block_num);
+    if (is_time_to_work(block_num))
+      do_block_business(block_num);
 }
 
 void serialEvent()
@@ -584,4 +569,6 @@ void loop()
     Dropped lamp support.
   2019-12-05
     Dropped second humidity and motor modules.
+  2019-12-19
+    Fixed bug with losing time track.
 */
