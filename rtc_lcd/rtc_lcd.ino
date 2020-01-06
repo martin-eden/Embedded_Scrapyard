@@ -50,8 +50,8 @@ const uint8_t
   SWITCH_PIN = 4;
 
 const float
-  DESIRED_TEMP_MIN = 23.10,
-  DESIRED_TEMP_MAX = 24.25;
+  DESIRED_TEMP_MIN = 22.50,
+  DESIRED_TEMP_MAX = 23.50;
 
 const uint8_t MAX_MSG_LEN = 2 * 16;
 char msg_buf[MAX_MSG_LEN];
