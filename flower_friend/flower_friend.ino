@@ -16,7 +16,7 @@
 
 String
   code_descr = "\"Flower friend\" gardening system",
-  version = "5.2.0";
+  version = "5.2.1";
 
 const uint8_t
   measurer_1_signal = A0,
@@ -59,11 +59,9 @@ struct t_measurer_params
 
 const t_measurer_params sensor_params[num_blocks] =
   {
-    {measurer_1_power, measurer_1_signal, 30, 550, true, false} //funduino
+    {measurer_1_power, measurer_1_signal, 30, 506, true, false} //funduino
     // {8, A0, 18, 70, true, true},
   };
-
-const uint8_t motor_pins[num_blocks] = {motor_1_control};
 
 void setup()
 {
