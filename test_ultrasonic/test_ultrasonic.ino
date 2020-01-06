@@ -14,7 +14,7 @@ const uint8_t
   ECHO_PIN = 12;
 
 const uint8_t
-  BURST_DURATION_MCR = 5;
+  BURST_DURATION_MCR = 10;
 
 const uint16_t
   INTERPULSE_DELAY_MS = 330;
