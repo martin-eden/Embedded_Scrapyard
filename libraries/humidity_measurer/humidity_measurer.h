@@ -7,6 +7,7 @@ class humidity_measurer {
 
     int min_value;
     int max_value;
+    uint16_t hysteresis;
     bool power_off_between_measures;
     bool high_means_dry;
 
@@ -14,4 +15,7 @@ class humidity_measurer {
     int get_value();
     int get_raw_value();
     bool is_line_problem;
+
+  private:
+    int16_t last_raw_value;
 };

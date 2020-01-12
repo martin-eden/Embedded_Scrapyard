@@ -6,6 +6,7 @@ humidity_measurer::humidity_measurer() {
   power_pin = 2;
   min_value = 0;
   max_value = 680;
+  hysteresis = 20;
   power_off_between_measures = false;
   high_means_dry = false;
   is_line_problem = false;
@@ -23,7 +24,7 @@ int humidity_measurer::get_raw_value() {
     delay(pre_measures_delay);
   }
 
-  uint16_t raw_value;
+  int16_t raw_value;
   uint32_t sum = 0;
   for (uint8_t i = 1; i <= num_measures; i++) {
     raw_value = analogRead(sensor_pin);
@@ -31,6 +32,11 @@ int humidity_measurer::get_raw_value() {
     sum += raw_value;
   }
   raw_value = sum / num_measures;
+
+  if (abs(raw_value - last_raw_value) <= hysteresis)
+    raw_value = last_raw_value;
+  else
+    last_raw_value = raw_value;
 
   /*
   Serial.print(sensor_pin);
