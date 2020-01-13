@@ -2,16 +2,15 @@
 
 /*
   Status: works
-  Version: 1.0
-  Last mod.: 2020-01-13
+  Version: 1.2
+  Last mod.: 2020-01-14
 */
 
-#include <SPI.h>
-#include <SD.h>
 #include <SimpleDHT.h>
 
 #include "me_ds3231.h"
 #include "me_DateTime.h"
+#include "me_DataLogger.h"
 
 const uint8_t
   SDCARD_CS_PIN = 4,
@@ -22,12 +21,13 @@ const uint32_t
 
 SimpleDHT11 dht11(DHT_PIN);
 me_ds3231 ds3231 = me_ds3231();
+me_DataLogger dataLogger(SDCARD_CS_PIN);
 
 void setup()
 {
   Serial.begin(9600);
   while (!Serial);
-  write_string(String("% Initialized."));
+  dataLogger.writeString(String("% Initialized."));
 }
 
 String get_data()
@@ -60,31 +60,9 @@ String get_data()
   return result;
 }
 
-void write_string(String s)
-{
-  if (!SD.begin(SDCARD_CS_PIN))
-  {
-    Serial.println("SD card failed, or not present.");
-    return;
-  }
-
-  File data_file = SD.open("datalog.txt", FILE_WRITE);
-
-  if (data_file)
-  {
-    data_file.println(s);
-    data_file.close();
-    Serial.println(s);
-  }
-  else
-  {
-    Serial.println("Error opening 'datalog.txt'.");
-  }
-}
-
 void loop()
 {
   String data_string = get_data();
-  write_string(data_string);
+  dataLogger.writeString(data_string);
   delay(DELAY_SECS * 1000);
 }
