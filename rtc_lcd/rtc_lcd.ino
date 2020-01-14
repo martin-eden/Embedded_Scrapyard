@@ -1,6 +1,12 @@
 // Table clock
 
 /*
+  Status: stable, extending
+  Last mod.: 2020-01-14
+  Version: 1.3.0
+*/
+
+/*
   Built on:
     16x2 LCD display
     DS3231 RTC
@@ -19,12 +25,6 @@
     Connect relay to <SWITCH_PIN>.
     Connect 18B20 to <TEMP_PIN>.
     Adjust <DESIRED_TEMP_..> to required temperature band.
-*/
-
-/*
-  Status: stable, extending
-  Last mod.: 2019-12-17
-  Version: 1.2.0
 */
 
 #include "me_ds3231.h"
@@ -100,6 +100,8 @@ void setup()
   pinMode(SWITCH_PIN, OUTPUT);
 }
 
+const float DISCONNECTED_TEMP = -127.0;
+
 void do_business()
 {
   DateTime dt = ds3231.getDateTime();
@@ -124,7 +126,11 @@ void do_business()
   lcd.print(temperature, 2);
   lcd.print("\337C");
 
-  if (thermostat.is_off() && (temperature < DESIRED_TEMP_MIN))
+  if (
+    thermostat.is_off() &&
+    (temperature < DESIRED_TEMP_MIN) &&
+    (temperature != DISCONNECTED_TEMP)
+  )
   {
     thermostat.switch_on();
     Serial.println("Thermostat ON");
@@ -152,3 +158,7 @@ void tick_handler()
   // Serial.println("beep");
   tick_registered = true;
 }
+
+/*
+  2019-12
+*/
