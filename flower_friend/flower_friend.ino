@@ -53,14 +53,14 @@ struct t_measurer_params
     uint8_t sensor_pin;
     int16_t min_value;
     int16_t max_value;
+    uint16_t hysteresis;
     bool power_off_between_measures;
     bool high_means_dry;
   };
 
 const t_measurer_params sensor_params[num_blocks] =
   {
-    {measurer_1_power, measurer_1_signal, 30, 506, true, false} //funduino
-    // {8, A0, 18, 70, true, true},
+    {measurer_1_power, measurer_1_signal, 30, 506, 4, true, false} //funduino
   };
 
 void setup()
@@ -98,6 +98,7 @@ void init_moisture_sensors()
       measurer[i].min_value = sensor_params[i].min_value;
     if (sensor_params[i].max_value != -1)
       measurer[i].max_value = sensor_params[i].max_value;
+    measurer[i].hysteresis = sensor_params[i].hysteresis;
     measurer[i].power_off_between_measures = sensor_params[i].power_off_between_measures;
     measurer[i].high_means_dry = sensor_params[i].high_means_dry;
     if (sensor_params[i].power_pin != -1)
