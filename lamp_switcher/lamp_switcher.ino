@@ -2,13 +2,13 @@
 
 /*
   Status: stable
-  Generation: 4.6.2
-  Last mod.: 2019-05-28
+  Generation: 4.7.0
+  Last mod.: 2020-02-01
 */
 
-#include "switch.h"
+#include "me_switch.h"
 #include <Wire.h>
-#include "DateTime.h"
+#include "me_DateTime.h"
 #include "me_ds3231.h"
 
 String
@@ -22,7 +22,7 @@ struct t_suntime
   };
 
 const t_suntime
-  sun_month[12] =
+  SUN_MONTH[12] =
     {
       {8, 17},
       {7, 17},
@@ -38,11 +38,11 @@ const t_suntime
       {8, 17},
     };
 
-c_switch lamp;
-me_ds3231 rtc;
-
 const uint8_t
-  lamp_pin = 6;
+  LAMP_PIN = 6;
+
+c_switch lamp = c_switch(LAMP_PIN);
+me_ds3231 rtc;
 
 void setup()
 {
@@ -62,8 +62,6 @@ void setup()
 
 void init_lamp()
 {
-  lamp.state_pin = lamp_pin;
-  lamp.init();
 }
 
 void init_clock()
@@ -211,7 +209,7 @@ String get_light_hours(uint8_t month)
   String result = "";
   result =
     result +
-    sun_month[month - 1].sunrise + ".." + sun_month[month - 1].sunset;
+    SUN_MONTH[month - 1].sunrise + ".." + SUN_MONTH[month - 1].sunset;
   return result;
 }
 
@@ -322,7 +320,7 @@ void print_status()
   Serial.print((float)idle_measurement_delay / 1000);
   Serial.print("\n");
 
-  uint8_t lamp_is_on = lamp.is_on;
+  uint8_t lamp_is_on = lamp.is_on();
   msg = "";
   msg = msg + "  Lamp: " + lamp_is_on + "\n";
   Serial.print(msg);
@@ -333,12 +331,12 @@ void print_status()
 void do_common_business()
 {
   uint8_t
-    sunrise = sun_month[rtc_time.month() - 1].sunrise,
-    sunset = sun_month[rtc_time.month() - 1].sunset,
+    sunrise = SUN_MONTH[rtc_time.month() - 1].sunrise,
+    sunset = SUN_MONTH[rtc_time.month() - 1].sunset,
     hour = rtc_time.hour();
-  if (!lamp.is_on && (hour >= sunrise) && (hour < sunset))
+  if (lamp.is_off() && (hour >= sunrise) && (hour < sunset))
     lamp.switch_on();
-  if (lamp.is_on && ((hour < sunrise) || (hour >= sunset)))
+  if (lamp.is_on() && ((hour < sunrise) || (hour >= sunset)))
     lamp.switch_off();
 }
 
@@ -377,5 +375,5 @@ void loop()
 
 /*
   2019-05-05
-    Prined [flower_friend] to lamp support only.
+    Pruned [flower_friend] to lamp support only.
 */
