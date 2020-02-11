@@ -1,9 +1,9 @@
-// Table clock
+// Table clock (with optional thermostat)
 
 /*
-  Status: stable, extending
-  Last mod.: 2020-01-14
-  Version: 1.3.0
+  Status: testing
+  Last mod.: 2020-02-11
+  Version: 1.4.0
 */
 
 /*
@@ -16,8 +16,8 @@
 
   It sets DS3231 to emit square wave at 1Hz, connects output to
   interrupt pin and use it to update display. Also it reads
-  temperature from DS3231 and if it below <DESIRED_TEMP_MIN> turns
-  <SWITCH_PIN> on. If it above <DESIRED_TEMP_MAX> - turns switch off.
+  temperature from DS3231 and if it below <MIN_TEMP_ON> turns
+  <SWITCH_PIN> on. If it above <MAX_TEMP_OFF> - turns switch off.
 
   Wiring.
     Connect LCD to <LCD_..> pins.
@@ -50,10 +50,14 @@ const uint8_t
   SWITCH_PIN = 4;
 
 const float
-  DESIRED_TEMP_MIN = 22.50,
-  DESIRED_TEMP_MAX = 23.50;
+  MIN_TEMP_ON = 22.50,
+  MAX_TEMP_OFF = 23.50;
 
-const uint8_t MAX_MSG_LEN = 2 * 16;
+const uint16_t
+  MAX_HEAT_SECS = 180;
+
+const uint8_t
+  MAX_MSG_LEN = 2 * 16;
 char msg_buf[MAX_MSG_LEN];
 
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
@@ -100,7 +104,40 @@ void setup()
   pinMode(SWITCH_PIN, OUTPUT);
 }
 
-const float DISCONNECTED_TEMP = -127.0;
+const float
+  MID_TEMP_RANGE = (MIN_TEMP_ON + MAX_TEMP_OFF) / 2,
+  MAX_TEMP_DELTA = MAX_TEMP_OFF - MIN_TEMP_ON;
+
+float
+  temp_on = MIN_TEMP_ON,
+  temp_off = MAX_TEMP_OFF;
+
+const float
+  DISCONNECTED_TEMP = -127.0;
+
+uint32_t
+  heat_start_time, heat_finish_time;
+float
+  heat_start_temp, heat_finish_temp;
+
+void update_conditions()
+{
+  int32_t time_passed = heat_finish_time - heat_start_time;
+  if (time_passed <= 0)
+    return;
+
+  float temp_delta = (heat_finish_temp - heat_start_temp);
+  if (temp_delta <= 0)
+    return;
+
+  float heat_secs_to_deg = time_passed / temp_delta;
+  float degs_in_max_heat = MAX_HEAT_SECS / heat_secs_to_deg;
+  temp_on = max(MIN_TEMP_ON, MID_TEMP_RANGE - degs_in_max_heat / 2);
+  temp_off = min(MAX_TEMP_OFF, MID_TEMP_RANGE + degs_in_max_heat / 2);
+
+  Serial.print("degs_in_max_heat: ");
+  Serial.println(degs_in_max_heat, 2);
+}
 
 void do_business()
 {
@@ -128,16 +165,21 @@ void do_business()
 
   if (
     thermostat.is_off() &&
-    (temperature < DESIRED_TEMP_MIN) &&
+    (temperature < MIN_TEMP_ON) &&
     (temperature != DISCONNECTED_TEMP)
   )
   {
     thermostat.switch_on();
+    heat_start_time = dt.unixtime();
+    heat_start_temp = temperature;
     Serial.println("Thermostat ON");
   }
-  else if (thermostat.is_on() && (temperature > DESIRED_TEMP_MAX))
+  else if (thermostat.is_on() && (temperature > MAX_TEMP_OFF))
   {
     thermostat.switch_off();
+    heat_finish_time = dt.unixtime();
+    heat_finish_temp = temperature;
+    update_conditions();
     Serial.println("Thermostat OFF");
   }
 }
@@ -161,4 +203,6 @@ void tick_handler()
 
 /*
   2019-12
+  2020-01
+  2020-02 added MAX_HEAT_SECS logic
 */
