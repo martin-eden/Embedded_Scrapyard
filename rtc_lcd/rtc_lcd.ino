@@ -165,7 +165,7 @@ void do_business()
 
   if (
     thermostat.is_off() &&
-    (temperature < MIN_TEMP_ON) &&
+    (temperature < temp_on) &&
     (temperature != DISCONNECTED_TEMP)
   )
   {
@@ -174,7 +174,7 @@ void do_business()
     heat_start_temp = temperature;
     Serial.println("Thermostat ON");
   }
-  else if (thermostat.is_on() && (temperature > MAX_TEMP_OFF))
+  else if (thermostat.is_on() && (temperature > temp_off))
   {
     thermostat.switch_off();
     heat_finish_time = dt.unixtime();
