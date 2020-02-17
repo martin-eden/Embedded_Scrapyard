@@ -9,7 +9,7 @@
 #include <Wire.h>
 #include <TM1637Display.h>
 
-#include "humidity_measurer.h"
+#include "me_humidity_measurer.h"
 #include "me_switch.h"
 #include "me_DateTime.h"
 #include "me_ds3231.h"
