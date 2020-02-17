@@ -14,9 +14,9 @@
 #include "me_DateTime.h"
 #include "me_ds3231.h"
 
-String
-  code_descr = "\"Flower friend\" gardening system",
-  version = "5.2.1";
+const char
+  code_descr[] = "\"Flower friend\" gardening system",
+  version[] = "5.2.1";
 
 const uint8_t
   measurer_1_signal = A0,
