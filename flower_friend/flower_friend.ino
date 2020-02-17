@@ -2,17 +2,17 @@
 
 /*
   Status: stable
-  Generation: 5.2.1
-  Last mod.: 2019-12-19
+  Generation: 5.2.2
+  Last mod.: 2020-02-17
 */
 
 #include <Wire.h>
 #include <TM1637Display.h>
 
-#include "me_humidity_measurer.h"
-#include "me_switch.h"
-#include "me_DateTime.h"
-#include "me_ds3231.h"
+#include <me_humidity_measurer.h>
+#include <me_switch.h>
+#include <me_DateTime.h>
+#include <me_ds3231.h>
 
 const char
   code_descr[] = "\"Flower friend\" gardening system",
@@ -570,4 +570,5 @@ void loop()
     Dropped second humidity and motor modules.
   2019-12-19
     Fixed bug with losing time track.
+  2020-02-17
 */
