@@ -27,13 +27,14 @@
     Adjust <DESIRED_TEMP_..> to required temperature band.
 */
 
-#include "me_ds3231.h"
-#include "me_switch.h"
-#include "me_DateTime.h"
-
 #include <LiquidCrystal.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+
+#include <me_ds3231.h>
+#include <me_switch.h>
+#include <me_DateTime.h>
+#include <me_Thermostat.h>
 
 const uint8_t
   LCD_RS = 7,
@@ -64,7 +65,8 @@ LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 OneWire one_wire(TEMP_PIN);
 DallasTemperature sensors(&one_wire);
 me_ds3231 ds3231 = me_ds3231();
-c_switch thermostat = c_switch(SWITCH_PIN);
+c_switch relay(SWITCH_PIN);
+cHeatHoldingThermostat thermostat(relay);
 
 void setup()
 {
@@ -163,25 +165,25 @@ void do_business()
   lcd.print(temperature, 2);
   lcd.print("\337C");
 
-  if (
-    thermostat.is_off() &&
-    (temperature < temp_on) &&
-    (temperature != DISCONNECTED_TEMP)
-  )
+  if (temperature != DISCONNECTED_TEMP) {
+    thermostat.process(temperature);
+  }
+  /*
   {
-    thermostat.switch_on();
+    relay.switch_on();
     heat_start_time = dt.unixtime();
     heat_start_temp = temperature;
     Serial.println("Thermostat ON");
   }
-  else if (thermostat.is_on() && (temperature > temp_off))
+  else if (relay.is_on() && (temperature > temp_off))
   {
-    thermostat.switch_off();
+    relay.switch_off();
     heat_finish_time = dt.unixtime();
     heat_finish_temp = temperature;
     update_conditions();
     Serial.println("Thermostat OFF");
   }
+  */
 }
 
 volatile bool tick_registered;
