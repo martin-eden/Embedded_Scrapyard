@@ -1,6 +1,6 @@
 #pragma once
 
-class humidity_measurer {
+class c_humidity_measurer {
   public:
     int sensor_pin;
     int power_pin;
@@ -11,7 +11,7 @@ class humidity_measurer {
     bool power_off_between_measures;
     bool high_means_dry;
 
-    humidity_measurer();
+    c_humidity_measurer();
     int get_value();
     int get_raw_value();
     bool is_line_problem;

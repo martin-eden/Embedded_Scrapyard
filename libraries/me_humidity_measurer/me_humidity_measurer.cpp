@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "me_humidity_measurer.h"
 
-humidity_measurer::humidity_measurer() {
+c_humidity_measurer::c_humidity_measurer() {
   sensor_pin = A0;
   power_pin = 2;
   min_value = 0;
@@ -12,7 +12,7 @@ humidity_measurer::humidity_measurer() {
   is_line_problem = false;
 }
 
-int humidity_measurer::get_raw_value() {
+int c_humidity_measurer::get_raw_value() {
   const float measure_period = 3.8;
   const uint8_t num_measures = 20;
   const uint16_t measure_delay = measure_period * 1000 / num_measures;
@@ -55,7 +55,7 @@ int humidity_measurer::get_raw_value() {
   return raw_value;
 }
 
-int humidity_measurer::get_value() {
+int c_humidity_measurer::get_value() {
   const int aligned_low = 0;
   const int aligned_high = 100;
 

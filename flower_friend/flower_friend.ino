@@ -43,7 +43,7 @@ const uint32_t
 
 TM1637Display led_display(led_display_clock, led_display_input);
 
-humidity_measurer measurer[num_blocks];
+c_humidity_measurer measurer[num_blocks];
 c_switch motor[num_blocks] = {c_switch(motor_1_control)};
 me_ds3231 rtc;
 
