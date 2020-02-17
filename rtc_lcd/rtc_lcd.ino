@@ -104,6 +104,8 @@ void setup()
   attachInterrupt(internal_pin_no, tick_handler, RISING);
 
   pinMode(SWITCH_PIN, OUTPUT);
+
+  thermostat.spread = 0.5;
 }
 
 const float
