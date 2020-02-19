@@ -19,12 +19,12 @@ const char
   version[] = "5.2.1";
 
 const uint8_t
-  measurer_1_signal = A0,
-  measurer_1_power = 8,
-  motor_1_control = 4,
+  MEASURER_1_SIGNAL_PIN = A0,
+  MEASURER_1_POWER_PIN = 8,
+  MOTOR_1_CONTROL_PIN = 4,
 
-  led_display_input = 2,
-  led_display_clock = 3,
+  LED_DISPLAY_INPUT_PIN = 2,
+  LED_DISPLAY_CLOCK_PIN = 3,
 
   led_display_brightness = 13, // 00..15
 
@@ -41,10 +41,10 @@ const uint32_t
   idle_measurement_delay = uint32_t(1000) * 60 * 12,
   pour_measurement_delay = uint32_t(1000) * 5;
 
-TM1637Display led_display(led_display_clock, led_display_input);
+TM1637Display led_display(LED_DISPLAY_CLOCK_PIN, LED_DISPLAY_INPUT_PIN);
 
 c_humidity_measurer measurer[num_blocks];
-c_switch motor[num_blocks] = {c_switch(motor_1_control)};
+c_switch motor[num_blocks] = {c_switch(MOTOR_1_CONTROL_PIN)};
 me_ds3231 rtc;
 
 struct t_measurer_params
@@ -60,7 +60,7 @@ struct t_measurer_params
 
 const t_measurer_params sensor_params[num_blocks] =
   {
-    {measurer_1_power, measurer_1_signal, 30, 506, 4, true, false} //funduino
+    {MEASURER_1_POWER_PIN, MEASURER_1_SIGNAL_PIN, 30, 506, 4, true, false} //funduino
   };
 
 void setup()
