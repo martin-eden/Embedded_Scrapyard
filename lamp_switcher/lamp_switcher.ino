@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Generation: 4.7.0
-  Last mod.: 2020-02-01
+  Generation: 4.7.1
+  Last mod.: 2020-02-19
 */
 
 #include "me_switch.h"
@@ -13,7 +13,7 @@
 
 String
   code_descr = "\"Lamp switcher\" (trucated \"Flower friend\") gardening system",
-  version = "1.0.2";
+  version = "1.0.3";
 
 struct t_suntime
   {
@@ -23,6 +23,21 @@ struct t_suntime
 
 const t_suntime
   SUN_MONTH[12] =
+    {
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+      {8, 24},
+    };
+  /*
     {
       {0, 24},
       {0, 24},
@@ -37,7 +52,8 @@ const t_suntime
       {0, 24},
       {0, 24},
     };
-/*
+  */
+  /*
     {
       {8, 17},
       {7, 17},
@@ -52,7 +68,7 @@ const t_suntime
       {7, 17},
       {8, 17},
     };
-*/
+  */
 const uint8_t
   LAMP_PIN = 6;
 
