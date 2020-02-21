@@ -51,11 +51,11 @@ const uint8_t
   SWITCH_PIN = 4;
 
 const float
-  MIN_TEMP_ON = 22.50,
-  MAX_TEMP_OFF = 23.50;
+  MIN_TEMP_ON = 22.75,
+  MAX_TEMP_OFF = 23.25;
 
-const uint16_t
-  MAX_HEAT_SECS = 180;
+const bool
+  THERMOSTAT_ENABLING_INCREASES_VALUE = true;
 
 const uint8_t
   MAX_MSG_LEN = 2 * 16;
@@ -67,6 +67,14 @@ DallasTemperature sensors(&one_wire);
 me_ds3231 ds3231 = me_ds3231();
 c_switch relay(SWITCH_PIN);
 cThermostat thermostat(relay);
+
+void init_thermostat()
+{
+  Serial.println("thermostat.init");
+  thermostat.min_value = MIN_TEMP_ON;
+  thermostat.max_value = MAX_TEMP_OFF;
+  thermostat.enabling_increases_value = THERMOSTAT_ENABLING_INCREASES_VALUE;
+}
 
 void setup()
 {
@@ -105,45 +113,11 @@ void setup()
 
   pinMode(SWITCH_PIN, OUTPUT);
 
-  thermostat.min_value = 22.75;
-  thermostat.max_value = 23.23;
-  thermostat.enabling_increases_value = true;
+  init_thermostat();
 }
-
-const float
-  MID_TEMP_RANGE = (MIN_TEMP_ON + MAX_TEMP_OFF) / 2,
-  MAX_TEMP_DELTA = MAX_TEMP_OFF - MIN_TEMP_ON;
-
-float
-  temp_on = MIN_TEMP_ON,
-  temp_off = MAX_TEMP_OFF;
 
 const float
   DISCONNECTED_TEMP = -127.0;
-
-uint32_t
-  heat_start_time, heat_finish_time;
-float
-  heat_start_temp, heat_finish_temp;
-
-void update_conditions()
-{
-  int32_t time_passed = heat_finish_time - heat_start_time;
-  if (time_passed <= 0)
-    return;
-
-  float temp_delta = (heat_finish_temp - heat_start_temp);
-  if (temp_delta <= 0)
-    return;
-
-  float heat_secs_to_deg = time_passed / temp_delta;
-  float degs_in_max_heat = MAX_HEAT_SECS / heat_secs_to_deg;
-  temp_on = max(MIN_TEMP_ON, MID_TEMP_RANGE - degs_in_max_heat / 2);
-  temp_off = min(MAX_TEMP_OFF, MID_TEMP_RANGE + degs_in_max_heat / 2);
-
-  Serial.print("degs_in_max_heat: ");
-  Serial.println(degs_in_max_heat, 2);
-}
 
 void do_business()
 {
@@ -172,22 +146,6 @@ void do_business()
   if (temperature != DISCONNECTED_TEMP) {
     thermostat.process(temperature);
   }
-  /*
-  {
-    relay.switch_on();
-    heat_start_time = dt.unixtime();
-    heat_start_temp = temperature;
-    Serial.println("Thermostat ON");
-  }
-  else if (relay.is_on() && (temperature > temp_off))
-  {
-    relay.switch_off();
-    heat_finish_time = dt.unixtime();
-    heat_finish_temp = temperature;
-    update_conditions();
-    Serial.println("Thermostat OFF");
-  }
-  */
 }
 
 volatile bool tick_registered;
