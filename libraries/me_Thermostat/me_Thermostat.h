@@ -4,20 +4,15 @@
 
 class cThermostat {
   public:
-    float setpoint;
-    float spread;
+    float min_value, max_value;
     c_switch relay;
+    bool enabling_increases_value;
     cThermostat(c_switch aRelay):
-      setpoint(23),
-      spread(1),
-      relay(aRelay)
-      {}
-    virtual void process(float temperature);
-};
-
-class cHeatHoldingThermostat : public cThermostat {
-  public:
-    using cThermostat::cThermostat;
+      min_value(22.5),
+      max_value(23.5),
+      enabling_increases_value(true),
+      relay(aRelay) {
+      }
     void process(float temperature) {
       /*
       String msg = "";
@@ -27,19 +22,34 @@ class cHeatHoldingThermostat : public cThermostat {
         " " +
         "relay.is_off(): " + relay.is_off() +
         " " +
-        "setpoint: " + String(setpoint, 2) +
+        "min_value: " + String(min_value, 2) +
         " " +
-        "spread: " + String(spread, 2);
+        "max_value: " + String(max_value, 2) +
+        " " +
+        "enabling_increases_value: " + String(enabling_increases_value)
+        ;
 
       Serial.println(msg);
-      */
-      if (relay.is_off() and (temperature < setpoint - spread / 2)) {
-        relay.switch_on();
-        // Serial.println("Thermostat ON");
+      //*/
+
+      if (
+        relay.is_off() and
+        (
+          (enabling_increases_value and (temperature < min_value)) or
+          (!enabling_increases_value and (temperature > max_value))
+        )
+      ) {
+          relay.switch_on();
+          // Serial.println("Switch ON");
+      } else if (
+        relay.is_on() and
+        (
+          (enabling_increases_value and (temperature > max_value)) or
+          (!enabling_increases_value and (temperature < min_value))
+        )
+      ) {
+          relay.switch_off();
+          // Serial.println("Switch OFF");
       }
-      if (relay.is_on() and (temperature > setpoint + spread / 2)) {
-        relay.switch_off();
-        // Serial.println("Thermostat OFF");
-      }
-    };
+    }
 };
