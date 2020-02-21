@@ -66,7 +66,7 @@ OneWire one_wire(TEMP_PIN);
 DallasTemperature sensors(&one_wire);
 me_ds3231 ds3231 = me_ds3231();
 c_switch relay(SWITCH_PIN);
-cHeatHoldingThermostat thermostat(relay);
+cThermostat thermostat(relay);
 
 void setup()
 {
@@ -105,7 +105,9 @@ void setup()
 
   pinMode(SWITCH_PIN, OUTPUT);
 
-  thermostat.spread = 0.5;
+  thermostat.min_value = 22.75;
+  thermostat.max_value = 23.23;
+  thermostat.enabling_increases_value = true;
 }
 
 const float
