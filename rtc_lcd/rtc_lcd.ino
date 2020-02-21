@@ -62,70 +62,87 @@ const uint8_t
 char msg_buf[MAX_MSG_LEN];
 
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
-OneWire one_wire(TEMP_PIN);
-DallasTemperature sensors(&one_wire);
 me_ds3231 ds3231 = me_ds3231();
+OneWire one_wire(TEMP_PIN);
+DallasTemperature thermometer(&one_wire);
 c_switch relay(SWITCH_PIN);
 cThermostat thermostat(relay);
 
-void init_thermostat()
-{
-  Serial.println("thermostat.init");
-  thermostat.min_value = MIN_TEMP_ON;
-  thermostat.max_value = MAX_TEMP_OFF;
-  thermostat.enabling_increases_value = THERMOSTAT_ENABLING_INCREASES_VALUE;
+void announce(char* msg) {
+  Serial.print("  ");
+  Serial.println(msg);
 }
 
-void setup()
-{
-  Serial.begin(9600);
-  Serial.println("Hello.");
-
+void init_lcd() {
+  announce("LCD");
   lcd.begin(16, 2);
+}
 
-  sensors.begin();
+void init_clock() {
+  announce("Clock");
 
   // SQW mode 0 - 1Hz square wave
   ds3231.setSqwMode(0);
-
   ds3231.disableSqwAtBattery();
 
-  if (ds3231.wave32kEnabled())
-  {
-    Serial.println("32K output enabled. Disabling.");
+  if (ds3231.wave32kEnabled()) {
     ds3231.disable32kWave();
   }
 
-  if (ds3231.oscillatorWasStopped())
-  {
+  if (ds3231.oscillatorWasStopped()) {
     Serial.println("Clock was stopped. Battery is over?");
   }
 
-  if (!ds3231.isOscillatorAtBattery())
-  {
-    Serial.println("Oscillator was disabled at battery mode. Enabling.");
+  if (!ds3231.isOscillatorAtBattery()) {
     ds3231.enableOscillatorAtBattery();
   }
 
   pinMode(TICK_PIN, INPUT_PULLUP);
   uint8_t internal_pin_no = digitalPinToInterrupt(TICK_PIN);
   attachInterrupt(internal_pin_no, tick_handler, RISING);
+}
 
+void init_thermometer() {
+  announce("Thermometer");
+  thermometer.begin();
+}
+
+void init_relay() {
+  announce("Relay");
   pinMode(SWITCH_PIN, OUTPUT);
+}
 
+void init_thermostat() {
+  announce("Thermostat");
+  thermostat.min_value = MIN_TEMP_ON;
+  thermostat.max_value = MAX_TEMP_OFF;
+  thermostat.enabling_increases_value = THERMOSTAT_ENABLING_INCREASES_VALUE;
+}
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("Initializing...");
+
+  init_lcd();
+  init_clock();
+  init_thermometer();
+  init_relay();
   init_thermostat();
+
+  Serial.println("Initialization done.");
 }
 
 const float
   DISCONNECTED_TEMP = -127.0;
 
-void do_business()
-{
+void do_business() {
+  Serial.println("*click*");
+
   DateTime dt = ds3231.getDateTime();
   float temperature;
 
-  sensors.requestTemperatures();
-  temperature = sensors.getTempCByIndex(0);
+  thermometer.requestTemperatures();
+  temperature = thermometer.getTempCByIndex(0);
 
   dt.represent_date(msg_buf, MAX_MSG_LEN);
   lcd.setCursor(0, 0);
@@ -150,18 +167,14 @@ void do_business()
 
 volatile bool tick_registered;
 
-void loop()
-{
-  if (tick_registered)
-  {
+void loop() {
+  if (tick_registered) {
     do_business();
     tick_registered = false;
   }
 }
 
-void tick_handler()
-{
-  // Serial.println("beep");
+void tick_handler() {
   tick_registered = true;
 }
 
@@ -169,4 +182,5 @@ void tick_handler()
   2019-12
   2020-01
   2020-02 added MAX_HEAT_SECS logic
+  2020-02 removed MAX_HEAT_SECS logic, lul
 */
