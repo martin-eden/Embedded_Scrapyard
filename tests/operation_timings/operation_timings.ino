@@ -35,3 +35,9 @@ void loop() {
   represent(measure());
   delay(1000);
 }
+
+/*
+                  µs     kHz
+  analogRead  112.00    8.92
+  digitalRead   2.45  408.xx
+*/
