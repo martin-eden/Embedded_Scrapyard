@@ -51,8 +51,8 @@ const uint8_t
   SWITCH_PIN = 4;
 
 const float
-  MIN_TEMP_ON = 23.25,
-  MAX_TEMP_OFF = 23.75;
+  MIN_TEMP_ON = 22.50,
+  MAX_TEMP_OFF = 23.20;
 
 const bool
   THERMOSTAT_ENABLING_INCREASES_VALUE = true;
