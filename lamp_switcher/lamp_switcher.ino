@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Generation: 4.7.1
-  Last mod.: 2020-02-19
+  Generation: 4.8.0
+  Last mod.: 2020-03-02
 */
 
 #include "me_switch.h"
@@ -13,62 +13,12 @@
 
 String
   code_descr = "\"Lamp switcher\" (trucated \"Flower friend\") gardening system",
-  version = "1.0.3";
+  version = "1.1.0";
 
-struct t_suntime
-  {
-    uint8_t sunrise;
-    uint8_t sunset;
-  };
+const uint8_t
+  sunrise = 8,
+  sunset = 24;
 
-const t_suntime
-  SUN_MONTH[12] =
-    {
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-      {8, 24},
-    };
-  /*
-    {
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-      {0, 24},
-    };
-  */
-  /*
-    {
-      {8, 17},
-      {7, 17},
-      {6, 18},
-      {5, 20},
-      {4, 22},
-      {4, 22},
-      {4, 22},
-      {4, 20},
-      {6, 19},
-      {7, 18},
-      {7, 17},
-      {8, 17},
-    };
-  */
 const uint8_t
   LAMP_PIN = 6;
 
@@ -235,12 +185,12 @@ String get_compile_time()
   return result;
 }
 
-String get_light_hours(uint8_t month)
+String get_light_hours()
 {
   String result = "";
   result =
     result +
-    SUN_MONTH[month - 1].sunrise + ".." + SUN_MONTH[month - 1].sunset;
+    sunrise + ".." + sunset;
   return result;
 }
 
@@ -315,7 +265,7 @@ void print_status()
     msg +
     "Status:" + "\n" +
     "  " + "Gardening settings:" + "\n" +
-    "  " + "  " + "light_hours: " + get_light_hours(rtc_time.month()) + "\n" +
+    "  " + "  " + "light_hours: " + get_light_hours() + "\n" +
     "";
   Serial.print(msg);
 
@@ -361,10 +311,7 @@ void print_status()
 
 void do_common_business()
 {
-  uint8_t
-    sunrise = SUN_MONTH[rtc_time.month() - 1].sunrise,
-    sunset = SUN_MONTH[rtc_time.month() - 1].sunset,
-    hour = rtc_time.hour();
+  uint8_t hour = rtc_time.hour();
   if (lamp.is_off() && (hour >= sunrise) && (hour < sunset))
     lamp.switch_on();
   if (lamp.is_on() && ((hour < sunrise) || (hour >= sunset)))
@@ -407,4 +354,6 @@ void loop()
 /*
   2019-05-05
     Pruned [flower_friend] to lamp support only.
+  2020-03-02
+    Dropped switch times dependent on month.
 */
