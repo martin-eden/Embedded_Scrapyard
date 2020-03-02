@@ -16,7 +16,7 @@ String
   version = "1.1.0";
 
 const uint8_t
-  sunrise = 8,
+  sunrise = 12,
   sunset = 24;
 
 const uint8_t
