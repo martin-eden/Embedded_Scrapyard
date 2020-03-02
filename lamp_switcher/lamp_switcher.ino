@@ -12,7 +12,7 @@
 #include "me_ds3231.h"
 
 String
-  code_descr = "\"Lamp switcher\" (trucated \"Flower friend\") gardening system",
+  code_descr = "\"Lamp switcher\" (truncated \"Flower friend\") gardening system",
   version = "1.1.0";
 
 const uint8_t
