@@ -16,8 +16,8 @@ String
   version = "1.1.0";
 
 const uint8_t
-  sunrise = 12,
-  sunset = 24;
+  sunrise = 11,
+  sunset = 23;
 
 const uint8_t
   LAMP_PIN = 6;
