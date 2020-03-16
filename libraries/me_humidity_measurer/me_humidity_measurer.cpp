@@ -13,7 +13,7 @@ c_humidity_measurer::c_humidity_measurer() {
 }
 
 int c_humidity_measurer::get_raw_value() {
-  const float measure_period = 3.8;
+  const float measure_period = 1.6;
   const uint8_t num_measures = 20;
   const uint16_t measure_delay = measure_period * 1000 / num_measures;
   const uint16_t line_problem_threshold = 10;
@@ -29,8 +29,10 @@ int c_humidity_measurer::get_raw_value() {
   for (uint8_t i = 1; i <= num_measures; i++) {
     raw_value = analogRead(sensor_pin);
     delay(measure_delay);
+    // Serial.println(raw_value);
     sum += raw_value;
   }
+  // Serial.println("--");
   raw_value = sum / num_measures;
 
   if (abs(raw_value - last_raw_value) <= hysteresis)
