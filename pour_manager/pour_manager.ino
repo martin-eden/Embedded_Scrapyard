@@ -12,22 +12,30 @@
 
 const char
   code_descr[] = "\"Pour manager\". Based on \"Flower friend\" gardening system.",
-  version[] = "0.7.1";
+  version[] = "0.7.2";
 
 const uint8_t
-  MEASURER_1_SIGNAL_PIN = A0,
-  MEASURER_1_POWER_PIN = 8,
-  MOTOR_1_CONTROL_PIN = 2,
+  PIN_MEASURER_SIGNAL = A0,
+  PIN_MEASURER_POWER = 8,
+  PIN_MOTOR_CONTROL = 2,
 
-  DESIRED_RH_MIN = 40,
-  DESIRED_RH_MAX = 80;
+  DESIRED_RH_FROM = 40,
+  DESIRED_RH_TO = 80;
+
+const uint16_t
+  MEASURER_MIN_VALUE = 460,
+  MEASURER_MAX_VALUE = 600,
+  MEASURER_HYSTERESIS = 10;
+
+const bool
+  MEASURER_HIGH_MEANS_DRY = false;
 
 const uint32_t
   IDLE_MEASUREMENT_DELAY = uint32_t(1000) * 60 * 12,
   POUR_MEASUREMENT_DELAY = uint32_t(1000) * 5;
 
 c_humidity_measurer measurer;
-c_switch motor = c_switch(MOTOR_1_CONTROL_PIN);
+c_switch motor = c_switch(PIN_MOTOR_CONTROL);
 
 struct t_measurer_params
   {
@@ -41,7 +49,15 @@ struct t_measurer_params
   };
 
 const t_measurer_params sensor_params =
-  {MEASURER_1_POWER_PIN, MEASURER_1_SIGNAL_PIN, 460, 570, 10, true, false};
+  {
+    power_pin: PIN_MEASURER_POWER,
+    sensor_pin: PIN_MEASURER_SIGNAL,
+    min_value: MEASURER_MIN_VALUE,
+    max_value: MEASURER_MAX_VALUE,
+    hysteresis: MEASURER_HYSTERESIS,
+    power_off_between_measures: true,
+    high_means_dry: MEASURER_HIGH_MEANS_DRY
+  };
 
 void setup() {
   Serial.begin(9600);
@@ -224,9 +240,12 @@ void print_status() {
   msg =
     msg +
     "Status:" + "\n" +
-    "  " + "Pour settings:" + "\n" +
-    "  " + "  " + "DESIRED_RH_MIN: " + DESIRED_RH_MIN + "\n" +
-    "  " + "  " + "DESIRED_RH_MAX: " + DESIRED_RH_MAX + "\n";
+    "  Pour settings:" + "\n" +
+    "    MEASURER_MIN_VALUE: " + MEASURER_MIN_VALUE + "\n" +
+    "    MEASURER_MAX_VALUE: " + MEASURER_MAX_VALUE + "\n" +
+    "    MEASURER_HYSTERESIS: " + MEASURER_HYSTERESIS + "\n" +
+    "    DESIRED_RH_FROM: " + DESIRED_RH_FROM + "\n" +
+    "    DESIRED_RH_TO: " + DESIRED_RH_TO + "\n";
   Serial.print(msg);
 
   Serial.print("    uptime: ");
@@ -286,11 +305,11 @@ void do_business() {
     print_status();
   }
   else {
-    if ((val <= DESIRED_RH_MIN) && motor.is_off()) {
+    if ((val <= DESIRED_RH_FROM) && motor.is_off()) {
       motor.switch_on();
       print_status();
     }
-    else if ((val >= DESIRED_RH_MAX) && motor.is_on()) {
+    else if ((val >= DESIRED_RH_TO) && motor.is_on()) {
       motor.switch_off();
       print_status();
     }
