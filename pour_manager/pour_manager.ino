@@ -2,7 +2,7 @@
 
 /*
   Status: stable
-  Generation: 1
+  Generation: 0.7
   Last mod.: 2020-03-14
 */
 
@@ -11,15 +11,15 @@
 #include <me_DateTime.h>
 
 const char
-  code_descr[] = "Soil moisture-stat. Based on \"Flower friend\" gardening system",
-  version[] = "0.7.0";
+  code_descr[] = "\"Pour manager\". Based on \"Flower friend\" gardening system.",
+  version[] = "0.7.1";
 
 const uint8_t
   MEASURER_1_SIGNAL_PIN = A0,
   MEASURER_1_POWER_PIN = 8,
   MOTOR_1_CONTROL_PIN = 2,
 
-  DESIRED_RH_MIN = 30,
+  DESIRED_RH_MIN = 40,
   DESIRED_RH_MAX = 80;
 
 const uint32_t
@@ -41,7 +41,7 @@ struct t_measurer_params
   };
 
 const t_measurer_params sensor_params =
-  {MEASURER_1_POWER_PIN, MEASURER_1_SIGNAL_PIN, 460, 700, 10, true, false};
+  {MEASURER_1_POWER_PIN, MEASURER_1_SIGNAL_PIN, 460, 570, 10, true, false};
 
 void setup() {
   Serial.begin(9600);
@@ -290,7 +290,7 @@ void do_business() {
       motor.switch_on();
       print_status();
     }
-    else if ((val >= DESIRED_RH_MAX) && (motor.is_on())) {
+    else if ((val >= DESIRED_RH_MAX) && motor.is_on()) {
       motor.switch_off();
       print_status();
     }
