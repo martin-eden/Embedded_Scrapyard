@@ -24,7 +24,7 @@ const uint8_t
 
 const uint16_t
   MEASURER_MIN_VALUE = 480,
-  MEASURER_MAX_VALUE = 610,
+  MEASURER_MAX_VALUE = 620,
   MEASURER_HYSTERESIS = 10;
 
 const bool
