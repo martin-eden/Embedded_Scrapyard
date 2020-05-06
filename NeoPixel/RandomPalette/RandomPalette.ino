@@ -1,14 +1,14 @@
 #include <FastLED.h>
 
 #define LED_TYPE WS2811
-#define NUM_LEDS 60
-#define LED_PIN 6
+#define LED_PIN 10
 #define COLOR_ORDER GRB
 
 const int16_t
-  LEDS_OFFSET = 43,
-  BRIGHTNESS = 32,
-  PALETTE_CHANGE_PERIOD_S = 180;
+  NUM_LEDS = 60,
+  LEDS_OFFSET = 35,
+  BRIGHTNESS = 64,
+  PALETTE_CHANGE_PERIOD_S = 30000;
 
 CRGB leds[NUM_LEDS];
 
@@ -22,7 +22,7 @@ extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
 
 void setup() {
   Serial.begin(9600);
-  delay(3000); // power-up safety delay
+  delay(3000);
 
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
@@ -34,7 +34,6 @@ void setup() {
   SetupTotallyRandomPalette();
 }
 
-// This function fills the palette with totally random colors.
 void SetupTotallyRandomPalette() {
   for( int i = 0; i < 16; i = i + 2) {
     currentPalette[i] = CHSV(random8(), 255, 255);
@@ -64,17 +63,16 @@ void FillLEDsFromPaletteColors(uint8_t colorIndex) {
   fill_solid(&(leds[0]), LEDS_OFFSET, 0);
 }
 
-int8_t inc = 1;
 
 void loop() {
   ChangePalettePeriodically();
 
+  static int8_t inc = 1;
   static uint8_t startIndex = 0;
+
   if (random(1000) >= 999)
     inc = -inc;
-
   startIndex += inc;
-
   FillLEDsFromPaletteColors(startIndex);
 
   FastLED.show();
