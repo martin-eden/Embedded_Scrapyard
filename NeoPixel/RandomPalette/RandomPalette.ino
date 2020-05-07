@@ -1,8 +1,7 @@
 #include <FastLED.h>
 
-#define LED_TYPE WS2811
+#define LED_TYPE WS2812
 #define LED_PIN 10
-#define COLOR_ORDER GRB
 
 const int16_t
   NUM_LEDS = 60,
@@ -22,9 +21,10 @@ extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
 
 void setup() {
   Serial.begin(9600);
-  delay(3000);
 
-  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  delay(300);
+
+  FastLED.addLeds<LED_TYPE, LED_PIN>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
   FastLED.setBrightness(BRIGHTNESS);
   // currentBlending = NOBLEND;
@@ -57,7 +57,7 @@ void FillLEDsFromPaletteColors(uint8_t colorIndex) {
 
   for (int i = 0; i < NUM_LEDS; i++) {
     leds[i] = ColorFromPalette(currentPalette, colorIndex, brightness, currentBlending);
-    colorIndex += 3;
+    colorIndex += 1;
   }
 
   fill_solid(&(leds[0]), LEDS_OFFSET, 0);
