@@ -12,7 +12,7 @@ const uint8_t
   UPDATES_PER_SECOND = 180 / 60;
 
 const float
-  SCALE = 20.0 / (NUM_LEDS - LEDS_OFFSET - 1);
+  SCALE = 15.0 / (NUM_LEDS - LEDS_OFFSET - 1);
 
 CRGB leds[NUM_LEDS];
 
@@ -62,7 +62,7 @@ void FractalFill(
   CRGB middle_color = (start_color + finish_color) / 2;
   float noise_value = (float)(finish - start) * SCALE;
   noise_value = (float)(random(0x100) - 0x80) * noise_value / 0x80;
-  middle_color = middle_color * noise_value;
+  middle_color *= noise_value;
 
   /*
   Serial.print(start); Serial.print(" ");
@@ -71,13 +71,8 @@ void FractalFill(
   Serial.println();
   */
 
-  if (random(10) >= 5) {
-    FractalFill(start, middle, start_color, middle_color);
-    FractalFill(middle, finish, middle_color, finish_color);
-  } else {
-    FractalFill(middle, finish, middle_color, finish_color);
-    FractalFill(start, middle, start_color, middle_color);
-  }
+  FractalFill(start, middle, start_color, middle_color);
+  FractalFill(middle, finish, middle_color, finish_color);
 }
 
 uint32_t last_millis = millis();
@@ -86,11 +81,9 @@ void loop() {
   uint32_t cur_time = millis();
   uint32_t time_passed = cur_time - last_millis;
   last_millis = cur_time;
-  Serial.println(time_passed);
+  // Serial.println(time_passed);
 
   FractalFill(LEDS_OFFSET, NUM_LEDS - 1, CRGB::Chartreuse, CRGB::CornflowerBlue);
-  // FractalFill(LEDS_OFFSET, NUM_LEDS - 1, CRGB::CornflowerBlue, CRGB::Chartreuse);
-  //CRGB::Chocolate
 
   FastLED.show();
   FastLED.delay(1000 / UPDATES_PER_SECOND);
