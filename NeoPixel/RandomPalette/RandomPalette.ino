@@ -67,11 +67,11 @@ void FillLEDsFromPaletteColors(uint8_t colorIndex) {
 void loop() {
   ChangePalettePeriodically();
 
-  static int8_t inc = 1;
+  static int8_t inc = -1;
   static uint8_t startIndex = 0;
 
-  if (random(1000) >= 999)
-    inc = -inc;
+  // if (random(1000) >= 999)
+  //   inc = -inc;
   startIndex += inc;
   FillLEDsFromPaletteColors(startIndex);
 
