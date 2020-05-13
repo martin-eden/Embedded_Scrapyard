@@ -6,14 +6,15 @@
 const int16_t
   NUM_LEDS = 60,
   LEDS_OFFSET = 35,
+  LEDS_USED = NUM_LEDS - LEDS_OFFSET - 1,
   BRIGHTNESS = 64;
 
 const uint8_t
-  UPDATES_PER_SECOND = 180 / 60,
-  HUE_DRIFT = 2;
+  UPDATES_PER_SECOND = 1,  // 180 / 60,
+  HUE_DRIFT = 0;
 
 const float
-  SCALE = 13.0 / (NUM_LEDS - LEDS_OFFSET - 1);
+  SCALE = 1.0;
 
 CRGB leds[NUM_LEDS];
 
@@ -27,7 +28,10 @@ void setup() {
   randomSeed(analogRead(A0));
 }
 
-void Hilight(uint8_t offset, CRGB color) {
+void Hilight(
+  uint8_t offset,
+  CHSV color
+) {
   if (leds[offset] == color) {
     // Serial.print("color already set at offset ");
     // Serial.println(offset);
@@ -42,8 +46,8 @@ void Hilight(uint8_t offset, CRGB color) {
 void FractalFill(
   uint8_t start,
   uint8_t finish,
-  CRGB start_color,
-  CRGB finish_color
+  CHSV start_color,
+  CHSV finish_color
 ) {
   if (start > finish)
     return;
@@ -58,12 +62,16 @@ void FractalFill(
   if (start + 1 == finish)
     return;
 
-  uint8_t middle = (start + finish) / 2;
+  float noise_magnitude = (float) SCALE * (finish - start) / LEDS_USED;
+  noise_magnitude = noise_magnitude * 0x100;
+  noise_magnitude = constrain(noise_magnitude, 0, 0x100);
 
-  CRGB middle_color = (start_color + finish_color) / 2;
-  float noise_value = (float)(finish - start) * SCALE;
-  noise_value = (float)(random(0x100) - 0x80) * noise_value / 0x80;
-  middle_color *= noise_value;
+  int8_t noise_value = random(-noise_magnitude / 2, noise_magnitude / 2);
+  // Serial.println(noise_value);
+
+  fract8 mix_fract = 0x80 - noise_value;
+
+  CHSV middle_color = blend(start_color, finish_color, mix_fract);
 
   /*
   Serial.print(start); Serial.print(" ");
@@ -72,39 +80,42 @@ void FractalFill(
   Serial.println();
   */
 
+  uint8_t middle = (start + finish) / 2;
+
   FractalFill(start, middle, start_color, middle_color);
   FractalFill(middle, finish, middle_color, finish_color);
 }
 
-uint32_t last_millis = millis();
-
-CRGB
-  start_color = CRGB::Chartreuse,
-  finish_color = CRGB::CornflowerBlue;
-
 void loop() {
+  static uint32_t last_millis = millis();
   uint32_t cur_time = millis();
   uint32_t time_passed = cur_time - last_millis;
   last_millis = cur_time;
   // Serial.println(time_passed);
+
+  static CHSV
+    start_color = rgb2hsv_approximate(CRGB::Chartreuse),
+    finish_color = rgb2hsv_approximate(CRGB::CornflowerBlue);
+
+  // .hue field values may be clamped. So we roll hue independently.
+  static uint8_t
+    start_color_hue = start_color.hue,
+    finish_color_hue = finish_color.hue;
 
   FractalFill(LEDS_OFFSET, NUM_LEDS - 1, start_color, finish_color);
 
   FastLED.show();
   FastLED.delay(1000 / UPDATES_PER_SECOND);
 
-  CHSV start_color_hsv = rgb2hsv_approximate(start_color);
-  CHSV finish_color_hsv = rgb2hsv_approximate(finish_color);
+  start_color_hue += HUE_DRIFT;
+  finish_color_hue += HUE_DRIFT;
 
-  // start_color_hsv.hue += HUE_DRIFT;
-  // finish_color_hsv.hue += HUE_DRIFT;
-
-  start_color = start_color_hsv;
-  finish_color = finish_color_hsv;
+  start_color.hue = start_color_hue;
+  finish_color.hue = finish_color_hue;
 
   /*
-  Serial.print(start_color_hsv.hue); Serial.print(" ");
-  Serial.print(finish_color_hsv.hue); Serial.print(" ");
+  Serial.print(start_color.hue); Serial.print(" ");
+  Serial.print(finish_color.hue); Serial.print(" ");
   Serial.println();
-  */
+  //*/
 }
