@@ -8,18 +8,18 @@ const int16_t
   LEDS_OFFSET = 35,
   LEDS_USED = NUM_LEDS - LEDS_OFFSET - 1,
   BRIGHTNESS = 64,
-  UPDATES_PER_MINUTE = 90;
+  UPDATES_PER_MINUTE = 72;
 
 const uint8_t
   BACKGROUND_NOISE = 0,
-  MAX_HUE_DISTANCE = 126;
+  MAX_HUE_DISTANCE = LEDS_USED;
 
 const float
   SCALE = 0.0;
 
 float
   START_HUE_DRIFT = 1.0,
-  FINSH_HUE_DRIFT = 0.5;
+  FINSH_HUE_DRIFT = 0.777;
 
 CRGB leds[NUM_LEDS];
 
@@ -155,17 +155,11 @@ void loop() {
   ChangeHueStep(&finish_color_hue, &FINSH_HUE_DRIFT);
 
   if (GetHueDistance(start_color_hue, finish_color_hue) > MAX_HUE_DISTANCE) {
-    if (random(1) == 0) {
-      START_HUE_DRIFT = -START_HUE_DRIFT;
-      do {
-        ChangeHueStep(&start_color_hue, &START_HUE_DRIFT);
-      } while (GetHueDistance(start_color_hue, finish_color_hue) > MAX_HUE_DISTANCE);
-    } else {
-      FINSH_HUE_DRIFT = -FINSH_HUE_DRIFT;
-      do {
-        ChangeHueStep(&finish_color_hue, &FINSH_HUE_DRIFT);
-      } while (GetHueDistance(start_color_hue, finish_color_hue) > MAX_HUE_DISTANCE);
-    }
+    // Never invert slowest point.
+    START_HUE_DRIFT = -START_HUE_DRIFT;
+    do {
+      ChangeHueStep(&start_color_hue, &START_HUE_DRIFT);
+    } while (GetHueDistance(start_color_hue, finish_color_hue) > MAX_HUE_DISTANCE);
   }
 
   start_color.hue = start_color_hue;
