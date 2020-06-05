@@ -11,7 +11,7 @@ FASTLED_USING_NAMESPACE
 
 #define DATA_PIN            10
 #define NUM_LEDS            60
-#define LED_OFFSET          35
+#define LED_OFFSET          0
 #define MAX_POWER_MILLIAMPS 500
 #define LED_TYPE            WS2812B
 #define COLOR_ORDER         GRB
