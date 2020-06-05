@@ -5,17 +5,17 @@
 
 const int16_t
   NUM_LEDS = 60,
-  LEDS_OFFSET = 35,
+  LEDS_OFFSET = 0,
   LEDS_USED = NUM_LEDS - LEDS_OFFSET - 1,
   BRIGHTNESS = 64,
-  UPDATES_PER_MINUTE = 72;
+  UPDATES_PER_MINUTE = 2400;
 
 const uint8_t
-  MAX_HUE_DISTANCE = 125;
+  MAX_HUE_DISTANCE = 250;
 
 float
   START_HUE_DRIFT = 1.0,
-  FINSH_HUE_DRIFT = 1.0 / 3 * 5;
+  FINSH_HUE_DRIFT = 1.0;
 
 CRGB leds[NUM_LEDS];
 
@@ -23,10 +23,11 @@ void setup() {
   randomSeed(analogRead(A0));
   Serial.begin(9600);
   FastLED.addLeds<LED_TYPE, LED_PIN>(leds, NUM_LEDS);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 50);
   FastLED.setCorrection(TypicalSMD5050);
   // FastLED.setCorrection(UncorrectedColor);
   FastLED.setBrightness(BRIGHTNESS);
-  FastLED.setDither(0);
+  FastLED.setDither(1);
   delay(100);
 }
 
@@ -41,7 +42,7 @@ void LinearBlend(
     finish - start + 1,
     start_color,
     finish_color,
-    SHORTEST_HUES
+    FORWARD_HUES
   );
 }
 
@@ -60,7 +61,14 @@ float GetHueDistance(
   float hue_a,
   float hue_b
 ) {
-  float result = min(abs(hue_a - hue_b), 0xFF - abs(hue_a - hue_b));
+  // float result = min(abs(hue_a - hue_b), 0xFF - abs(hue_a - hue_b));
+  float result;
+  if (hue_a < hue_b)
+    result = hue_b - hue_a;
+  else if (hue_a == hue_b)
+    result = 0;
+  else
+    result = (0xFF - hue_a) + hue_b;
   return result;
 }
 
@@ -73,7 +81,7 @@ void loop() {
 
   static CHSV
     start_color = CHSV(0, 255, 255),
-    finish_color = CHSV(50, 255, 255);
+    finish_color = CHSV(250, 255, 255);
     // start_color = rgb2hsv_approximate(CRGB::CornflowerBlue),
     // finish_color = rgb2hsv_approximate(CRGB::Chartreuse);
 
