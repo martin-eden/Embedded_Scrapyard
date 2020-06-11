@@ -5,7 +5,7 @@
 
 const int16_t
   NUM_LEDS = 60,
-  BRIGHTNESS = 64,
+  BRIGHTNESS = 42,
   UPDATES_PER_MINUTE = 6000;
 
 float
@@ -49,14 +49,15 @@ void FillPowTable() {
 void FillWave(float offs_rad) {
   const float scale = (float) 8 / NUM_LEDS;
   const float arg_offset = -4;
-  START_HUE = clamp_ui8(START_HUE + 1.15);
+  START_HUE = clamp_ui8(START_HUE + 0.005);
   for (uint8_t i = 0; i < NUM_LEDS; ++i) {
     float x = i * scale + arg_offset;
-    x = abs(x);
+    // x = abs(x);
     float pow_val = pow_table[i];
-    float func_val = 20 * pow_val * sign(x) * sin(offs_rad + pow_val);
+    float sin_val = sin(offs_rad + pow_val);
+    float func_val = 20 * pow_val * sign(x) * sin_val;
     // CHSV pixel = CHSV(START_HUE + func_val, 192, 0x7F);
-    CHSV pixel = CHSV(START_HUE, 0xFF, saturate_ui8(0x7F + func_val));
+    CHSV pixel = CHSV(START_HUE, saturate_ui8(0x7F + func_val), 0xFF);
     leds[i] = pixel;
     /*
     Serial.print(i); Serial.print(" ");
@@ -90,7 +91,7 @@ void loop() {
 
   static float offs_angle = 0.0;
   FillWave(offs_angle);
-  offs_angle = offs_angle + 0.2;
+  offs_angle += .007;
 
   FastLED.show();
   // FastLED.delay(60000 / UPDATES_PER_MINUTE);
