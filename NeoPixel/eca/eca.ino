@@ -7,15 +7,35 @@
 */
 
 #include <FastLED.h>
+#include <Keypad.h>
 
 #define LED_TYPE WS2812
 #define LED_PIN 10
 
-const int16_t
+const uint8_t
   NUM_LEDS = 60,
   BRIGHTNESS = 20;
 
-const uint8_t Rule = 54;
+uint8_t Rule = 195; // 195, 110, 75
+
+const uint8_t
+  KP_NUM_ROWS = 4,
+  KP_NUM_COLS = 4;
+
+const char keymap[KP_NUM_ROWS][KP_NUM_COLS] =
+  {
+    {'1', '2', '3', 'A'},
+    {'4', '5', '6', 'B'},
+    {'7', '8', '9', 'C'},
+    {'*', '0', '#', 'D'}
+  };
+
+const uint8_t
+  rowPins[KP_NUM_ROWS] = {9, 8, 7, 6},
+  colPins[KP_NUM_COLS]= {5, 4, 3, 2};
+
+Keypad myKeypad =
+  Keypad(makeKeymap(keymap), rowPins, colPins, KP_NUM_ROWS, KP_NUM_COLS);
 
 CRGB Leds[NUM_LEDS];
 
@@ -37,17 +57,30 @@ typedef tCell tField[FieldSize];
 
 tField CurField, NewField;
 
+char GetCellChar(tCell cell) {
+  return (cell ? '$' : ' ');
+}
+
 void DrawCurField() {
-  for (uint8_t i = 0; i < FieldSize; ++i) {
+  for (uint8_t i = 0; i < FieldSize; ++i)
     DrawCell(CurField[i], i);
-  }
   FastLED.show();
+
+  String line = "";
+  line += Rule;
+  line += ": ";
+  line += GetCellChar(GetLeftCell(0));
+  for (uint8_t i = 0; i < FieldSize; ++i) {
+    line += GetCellChar(CurField[i]);
+  }
+  line += GetCellChar(GetRightCell(FieldSize - 1));
+  Serial.println(line);
 }
 
 void InitCurField() {
   for (uint8_t i = 0; i < FieldSize; ++i)
     CurField[i] = 0;
-  /*
+  //*
   CurField[FieldSize / 2] = 1;
   return;
   //*/
@@ -61,19 +94,27 @@ void InitCurField() {
   }
 }
 
+tCell GetLeftCell(uint8_t pos) {
+  if (pos == 0)
+    return CurField[pos];
+  else
+    return CurField[pos - 1];
+}
+
+tCell GetRightCell(uint8_t pos) {
+  if (pos == FieldSize - 1)
+    return CurField[pos];
+  else
+    return CurField[pos + 1];
+}
+
 uint8_t GetNeighborhood(uint8_t pos) {
   uint8_t left, center, right;
-  if (pos == 0)
-    left = CurField[pos];
-  else
-    left = CurField[pos - 1];
+  left = GetLeftCell(pos);
   center = CurField[pos];
-  if (pos == FieldSize - 1)
-    right = CurField[pos];
-  else
-    right = CurField[pos + 1];
+  right = GetRightCell(pos);
 
-  uint8_t result = left + (center << 1) + (right << 2);
+  uint8_t result = (left << 2) + (center << 1) + (right << 0);
   return result;
 }
 
@@ -85,9 +126,16 @@ tCell CalcNewCell(uint8_t pos, uint8_t rule) {
   return GetBit(GetNeighborhood(pos), rule);
 }
 
+void MutateNewField() {
+  for (uint8_t i = 0; i < FieldSize; ++i)
+    if (!random(1000))
+      NewField[i] = 1 - NewField[i];
+}
+
 void FillNewField(uint8_t rule) {
   for (uint8_t i = 0; i < FieldSize; ++i)
     NewField[i] = CalcNewCell(i, rule);
+  MutateNewField();
 }
 
 void setup() {
@@ -119,10 +167,14 @@ void loop() {
   // Serial.println(time_passed);
 
   FillNewField(Rule);
-  for (uint8_t i = 0; i < FieldSize; ++i) {
-    DrawCell(CurField[i], i);
+  for (uint8_t i = 0; i < FieldSize; ++i)
     CurField[i] = NewField[i];
-  }
+
   DrawCurField();
-  FastLED.delay(750);
+  FastLED.delay(160);
+
+  if (myKeypad.getKey() != NO_KEY) {
+    Rule = random(0xFF);
+    setup();
+  }
 }
