@@ -12,7 +12,7 @@ const char keymap[NUM_ROWS][NUM_COLS] =
     {'*', '0', '#', 'D'}
   };
 
-uint8_t
+const uint8_t
   rowPins[NUM_ROWS] = {9, 8, 7, 6},
   colPins[NUM_COLS]= {5, 4, 3, 2};
 
