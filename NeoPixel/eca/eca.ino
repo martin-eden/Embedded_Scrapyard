@@ -15,7 +15,7 @@ const int16_t
   NUM_LEDS = 60,
   BRIGHTNESS = 20;
 
-const uint8_t Rule = 225;
+const uint8_t Rule = 54;
 
 CRGB Leds[NUM_LEDS];
 
@@ -30,17 +30,9 @@ void DrawCell(tCell value, uint8_t pos) {
     Leds[led_pos] = OnColor;
   else
     Leds[led_pos] = OffColor;
-  if (value) {
-    /*
-    Serial.print(pos);
-    Serial.print(" ");
-    Serial.print(value);
-    Serial.println();
-    */
-  }
 }
 
-const uint16_t FieldSize = NUM_LEDS / 2;
+const uint16_t FieldSize = NUM_LEDS;
 typedef tCell tField[FieldSize];
 
 tField CurField, NewField;
@@ -49,23 +41,17 @@ void DrawCurField() {
   for (uint8_t i = 0; i < FieldSize; ++i) {
     DrawCell(CurField[i], i);
   }
-}
-
-void DrawNewField() {
-  const uint8_t offset = NUM_LEDS / 2;
-  for (uint8_t i = 0; i < FieldSize; ++i) {
-    DrawCell(NewField[i], i + offset);
-  }
-}
-
-void DrawFields() {
-  DrawCurField();
-  // DrawNewField();
+  FastLED.show();
 }
 
 void InitCurField() {
-  const uint8_t NumSeeds = 1;
-  // const uint8_t NumSeeds = FieldSize / 5;
+  for (uint8_t i = 0; i < FieldSize; ++i)
+    CurField[i] = 0;
+  /*
+  CurField[FieldSize / 2] = 1;
+  return;
+  //*/
+  const uint8_t NumSeeds = 3;
   for (uint8_t i = 0; i < NumSeeds; ++i) {
     uint8_t p;
     do {
@@ -83,7 +69,7 @@ uint8_t GetNeighborhood(uint8_t pos) {
     left = CurField[pos - 1];
   center = CurField[pos];
   if (pos == FieldSize - 1)
-    right = NewField[0];
+    right = CurField[pos];
   else
     right = CurField[pos + 1];
 
@@ -100,12 +86,8 @@ tCell CalcNewCell(uint8_t pos, uint8_t rule) {
 }
 
 void FillNewField(uint8_t rule) {
-  for (uint8_t i = 0; i < FieldSize; ++i) {
+  for (uint8_t i = 0; i < FieldSize; ++i)
     NewField[i] = CalcNewCell(i, rule);
-
-    // DrawCell(NewField[i], i + FieldSize);
-    FastLED.delay(25);
-  }
 }
 
 void setup() {
@@ -123,6 +105,8 @@ void setup() {
 
   delay(100);
 
+  Serial.print("Rule ");
+  Serial.println(Rule);
   InitCurField();
   DrawCurField();
 }
@@ -135,17 +119,10 @@ void loop() {
   // Serial.println(time_passed);
 
   FillNewField(Rule);
-  // DrawNewField();
-
-  for (uint8_t j = 0; j < FieldSize; ++j) {
-    for (uint8_t i = 1; i < FieldSize; ++i)
-      CurField[i - 1] = CurField[i];
-    CurField[FieldSize - 1] = NewField[0];
-    for (uint8_t i = 1; i < FieldSize; ++i)
-      NewField[i - 1] = NewField[i];
-    NewField[FieldSize - 1] = 0;  //CalcNewCell(FieldSize - 1, Rule);
-    // DrawFields();
-    FastLED.delay(10);
+  for (uint8_t i = 0; i < FieldSize; ++i) {
+    DrawCell(CurField[i], i);
+    CurField[i] = NewField[i];
   }
-  DrawFields();
+  DrawCurField();
+  FastLED.delay(750);
 }
