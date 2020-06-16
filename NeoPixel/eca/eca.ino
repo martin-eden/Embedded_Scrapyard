@@ -16,7 +16,7 @@ const uint8_t
   NUM_LEDS = 60,
   BRIGHTNESS = 20;
 
-uint8_t Rule = 195; // 195, 110, 75
+uint8_t Rule = 137; // 195 110 75 137 54 57 165 184 182 165 90 126
 
 const uint8_t
   KP_NUM_ROWS = 4,
@@ -66,14 +66,17 @@ void DrawCurField() {
     DrawCell(CurField[i], i);
   FastLED.show();
 
+  uint8_t NumOnes = 0;
   String line = "";
   line += Rule;
   line += ": ";
   line += GetCellChar(GetLeftCell(0));
   for (uint8_t i = 0; i < FieldSize; ++i) {
     line += GetCellChar(CurField[i]);
+    NumOnes += CurField[i];
   }
   line += GetCellChar(GetRightCell(FieldSize - 1));
+  line = line + " (" + ((uint16_t)NumOnes * 100 / FieldSize) + "%)";
   Serial.println(line);
 }
 
@@ -84,7 +87,7 @@ void InitCurField() {
   CurField[FieldSize / 2] = 1;
   return;
   //*/
-  const uint8_t NumSeeds = 3;
+  const uint8_t NumSeeds = FieldSize / 2;
   for (uint8_t i = 0; i < NumSeeds; ++i) {
     uint8_t p;
     do {
@@ -145,8 +148,10 @@ void setup() {
 
   FastLED.addLeds<LED_TYPE, LED_PIN>(Leds, NUM_LEDS);
   // FastLED.setMaxPowerInVoltsAndMilliamps(5, 100);
-  FastLED.setCorrection(TypicalSMD5050);
+  // FastLED.setCorrection(TypicalSMD5050);
   // FastLED.setCorrection(UncorrectedColor);
+  FastLED.setCorrection(SodiumVapor);
+
   FastLED.setBrightness(BRIGHTNESS);
   FastLED.setDither(1);
   FastLED.clear();
@@ -173,8 +178,16 @@ void loop() {
   DrawCurField();
   FastLED.delay(160);
 
-  if (myKeypad.getKey() != NO_KEY) {
+  if (
+    (myKeypad.getKey() != NO_KEY) ||
+    Serial.available()
+  ) {
+    if (Serial.available()) {
+      do
+        Serial.read();
+      while (Serial.available());
+    }
     Rule = random(0xFF);
-    setup();
+    // setup();
   }
 }
