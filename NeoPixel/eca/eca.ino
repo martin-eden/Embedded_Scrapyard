@@ -2,8 +2,8 @@
 
 /*
   Status: exploring
-  Version: 0.7
-  Last mod.: 2020-06-12
+  Version: 0.8
+  Last mod.: 2020-06-16
 */
 
 #include <FastLED.h>
@@ -17,7 +17,7 @@ const uint8_t
   NUM_LEDS = 60,
   BRIGHTNESS = 20;
 
-uint8_t Rule = 137; // 195 110 75 137 54 57 165 184 182 165 90 126
+uint8_t Rule = 89; // 195 110 75 137 54 57 165 184 182 165 90 126 30 226 149 89 41
 
 const uint8_t
   KP_NUM_ROWS = 4,
@@ -79,9 +79,11 @@ tCell CalcNewCell(uint8_t pos, uint8_t rule) {
   return GetBit(GetNeighborhood(pos), rule);
 }
 
+const uint32_t MutateChance = 20000;  // 1 / self
+
 void MutateNewField() {
   for (uint8_t i = 0; i < FieldSize; ++i)
-    if (!random(1000))
+    if (!random(MutateChance))
       NewField[i] = 1 - NewField[i];
 }
 
@@ -91,7 +93,7 @@ void FillNewField(uint8_t rule) {
   MutateNewField();
 }
 
-const int16_t HeatGranularity = 8;
+const int16_t HeatGranularity = 256 / 3;
 
 uint8_t GetNewHeat(int16_t v) {
   int16_t result = constrain(v, 0, 0xFF);
@@ -121,7 +123,7 @@ void UpdateCellHeat(tCell value, uint8_t pos) {
 void InitNewField() {
   for (uint8_t i = 0; i < FieldSize; ++i)
     NewField[i] = 0;
-  //*
+  /*
   NewField[FieldSize / 2] = 1;
   return;
   //*/
@@ -173,7 +175,7 @@ void DrawCurField() {
   for (uint8_t i = 0; i < FieldSize; ++i)
     DrawCell(i);
   FastLED.show();
-  // SerialRepresentField();
+  SerialRepresentField();
 }
 
 void setup() {
@@ -226,6 +228,8 @@ void loop() {
     Rule = random(0xFF);
     Serial.print("Rule ");
     Serial.println(Rule);
+    InitNewField();
+    OverwriteCurField();
 
     // setup();
   }
