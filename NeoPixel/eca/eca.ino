@@ -10,6 +10,7 @@
 #include <Keypad.h>
 
 #define LED_TYPE WS2812
+#define COLOR_ORDER GRB
 #define LED_PIN 10
 
 const uint8_t
@@ -37,65 +38,14 @@ const uint8_t
 Keypad myKeypad =
   Keypad(makeKeymap(keymap), rowPins, colPins, KP_NUM_ROWS, KP_NUM_COLS);
 
-CRGB Leds[NUM_LEDS];
-
 typedef uint8_t tCell;
 
-void DrawCell(tCell value, uint8_t pos) {
-  const CRGB
-    OffColor = CRGB::Black,
-    OnColor = CRGB::White;
-  uint8_t led_pos = NUM_LEDS - 1 - pos;
-  if (value)
-    Leds[led_pos] = OnColor;
-  else
-    Leds[led_pos] = OffColor;
-}
+CRGB Leds[NUM_LEDS];
 
 const uint16_t FieldSize = NUM_LEDS;
 typedef tCell tField[FieldSize];
 
-tField CurField, NewField;
-
-char GetCellChar(tCell cell) {
-  return (cell ? '$' : ' ');
-}
-
-void DrawCurField() {
-  for (uint8_t i = 0; i < FieldSize; ++i)
-    DrawCell(CurField[i], i);
-  FastLED.show();
-
-  uint8_t NumOnes = 0;
-  String line = "";
-  line += Rule;
-  line += ": ";
-  line += GetCellChar(GetLeftCell(0));
-  for (uint8_t i = 0; i < FieldSize; ++i) {
-    line += GetCellChar(CurField[i]);
-    NumOnes += CurField[i];
-  }
-  line += GetCellChar(GetRightCell(FieldSize - 1));
-  line = line + " (" + ((uint16_t)NumOnes * 100 / FieldSize) + "%)";
-  Serial.println(line);
-}
-
-void InitCurField() {
-  for (uint8_t i = 0; i < FieldSize; ++i)
-    CurField[i] = 0;
-  //*
-  CurField[FieldSize / 2] = 1;
-  return;
-  //*/
-  const uint8_t NumSeeds = FieldSize / 2;
-  for (uint8_t i = 0; i < NumSeeds; ++i) {
-    uint8_t p;
-    do {
-      p = random(FieldSize);
-    } while (CurField[p] == 1);
-    CurField[p] = 1;
-  }
-}
+tField CurField, NewField, CellsHeat;
 
 tCell GetLeftCell(uint8_t pos) {
   if (pos == 0)
@@ -141,16 +91,101 @@ void FillNewField(uint8_t rule) {
   MutateNewField();
 }
 
+const int16_t HeatGranularity = 8;
+
+uint8_t GetNewHeat(int16_t v) {
+  int16_t result = constrain(v, 0, 0xFF);
+  result = uint8_t(result);
+  return result;
+}
+
+uint8_t IncreaseHeat(uint8_t v) {
+  int16_t NewHeat = (int16_t)v + (int16_t)HeatGranularity;
+  NewHeat = GetNewHeat(NewHeat);
+  return NewHeat;
+}
+
+uint8_t DecreaseHeat(uint8_t v) {
+  int16_t NewHeat = (int16_t)v - (int16_t)HeatGranularity;
+  NewHeat = GetNewHeat(NewHeat);
+  return NewHeat;
+}
+
+void UpdateCellHeat(tCell value, uint8_t pos) {
+  if (value)
+    CellsHeat[pos] = IncreaseHeat(CellsHeat[pos]);
+  else
+    CellsHeat[pos] = DecreaseHeat(CellsHeat[pos]);
+}
+
+void InitNewField() {
+  for (uint8_t i = 0; i < FieldSize; ++i)
+    NewField[i] = 0;
+  //*
+  NewField[FieldSize / 2] = 1;
+  return;
+  //*/
+  const uint8_t NumSeeds = FieldSize / 2;
+  for (uint8_t i = 0; i < NumSeeds; ++i) {
+    uint8_t p;
+    do {
+      p = random(FieldSize);
+    } while (NewField[p] == 1);
+    NewField[p] = 1;
+  }
+}
+
+void OverwriteCurField() {
+  for (uint8_t i = 0; i < FieldSize; ++i) {
+    CurField[i] = NewField[i];
+    UpdateCellHeat(CurField[i], i);
+  }
+}
+
+void DrawCell(uint8_t pos) {
+  uint8_t led_pos = NUM_LEDS - 1 - pos;
+  uint8_t value = CellsHeat[pos];
+  value = map(value, 0, 0xFF, 170, 0);
+  // Leds[led_pos] = CHSV(0xFF, 0, value);
+  Leds[led_pos] = CHSV(value, 0xFF, 0xFF);
+}
+
+char GetCellChar(tCell cell) {
+  return (cell ? '$' : ' ');
+}
+
+void SerialRepresentField() {
+  uint8_t NumOnes = 0;
+  String line = "";
+  line += Rule;
+  line += ": ";
+  line += GetCellChar(GetLeftCell(0));
+  for (uint8_t i = 0; i < FieldSize; ++i) {
+    line += GetCellChar(CurField[i]);
+    NumOnes += CurField[i];
+  }
+  line += GetCellChar(GetRightCell(FieldSize - 1));
+  line = line + " (" + ((uint16_t)NumOnes * 100 / FieldSize) + "%)";
+  Serial.println(line);
+}
+
+void DrawCurField() {
+  for (uint8_t i = 0; i < FieldSize; ++i)
+    DrawCell(i);
+  FastLED.show();
+  // SerialRepresentField();
+}
+
 void setup() {
   randomSeed(analogRead(A0));
 
   Serial.begin(9600);
 
-  FastLED.addLeds<LED_TYPE, LED_PIN>(Leds, NUM_LEDS);
+  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(Leds, NUM_LEDS);
   // FastLED.setMaxPowerInVoltsAndMilliamps(5, 100);
-  // FastLED.setCorrection(TypicalSMD5050);
+  FastLED.setCorrection(TypicalSMD5050);
   // FastLED.setCorrection(UncorrectedColor);
-  FastLED.setCorrection(SodiumVapor);
+  // FastLED.setCorrection(SodiumVapor);
 
   FastLED.setBrightness(BRIGHTNESS);
   FastLED.setDither(1);
@@ -160,9 +195,12 @@ void setup() {
 
   Serial.print("Rule ");
   Serial.println(Rule);
-  InitCurField();
+
+  InitNewField();
+  OverwriteCurField();
   DrawCurField();
 }
+
 
 void loop() {
   static uint32_t last_millis = millis();
@@ -172,9 +210,7 @@ void loop() {
   // Serial.println(time_passed);
 
   FillNewField(Rule);
-  for (uint8_t i = 0; i < FieldSize; ++i)
-    CurField[i] = NewField[i];
-
+  OverwriteCurField();
   DrawCurField();
   FastLED.delay(160);
 
@@ -188,6 +224,9 @@ void loop() {
       while (Serial.available());
     }
     Rule = random(0xFF);
+    Serial.print("Rule ");
+    Serial.println(Rule);
+
     // setup();
   }
 }

@@ -1,57 +1,37 @@
-const uint32_t
-  idle_measurement_delay = uint32_t(1000) * 60 * 12,
-  pour_measurement_delay = uint32_t(1000) * 5;
+const int16_t HeatGranularity = 800;
 
-const uint8_t num_blocks = 1;
+uint8_t GetNewHeat(const int16_t v) {
+  int16_t result = constrain(v, 0, 0xFF);
+  result = map(result, 0, 0xFF, 160, 0);
+  result = uint8_t(result);
+  return result;
+}
 
-uint32_t next_request_time[num_blocks] = {0xFFFFFFF0};
+uint8_t IncreaseHeat(uint8_t v) {
+  int16_t NewHeat = (int16_t)v + (int16_t)HeatGranularity;
+  NewHeat = GetNewHeat(NewHeat);
+  return NewHeat;
+}
 
-uint32_t cur_time;
+uint8_t DecreaseHeat(uint8_t v) {
+  Serial.print("v: ");
+  Serial.println(v);
 
-void setup()
-{
+  int16_t NewHeat = (int16_t)v - (int16_t)HeatGranularity;
+  Serial.print("NewHeat: ");
+  Serial.println(NewHeat);
+
+  NewHeat = GetNewHeat(NewHeat);
+  Serial.print("NewHeat: ");
+  Serial.println(NewHeat);
+
+  return NewHeat;
+}
+
+void setup() {
   Serial.begin(9600);
-  print_status();
+  DecreaseHeat(102);
 }
 
-void print_status()
-{
-  Serial.print("cur_time: ");
-  Serial.print(cur_time, HEX);
-
-  Serial.print(", ");
-  Serial.print("next_request_time: {");
-  for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
-  {
-    Serial.print(next_request_time[block_num], HEX);
-    Serial.print("; ");
-  }
-  Serial.print("}");
-
-  Serial.println("");
-}
-
-void do_business()
-{
-  for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
-  {
-    cur_time = next_request_time[block_num] + 0x10;
-    sanity_check();
-    next_request_time[block_num] = cur_time + idle_measurement_delay;
-  }
-}
-
-void sanity_check()
-{
-  for (uint8_t block_num = 0; block_num < num_blocks; block_num++)
-  {
-    if ((cur_time < 0x10000000) && (next_request_time[block_num] >= 0x80000000))
-      while (1);
-  }
-}
-
-void loop()
-{
-  do_business();
-  print_status();
+void loop() {
 }
