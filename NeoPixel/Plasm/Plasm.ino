@@ -5,7 +5,7 @@
 
 const int16_t
   NUM_LEDS = 60,
-  LEDS_OFFSET = 35,
+  LEDS_OFFSET = 0,
   LEDS_USED = NUM_LEDS - LEDS_OFFSET - 1,
   BRIGHTNESS = 64,
   UPDATES_PER_MINUTE = 72;
@@ -15,7 +15,7 @@ const uint8_t
   MAX_HUE_DISTANCE = LEDS_USED;
 
 const float
-  SCALE = 0.0;
+  SCALE = 1.0;
 
 float
   START_HUE_DRIFT = 1.0,
