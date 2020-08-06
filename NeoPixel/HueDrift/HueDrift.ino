@@ -1,6 +1,7 @@
 #include <FastLED.h>
 
 #define LED_TYPE WS2812
+#define COLOR_ORDER GRB
 #define LED_PIN 10
 
 const int16_t
@@ -22,8 +23,8 @@ CRGB leds[NUM_LEDS];
 void setup() {
   randomSeed(analogRead(A0));
   Serial.begin(9600);
-  FastLED.addLeds<LED_TYPE, LED_PIN>(leds, NUM_LEDS);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 50);
+  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
   FastLED.setCorrection(TypicalSMD5050);
   // FastLED.setCorrection(UncorrectedColor);
   FastLED.setBrightness(BRIGHTNESS);
