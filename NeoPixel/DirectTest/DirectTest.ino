@@ -2,7 +2,7 @@
 
 /*
   Status: not working due hardware
-  Last mod.: 2020-07-28
+  Last mod.: 2020-08-06
 */
 
 /*
@@ -72,9 +72,11 @@ void display() {
   for (uint8_t i = 0; i < NumLeds; ++i) {
     for (uint8_t component = 0; component < 3; ++component) {
       for (uint8_t bit = 8; bit > 0; --bit) {
-        digitalWrite(LedPin, HIGH);
+        PORTB |= (1 << 2);
+        // digitalWrite(LedPin, HIGH);
         delayCycles<th0_cycles>;
-        digitalWrite(LedPin, LOW);
+        PORTB &= !(1 << 2);
+        // digitalWrite(LedPin, LOW);
         delayCycles<tl0_cycles>;
       }
     }
