@@ -9,6 +9,7 @@ const int16_t
   LEDS_OFFSET = 0,
   LEDS_USED = NUM_LEDS - LEDS_OFFSET - 1,
   BRIGHTNESS = 64,
+  MAX_CURRENT_MA = 150,
   UPDATES_PER_MINUTE = 2400;
 
 const uint8_t
@@ -16,19 +17,19 @@ const uint8_t
 
 float
   START_HUE_DRIFT = 1.0,
-  FINSH_HUE_DRIFT = 1.0;
+  FINSH_HUE_DRIFT = 0.85;
 
 CRGB leds[NUM_LEDS];
 
 void setup() {
   randomSeed(analogRead(A0));
   Serial.begin(9600);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 50);
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_CURRENT_MA);
   FastLED.setCorrection(TypicalSMD5050);
   // FastLED.setCorrection(UncorrectedColor);
   FastLED.setBrightness(BRIGHTNESS);
-  FastLED.setDither(1);
+  FastLED.setDither(0);
   delay(100);
 }
 
