@@ -14,6 +14,8 @@ CRGB Leds[NUM_LEDS];
 void setup() {
   Serial.begin(9600);
 
+  pinMode(LED_BUILTIN, OUTPUT);
+
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(Leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
   // FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_CURRENT_MA);
   FastLED.setCorrection(TypicalSMD5050);
@@ -28,8 +30,51 @@ uint8_t getSaturatedVal(uint8_t v) {
     return 0;
 }
 
+uint32_t calculate_delay() {
+  static uint32_t wished_delay = 1000000L * 60 * 6;
+  static uint32_t high_margin = 2 * wished_delay;
+  static uint32_t low_margin = 10;
+  static uint32_t middle = (high_margin + low_margin) / 2;
+  static bool is_first_time = true;
+  static uint32_t last_micros = micros();
+
+  if (low_margin + 1 >= high_margin)
+    digitalWrite(LED_BUILTIN, HIGH);
+
+  uint32_t cur_micros = micros();
+  uint32_t time_passed = cur_micros - last_micros;
+  last_micros = cur_micros;
+
+  //*
+  Serial.println(time_passed);
+
+  Serial.print(low_margin);
+  Serial.print(" ");
+  Serial.print(middle);
+  Serial.print(" ");
+  Serial.print(high_margin);
+  Serial.println();
+  //*/
+
+  if (is_first_time)
+    // can't do decision yet
+    is_first_time = false;
+  else {
+    if (time_passed > wished_delay)
+      high_margin = middle;
+    else
+      low_margin = middle;
+    middle = (high_margin + low_margin) / 2;
+  }
+
+  return middle / NUM_LEDS;
+}
+
 void loop() {
   static uint8_t rainbowStartHue = HUE_GREEN;
+  static uint32_t delay_mcr;
+
+  delay_mcr = calculate_delay();
 
   for (uint8_t i = 0; i < NUM_LEDS; ++i) {
     EVERY_N_MILLISECONDS(1500) {
@@ -54,7 +99,11 @@ void loop() {
     Leds[i] = CRGB::Black;
 
     FastLED.show();
-    delayMicroseconds(874000 / NUM_LEDS);
+
+    if (delay_mcr < 0x4000)
+      delayMicroseconds(delay_mcr);
+    else
+      delay(delay_mcr / 1000);
 
     Leds[i] = origColor;
 
@@ -71,5 +120,4 @@ void loop() {
     Leds[i + 1] = -Leds[i + 1];
 */
   }
-  Serial.println(".");
 }
