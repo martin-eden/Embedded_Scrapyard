@@ -34,14 +34,17 @@ void setup() {
   // FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_CURRENT_MA);
   FastLED.setBrightness(BRIGHTNESS);
   FastLED.setDither(0);
+  Serial.begin(115200);
 }
 
 void loop() {
   for (uint8_t i = 0; i < NUM_LEDS; ++i) {
-    uint8_t value = analogRead(A0);
+    uint16_t value_10bits = analogRead(A0);
+    uint8_t value = value_10bits >> 2;
+    // Serial.println(value_10bits);
     Leds[i] = CRGB(value, value, value);
   }
-  EVERY_N_MILLISECONDS(2000) {
+  EVERY_N_MILLISECONDS(240) {
     FastLED.show();
   }
 }
