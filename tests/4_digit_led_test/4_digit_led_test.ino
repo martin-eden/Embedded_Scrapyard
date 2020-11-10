@@ -8,8 +8,8 @@
 #include <TM1637Display.h>
 
 const uint8_t
-  INPUT_PIN = A4,
-  CLOCK_PIN = A5,
+  INPUT_PIN = 5,
+  CLOCK_PIN = 6,
 
   ANALOG_PIN = A0;
 
@@ -19,11 +19,13 @@ const uint16_t
 TM1637Display display(CLOCK_PIN, INPUT_PIN);
 
 void setup() {
+  Serial.begin(9600);
   display.setBrightness(0x0F);
 }
 
 void loop() {
   uint16_t value = analogRead(ANALOG_PIN);
   display.showNumberDec(value, false);
+  Serial.println(value);
   delay(MEASUREMENT_DELAY_MS);
 }
