@@ -2,8 +2,8 @@
 #include <TM1637Display.h>
 
 // Module connection pins (Digital Pins)
-#define CLK 2
-#define DIO 3
+#define CLK 6
+#define DIO 5
 
 // The amount of time (in milliseconds) between tests
 #define TEST_DELAY   2000
@@ -97,7 +97,7 @@ void loop()
   display.clear();
   display.showNumberHexEx(0xd1, 0, true, 2); // Expect: d1__
   delay(TEST_DELAY);
-  
+
 	// Run through all the dots
 	for(k=0; k <= 4; k++) {
 		display.showNumberDecEx(0, (0x80 >> k), true);
@@ -112,7 +112,7 @@ void loop()
     display.setSegments(data);
     delay(TEST_DELAY);
   }
-  
+
   // On/Off test
   for(k = 0; k < 4; k++) {
     display.setBrightness(7, false);  // Turn off
@@ -120,10 +120,10 @@ void loop()
     delay(TEST_DELAY);
     display.setBrightness(7, true); // Turn on
     display.setSegments(data);
-    delay(TEST_DELAY);  
+    delay(TEST_DELAY);
   }
 
- 
+
   // Done!
   display.setSegments(SEG_DONE);
 
