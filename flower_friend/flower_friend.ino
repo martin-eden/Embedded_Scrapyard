@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Generation: 5.2.2
-  Last mod.: 2020-02-17
+  Generation: 5.2.3
+  Last mod.: 2020-10-30
 */
 
 #include <Wire.h>
@@ -16,7 +16,7 @@
 
 const char
   code_descr[] = "\"Flower friend\" gardening system",
-  version[] = "5.2.1";
+  version[] = "5.2.3";
 
 const uint8_t
   MEASURER_1_SIGNAL_PIN = A0,
@@ -60,7 +60,7 @@ struct t_measurer_params
 
 const t_measurer_params sensor_params[num_blocks] =
   {
-    {MEASURER_1_POWER_PIN, MEASURER_1_SIGNAL_PIN, 30, 506, 4, true, false} //funduino
+    {MEASURER_1_POWER_PIN, MEASURER_1_SIGNAL_PIN, 30, 350, 4, true, false} //funduino
   };
 
 void setup()
