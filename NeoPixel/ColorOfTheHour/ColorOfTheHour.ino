@@ -7,7 +7,7 @@
 const int16_t
   NUM_LEDS = 60,
   BRIGHTNESS = 32,
-  MAX_CURRENT_MA = 50;
+  MAX_CURRENT_MA = 36;
 
 CRGB Leds[NUM_LEDS];
 
@@ -17,9 +17,9 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(Leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-  // FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_CURRENT_MA);
   FastLED.setCorrection(TypicalSMD5050);
-  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_CURRENT_MA);
+  // FastLED.setBrightness(BRIGHTNESS);
   FastLED.setDither(0);
 }
 
@@ -31,7 +31,7 @@ uint8_t getSaturatedVal(uint8_t v) {
 }
 
 uint32_t calculate_delay() {
-  static uint32_t wished_delay = 1000000L * 60 * 6;
+  static uint32_t wished_delay = 1000000L * .20;
   static uint32_t high_margin = 2 * wished_delay;
   static uint32_t low_margin = 10;
   static uint32_t middle = (high_margin + low_margin) / 2;
@@ -96,7 +96,7 @@ void loop() {
     Leds[i] = hsvColor;
     */
 
-    Leds[i] = CRGB::Black;
+    // Leds[i] = CRGB::Black;
 
     FastLED.show();
 
