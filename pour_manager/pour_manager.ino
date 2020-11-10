@@ -2,40 +2,56 @@
 
 /*
   Status: stable
-  Generation: 0.7
-  Last mod.: 2020-03-14
+  Generation: 0.8
+  Last mod.: 2020-11-09
+*/
+
+/*
+  Requirements:
+    * 4-digit LED display
+    * Capacitive soil moisture sensor
+    * Relay switch
+    * Water pump motor
 */
 
 #include <me_humidity_measurer.h>
 #include <me_switch.h>
 #include <me_DateTime.h>
+#include <TM1637Display.h>
 
 const char
   code_descr[] = "\"Pour manager\". Based on \"Flower friend\" gardening system.",
-  version[] = "0.7.2";
+  version[] = "0.8";
 
 const uint8_t
   PIN_MEASURER_SIGNAL = A0,
   PIN_MEASURER_POWER = 8,
   PIN_MOTOR_CONTROL = 2,
 
-  DESIRED_RH_FROM = 70,
-  DESIRED_RH_TO = 90;
+  DISPLAY_INPUT_PIN = 5,
+  DISPLAY_CLOCK_PIN = 6;
+
+// Capacitive soil moisture sensor: (
+const uint8_t
+  DESIRED_RH_MIN = 60,
+  DESIRED_RH_MAX = 80;
 
 const uint16_t
-  MEASURER_MIN_VALUE = 480,
-  MEASURER_MAX_VALUE = 620,
+  MEASURER_MIN_VALUE = 120,
+  MEASURER_MAX_VALUE = 580,
   MEASURER_HYSTERESIS = 10;
 
 const bool
-  MEASURER_HIGH_MEANS_DRY = false;
+  MEASURER_HIGH_MEANS_DRY = true;
+// )
 
 const uint32_t
-  IDLE_MEASUREMENT_DELAY = uint32_t(1000) * 60 * 12,
+  IDLE_MEASUREMENT_DELAY = uint32_t(1000) * 7,
   POUR_MEASUREMENT_DELAY = uint32_t(1000) * 5;
 
 c_humidity_measurer measurer;
 c_switch motor = c_switch(PIN_MOTOR_CONTROL);
+TM1637Display display(DISPLAY_CLOCK_PIN, DISPLAY_INPUT_PIN);
 
 struct t_measurer_params
   {
@@ -55,12 +71,14 @@ const t_measurer_params sensor_params =
     min_value: MEASURER_MIN_VALUE,
     max_value: MEASURER_MAX_VALUE,
     hysteresis: MEASURER_HYSTERESIS,
-    power_off_between_measures: true,
+    power_off_between_measures: false,
     high_means_dry: MEASURER_HIGH_MEANS_DRY
   };
 
 void setup() {
   Serial.begin(9600);
+
+  display.setBrightness(0x0F);
 
   Serial.println("Setup. Motors.");
   Serial.println("Setup. Sensors.");
@@ -160,8 +178,7 @@ void handle_command() {
   switch (cmd) {
     case CMD_MEASURE:
       Serial.read();
-      value = measurer.get_value();
-      send_measurement(value);
+      get_humidity();
       break;
     case CMD_MOTOR:
       if (data_length < 2)
@@ -244,8 +261,8 @@ void print_status() {
     "    MEASURER_MIN_VALUE: " + MEASURER_MIN_VALUE + "\n" +
     "    MEASURER_MAX_VALUE: " + MEASURER_MAX_VALUE + "\n" +
     "    MEASURER_HYSTERESIS: " + MEASURER_HYSTERESIS + "\n" +
-    "    DESIRED_RH_FROM: " + DESIRED_RH_FROM + "\n" +
-    "    DESIRED_RH_TO: " + DESIRED_RH_TO + "\n";
+    "    DESIRED_RH_MIN: " + DESIRED_RH_MIN + "\n" +
+    "    DESIRED_RH_MAX: " + DESIRED_RH_MAX + "\n";
   Serial.print(msg);
 
   Serial.print("    uptime: ");
@@ -293,32 +310,55 @@ bool is_time_to_work() {
     );
 }
 
+int16_t get_humidity() {
+  int16_t result = measurer.get_value();
+  if (measurer.is_line_problem)
+    result = -1;
+
+  int16_t raw_result = measurer.get_raw_value();
+  display.showNumberDec(raw_result, false);
+  delay(1200);
+  display.showNumberDec(result, false);
+  Serial.print("get_humidity: ");
+  send_measurement(result);
+
+  return result;
+}
+
+void motor_on() {
+  // motor.switch_on();
+  // print_status();
+}
+
+void motor_off() {
+  motor.switch_off();
+  print_status();
+}
+
+void update_next_request_time() {
+  if (motor.is_on())
+    next_request_time = cur_time + POUR_MEASUREMENT_DELAY;
+  else
+    next_request_time = cur_time + IDLE_MEASUREMENT_DELAY;
+}
+
 void do_business() {
   bool time_to_work = is_time_to_work();
 
   if (!time_to_work)
     return;
 
-  int val = measurer.get_value();
-  if (measurer.is_line_problem) {
-    motor.switch_off();
-    print_status();
-  }
-  else {
-    if ((val <= DESIRED_RH_FROM) && motor.is_off()) {
-      motor.switch_on();
-      print_status();
-    }
-    else if ((val >= DESIRED_RH_TO) && motor.is_on()) {
-      motor.switch_off();
-      print_status();
-    }
-  }
-
-  if (motor.is_on())
-    next_request_time = cur_time + POUR_MEASUREMENT_DELAY;
+  int cur_hum = get_humidity();
+  if (cur_hum == -1)
+    motor_off();
   else
-    next_request_time = cur_time + IDLE_MEASUREMENT_DELAY;
+    if ((cur_hum <= DESIRED_RH_MIN) && motor.is_off())
+      motor_on();
+    else
+      if ((cur_hum >= DESIRED_RH_MAX) && motor.is_on())
+        motor_off();
+
+  update_next_request_time();
 }
 
 void serialEvent() {
