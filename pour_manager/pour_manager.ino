@@ -24,9 +24,9 @@ const char
   version[] = "0.8";
 
 const uint8_t
-  PIN_MEASURER_SIGNAL = A0,
-  PIN_MEASURER_POWER = 8,
-  PIN_MOTOR_CONTROL = 2,
+  MEASURER_SIGNAL_PIN = A0,
+  MEASURER_POWER_PIN = 8,
+  MOTOR_CONTROL_PIN = 2,
 
   DISPLAY_INPUT_PIN = 5,
   DISPLAY_CLOCK_PIN = 6;
@@ -37,7 +37,7 @@ const uint8_t
   DESIRED_RH_MAX = 80;
 
 const uint16_t
-  MEASURER_MIN_VALUE = 120,
+  MEASURER_MIN_VALUE = 80,
   MEASURER_MAX_VALUE = 580,
   MEASURER_HYSTERESIS = 10;
 
@@ -50,7 +50,7 @@ const uint32_t
   POUR_MEASUREMENT_DELAY = uint32_t(1000) * 5;
 
 c_humidity_measurer measurer;
-c_switch motor = c_switch(PIN_MOTOR_CONTROL);
+c_switch motor = c_switch(MOTOR_CONTROL_PIN);
 TM1637Display display(DISPLAY_CLOCK_PIN, DISPLAY_INPUT_PIN);
 
 struct t_measurer_params
@@ -66,8 +66,8 @@ struct t_measurer_params
 
 const t_measurer_params sensor_params =
   {
-    power_pin: PIN_MEASURER_POWER,
-    sensor_pin: PIN_MEASURER_SIGNAL,
+    power_pin: MEASURER_POWER_PIN,
+    sensor_pin: MEASURER_SIGNAL_PIN,
     min_value: MEASURER_MIN_VALUE,
     max_value: MEASURER_MAX_VALUE,
     hysteresis: MEASURER_HYSTERESIS,
