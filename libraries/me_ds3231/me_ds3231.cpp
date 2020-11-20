@@ -301,3 +301,18 @@ void me_ds3231::disable32kWave()
 {
   clearBit(STATUS, EN32K);
 }
+
+
+const uint8_t
+  A1F = 0,
+  A2F = 1;
+
+void me_ds3231::clearAlarm1Line()
+{
+  clearBit(STATUS, A1F);
+}
+
+void me_ds3231::clearAlarm2Line()
+{
+  clearBit(STATUS, A2F);
+}

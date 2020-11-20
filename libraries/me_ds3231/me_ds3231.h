@@ -37,4 +37,7 @@ class me_ds3231
     bool wave32kEnabled();
     void enable32kWave();
     void disable32kWave();
+
+    void clearAlarm1Line();
+    void clearAlarm2Line();
 };
