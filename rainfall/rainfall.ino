@@ -31,7 +31,7 @@ c_switch motor = c_switch(MOTOR_PIN);
 
 volatile bool isTimeToWork;
 
-void reloadTrap() {
+void armTrap() {
   isTimeToWork = false;
   rtc.clearAlarm1Line();
   rtc.clearAlarm2Line();
@@ -43,14 +43,14 @@ void setup() {
   pinMode(TIMER_PIN, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(TIMER_PIN), rain_time_event, FALLING);
-  reloadTrap();
+  armTrap();
   Serial.println("Setup done.");
 }
 
 void loop() {
   if (isTimeToWork) {
     doWork();
-    reloadTrap();
+    armTrap();
   }
 }
 
