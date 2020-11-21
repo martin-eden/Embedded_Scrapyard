@@ -3,11 +3,11 @@
 const char
   code_name[] = "Pour manager",
   code_descr[] = "Measures soil dryness and pours if needed.",
-  version[] = "2.0.2";
+  version[] = "2.1.0";
 
 /*
   Status: stable
-  Last mod.: 2020-11-16
+  Last mod.: 2020-11-21
 */
 
 /*
@@ -103,10 +103,24 @@ bool is_line_problem() {
   return (result <= MEASURER_ABS_LOW) || (result >= MEASURER_ABS_HIGH);
 }
 
+const int16_t BASE_FORCE_TO_CHANGE = 10;
+
+int16_t
+  base_value = 0,
+  force_to_change = BASE_FORCE_TO_CHANGE;
+
 int16_t get_humidity() {
   int16_t result = get_raw_value();
-
   int16_t raw_result = result;
+
+  int16_t delta = result - base_value;
+  if (abs(delta) >= force_to_change) {
+    base_value = result;
+    force_to_change = BASE_FORCE_TO_CHANGE;
+  } else {
+    result = base_value;
+    force_to_change = min(force_to_change + delta, BASE_FORCE_TO_CHANGE);
+  }
 
   display.showNumberDec(result, false);
 
