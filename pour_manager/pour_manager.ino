@@ -3,11 +3,11 @@
 const char
   code_name[] = "Pour manager",
   code_descr[] = "Measures soil dryness and pours if needed.",
-  version[] = "2.1.0";
+  version[] = "2.2.0";
 
 /*
   Status: stable
-  Last mod.: 2020-11-21
+  Last mod.: 2020-11-25
 */
 
 /*
@@ -39,8 +39,8 @@ const bool
   MEASURER_HIGH_MEANS_DRY = true;
 
 const uint32_t
-  IDLE_MEASUREMENT_DELAY = uint32_t(1000) / 5, //uint32_t(1000) * 7,
-  POUR_MEASUREMENT_DELAY = uint32_t(1000) / 5; //uint32_t(1000) * 7;
+  IDLE_MEASUREMENT_DELAY = uint32_t(1000) / 2, //uint32_t(1000) * 7,
+  POUR_MEASUREMENT_DELAY = uint32_t(1000) / 2; //uint32_t(1000) * 7;
 
 c_switch motor = c_switch(MOTOR_CONTROL_PIN);
 TM1637Display display(DISPLAY_CLOCK_PIN, DISPLAY_INPUT_PIN);
@@ -52,9 +52,6 @@ void setup() {
 
   // Assure normal business logic was done before printing status:
   loop();
-
-  print_usage();
-  print_status();
 }
 
 uint32_t next_request_time;
@@ -71,6 +68,32 @@ void print_usage() {
     "Description: " + code_descr + "\n" +
     "Version: " + version + "\n" +
     "----------------------------------------------------\n" +
+    "Wiring:\n"
+    "  MOTOR_CONTROL_PIN: " + MOTOR_CONTROL_PIN + "\n" +
+    "  MEASURER_SIGNAL_PIN: " + MEASURER_SIGNAL_PIN + "\n" +
+    "  DISPLAY_INPUT_PIN: " + DISPLAY_INPUT_PIN + "\n" +
+    "  DISPLAY_CLOCK_PIN: " + DISPLAY_CLOCK_PIN + "\n" +
+    "\n" +
+    "Settings:\n" +
+    "  MEASURER_RANGE_LOW: " + MEASURER_RANGE_LOW + "\n" +
+    "  MEASURER_RANGE_HIGH: " + MEASURER_RANGE_HIGH + "\n" +
+    "  MEASURER_ABS_LOW: " + MEASURER_ABS_LOW + "\n" +
+    "  MEASURER_ABS_HIGH: " + MEASURER_ABS_HIGH + "\n" +
+    "\n";
+  Serial.print(msg);
+
+  Serial.print("  Delays:\n");
+  Serial.print("    IDLE_MEASUREMENT_DELAY: ");
+  Serial.println((float)IDLE_MEASUREMENT_DELAY / 1000);
+  Serial.print("    POUR_MEASUREMENT_DELAY: ");
+  Serial.println((float)POUR_MEASUREMENT_DELAY / 1000);
+
+  Serial.print("  High values means dry?: ");
+  Serial.println(MEASURER_HIGH_MEANS_DRY);
+
+  msg = "";
+  msg =
+    msg +
     "Usage:" + "\n" +
     "  " + CMD_GET_STATE + " - Print current status.\n" +
     "\n";
@@ -103,29 +126,37 @@ bool is_line_problem() {
   return (result <= MEASURER_ABS_LOW) || (result >= MEASURER_ABS_HIGH);
 }
 
-const int16_t BASE_FORCE_TO_CHANGE = 10;
+const int16_t BASE_FORCE_TO_CHANGE = 100;
 
 int16_t
   base_value = 0,
-  force_to_change = BASE_FORCE_TO_CHANGE;
+  deviation = 0;
 
 int16_t get_humidity() {
   int16_t result = get_raw_value();
   int16_t raw_result = result;
 
   int16_t delta = result - base_value;
-  if (abs(delta) >= force_to_change) {
-    base_value = result;
-    force_to_change = BASE_FORCE_TO_CHANGE;
-  } else {
-    result = base_value;
-    force_to_change = min(force_to_change + delta, BASE_FORCE_TO_CHANGE);
+  deviation += delta;
+  if (abs(deviation) >= BASE_FORCE_TO_CHANGE) {
+    if (abs(result - base_value) == 1)
+      base_value = result;
+    else
+      base_value = (result + base_value) / 2;
+    deviation = 0;
   }
+  result = base_value;
 
   display.showNumberDec(result, false);
 
   Serial.print("get_humidity: ");
-  Serial.println(result);
+  Serial.print(result);
+  Serial.print(" ");
+  Serial.print(raw_result);
+  Serial.print(" ");
+  Serial.print(deviation);
+  Serial.println("");
+
   if (is_line_problem()) {
     result = -1;
     delay(500);
@@ -140,28 +171,6 @@ uint32_t cur_time;
 
 void print_status() {
   String msg = "";
-
-  Serial.print("Status:\n");
-  Serial.print("  Delays:\n");
-  Serial.print("    IDLE_MEASUREMENT_DELAY: ");
-  Serial.println((float)IDLE_MEASUREMENT_DELAY / 1000);
-  Serial.print("    POUR_MEASUREMENT_DELAY: ");
-  Serial.println((float)POUR_MEASUREMENT_DELAY / 1000);
-
-  Serial.print("Measurer:\n");
-
-  msg = "  Range: ";
-  msg =
-    msg +
-    "[" +  MEASURER_RANGE_LOW + ", " + MEASURER_RANGE_HIGH + "]\n";
-  Serial.print(msg);
-
-  Serial.print("  High values means dry?: ");
-  Serial.println(MEASURER_HIGH_MEANS_DRY);
-
-  Serial.print("  Humidity: ");
-  int16_t value = get_humidity();
-  Serial.println(value);
 
   msg = "";
   msg =
