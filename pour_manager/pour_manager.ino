@@ -39,7 +39,7 @@ const bool
   MEASURER_HIGH_MEANS_DRY = true;
 
 const uint32_t
-  IDLE_MEASUREMENT_DELAY = uint32_t(1000) / 2, //uint32_t(1000) * 7,
+  IDLE_MEASUREMENT_DELAY = uint32_t(1000) * 5, //uint32_t(1000) * 7,
   POUR_MEASUREMENT_DELAY = uint32_t(1000) / 2; //uint32_t(1000) * 7;
 
 c_switch motor = c_switch(MOTOR_CONTROL_PIN);
@@ -126,35 +126,39 @@ bool is_line_problem() {
   return (result <= MEASURER_ABS_LOW) || (result >= MEASURER_ABS_HIGH);
 }
 
-const int16_t BASE_FORCE_TO_CHANGE = 100;
+const int16_t BASE_FORCE_TO_CHANGE = 20;
 
-int16_t
+float
   base_value = 0,
   deviation = 0;
+uint32_t
+  num_changes = 0;
 
 int16_t get_humidity() {
-  int16_t result = get_raw_value();
+  float result = get_raw_value();
   int16_t raw_result = result;
 
-  int16_t delta = result - base_value;
+  float delta = result - base_value;
   deviation += delta;
   if (abs(deviation) >= BASE_FORCE_TO_CHANGE) {
-    if (abs(result - base_value) == 1)
+    if (num_changes == 0)
       base_value = result;
     else
-      base_value = (result + base_value) / 2;
+      base_value += deviation / num_changes;
     deviation = 0;
+    num_changes = 0;
   }
   result = base_value;
+  ++num_changes;
 
-  display.showNumberDec(result, false);
+  display.showNumberDec((int16_t)result, false);
 
   Serial.print("get_humidity: ");
-  Serial.print(result);
+  Serial.print(result, 4);
   Serial.print(" ");
   Serial.print(raw_result);
   Serial.print(" ");
-  Serial.print(deviation);
+  Serial.print(deviation, 4);
   Serial.println("");
 
   if (is_line_problem()) {
