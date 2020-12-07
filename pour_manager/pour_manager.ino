@@ -7,7 +7,7 @@ const char
 
 /*
   Status: stable
-  Last mod.: 2020-11-25
+  Last mod.: 2020-12-07
 */
 
 /*
@@ -30,8 +30,8 @@ const uint8_t
   DISPLAY_CLOCK_PIN = 6;
 
 const uint16_t
-  MEASURER_RANGE_LOW = 320,
-  MEASURER_RANGE_HIGH = 420,
+  MEASURER_RANGE_LOW = 315,
+  MEASURER_RANGE_HIGH = 330,
   MEASURER_ABS_LOW = 240,
   MEASURER_ABS_HIGH = 650;
 
