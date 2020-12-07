@@ -7,8 +7,8 @@
 */
 
 /*
-  Intend to pour water every day (at receiving alarm signal from DS3231.
-  Be sure it triggers once a day!).
+  Intend to pour water every day (at receiving alarm signal from
+  alarm pin from DS3231 RTC. Be sure it triggers once a day!).
 
   Watering duration is calculated from
     (1) water pump volume, ml per minute
@@ -16,7 +16,7 @@
     (3) desired water precipation per day, mm
   These values are in const section.
 
-  Hardware setup:
+  Hardware setup, wiring:
     * DS3231 - configure alarm output to pin, connect with <TIMER_PIN>
     * Switch relay - connect control to <MOTOR_PIN>
 */
@@ -39,7 +39,7 @@ const uint8_t
 const float
   pumpingVolume_mlPerMinute = 100,
   potDiameter_mm = 205,
-  precipation_mm = (float) 52 / 30;
+  dailyPrecipation_mm = (float) 52 / 30;
 /*
   monthPrecipation, int, mm
     36 40 54 58 59 62 47 64 62 59 49 34
@@ -82,15 +82,17 @@ void doWork() {
     PourDurationCalculator.calculatePouringDuration_ms(
       pumpingVolume_mlPerMinute,
       potDiameter_mm,
-      precipation_mm
+      dailyPrecipation_mm
     );
 
   Serial.print("Working for ");
   Serial.print(pouringDuration);
   Serial.println(" ms.");
+
   motor.switch_on();
   delay(pouringDuration);
   motor.switch_off();
+
   Serial.println("Work done.");
 }
 
