@@ -3,11 +3,11 @@
 const char
   code_name[] = "Pour manager",
   code_descr[] = "Measures soil dryness and pours if needed.",
-  version[] = "2.2.0";
+  version[] = "2.3.0";
 
 /*
   Status: stable
-  Last mod.: 2020-12-07
+  Last mod.: 2020-12-18
 */
 
 /*
@@ -53,8 +53,6 @@ void setup() {
   // Assure normal business logic was done before printing status:
   loop();
 }
-
-uint32_t next_request_time;
 
 const char
   CMD_GET_STATE = 'G';
@@ -171,8 +169,6 @@ int16_t get_humidity() {
   return result;
 }
 
-uint32_t cur_time;
-
 void print_status() {
   String msg = "";
 
@@ -183,15 +179,6 @@ void print_status() {
   Serial.print(msg);
 
   Serial.print("\n");
-}
-
-bool is_time_to_work() {
-  return
-    (cur_time >= next_request_time) ||
-    (
-      (cur_time < 0x10000000) &&
-      (next_request_time >= 0x80000000)
-    );
 }
 
 void motor_on() {
@@ -208,46 +195,63 @@ void motor_off() {
   }
 }
 
-void update_next_request_time() {
-  if (motor.is_on())
-    next_request_time = cur_time + POUR_MEASUREMENT_DELAY;
-  else
-    next_request_time = cur_time + IDLE_MEASUREMENT_DELAY;
+void motor_starter(int16_t cur_hum) {
+  if (
+    (MEASURER_HIGH_MEANS_DRY && (cur_hum > MEASURER_RANGE_HIGH)) ||
+    (!MEASURER_HIGH_MEANS_DRY && (cur_hum < MEASURER_RANGE_LOW))
+  )
+    motor_on();
+}
+
+void motor_stopper(int16_t cur_hum) {
+  if (
+    (MEASURER_HIGH_MEANS_DRY && (cur_hum < MEASURER_RANGE_LOW)) ||
+    (!MEASURER_HIGH_MEANS_DRY && (cur_hum > MEASURER_RANGE_HIGH)) ||
+    (cur_hum == -1)
+  )
+    motor_off();
 }
 
 void do_business() {
-  bool time_to_work = is_time_to_work();
-
-  if (!time_to_work)
-    return;
-
   int cur_hum = get_humidity();
-  if (cur_hum > MEASURER_RANGE_HIGH) {
-    if (MEASURER_HIGH_MEANS_DRY)
-      motor_on();
-    else
-      motor_off();
-  }
-  if (cur_hum < MEASURER_RANGE_LOW) {
-    if (MEASURER_HIGH_MEANS_DRY)
-      motor_off();
-    else
-      motor_on();
-  }
-
-  if (cur_hum == -1)
-    motor_off();
-
-  update_next_request_time();
+  motor_starter(cur_hum);
+  motor_stopper(cur_hum);
 }
 
 void serialEvent() {
   handle_command();
 }
 
+bool is_time_to_work(uint32_t cur_time, uint32_t next_request_time) {
+  return
+    (cur_time >= next_request_time) ||
+    (
+      (cur_time < 0x10000000) &&
+      (next_request_time >= 0x80000000)
+    );
+}
+
+uint32_t get_next_request_time(uint32_t cur_time, bool motor_is_on) {
+  uint32_t result;
+  if (motor_is_on)
+    result = cur_time + POUR_MEASUREMENT_DELAY;
+  else
+    result = cur_time + IDLE_MEASUREMENT_DELAY;
+  return result;
+}
+
+uint32_t next_request_time = 0;
+
 void loop() {
-  cur_time = millis();
+  uint32_t cur_time = millis();
+
+  bool time_to_work = is_time_to_work(cur_time, next_request_time);
+  if (!time_to_work)
+    return;
+
   do_business();
+
+  next_request_time = get_next_request_time(cur_time, motor.is_on());
 }
 
 /*
