@@ -3,11 +3,11 @@
 const char
   code_name[] = "Pour manager",
   code_descr[] = "Measures soil dryness and pours if needed.",
-  version[] = "2.4.1";
+  version[] = "2.4.3";
 
 /*
   Status: stable
-  Last mod.: 2020-12-23
+  Last mod.: 2020-12-25
 */
 
 /*
@@ -39,8 +39,10 @@ const bool
   MEASURER_HIGH_MEANS_DRY = true;
 
 const uint32_t
-  IDLE_MEASUREMENT_DELAY = uint32_t(1000) * 5, //uint32_t(1000) * 7,
-  POUR_MEASUREMENT_DELAY = uint32_t(1000) / 2; //uint32_t(1000) * 7;
+  MOTOR_OFF_TICK_MS = uint32_t(1000) * 5, //uint32_t(1000) * 7,
+  MOTOR_ON_TICK_MS = uint32_t(1000) / 2, //uint32_t(1000) * 7;
+  MAX_POUR_DURATION_S = 20,
+  COOLDOWN_DURATION_S = 180;
 
 c_switch motor = c_switch(MOTOR_CONTROL_PIN);
 TM1637Display display(DISPLAY_CLOCK_PIN, DISPLAY_INPUT_PIN);
@@ -81,10 +83,10 @@ void print_usage() {
   Serial.print(msg);
 
   Serial.print("  Delays:\n");
-  Serial.print("    IDLE_MEASUREMENT_DELAY: ");
-  Serial.println((float)IDLE_MEASUREMENT_DELAY / 1000);
-  Serial.print("    POUR_MEASUREMENT_DELAY: ");
-  Serial.println((float)POUR_MEASUREMENT_DELAY / 1000);
+  Serial.print("    MOTOR_OFF_TICK_MS: ");
+  Serial.println((float)MOTOR_OFF_TICK_MS / 1000);
+  Serial.print("    MOTOR_ON_TICK_MS: ");
+  Serial.println((float)MOTOR_ON_TICK_MS / 1000);
 
   Serial.print("  High values means dry?: ");
   Serial.println(MEASURER_HIGH_MEANS_DRY);
@@ -214,11 +216,8 @@ uint32_t next_state_update_time = millis();
 
 void motor_starter(int16_t cur_hum, uint32_t cur_time) {
   if (
-    (state == STATE_IDLE) &&
-    (
-      (MEASURER_HIGH_MEANS_DRY && (cur_hum > MEASURER_RANGE_HIGH)) ||
-      (!MEASURER_HIGH_MEANS_DRY && (cur_hum < MEASURER_RANGE_LOW))
-    )
+    (MEASURER_HIGH_MEANS_DRY && (cur_hum > MEASURER_RANGE_HIGH)) ||
+    (!MEASURER_HIGH_MEANS_DRY && (cur_hum < MEASURER_RANGE_LOW))
   ) {
     motor_on();
   }
@@ -226,36 +225,49 @@ void motor_starter(int16_t cur_hum, uint32_t cur_time) {
 
 void motor_stopper(int16_t cur_hum, uint32_t cur_time) {
   if (
-    (state == STATE_POURING) &&
-    (
-      ui32_gte(cur_time, next_state_update_time) ||
-      (MEASURER_HIGH_MEANS_DRY && (cur_hum < MEASURER_RANGE_LOW)) ||
-      (!MEASURER_HIGH_MEANS_DRY && (cur_hum > MEASURER_RANGE_HIGH)) ||
-      (cur_hum == -1)
-    )
+    (MEASURER_HIGH_MEANS_DRY && (cur_hum < MEASURER_RANGE_LOW)) ||
+    (!MEASURER_HIGH_MEANS_DRY && (cur_hum > MEASURER_RANGE_HIGH)) ||
+    (cur_hum == -1)
   ) {
     motor_off();
   }
 }
 
+void print_internal_status(uint32_t cur_time) {
+  Serial.print(state);
+  Serial.print(" ");
+  Serial.print(cur_time);
+  Serial.print(" ");
+  Serial.print(next_state_update_time);
+  Serial.println();
+}
+
 void update_state(uint32_t cur_time) {
   if ((state == STATE_IDLE) && motor.is_on()) {
     state = STATE_POURING;
-    next_state_update_time = cur_time + 20000;
-  } else if ((state == STATE_POURING) && motor.is_on()) {
+    next_state_update_time = cur_time + MAX_POUR_DURATION_S * 1000;
+  } else if ((state == STATE_POURING) && ui32_gte(cur_time, next_state_update_time)) {
     state = STATE_COOLDOWN;
-    next_state_update_time = cur_time + 180000;
+    next_state_update_time = cur_time + COOLDOWN_DURATION_S * 1000;
   } else if ((state == STATE_COOLDOWN) && ui32_gte(cur_time, next_state_update_time)) {
     state = STATE_IDLE;
   }
+  // print_internal_status(cur_time);
 }
 
 void do_business() {
   int16_t cur_hum = get_humidity();
   uint32_t cur_time = millis();
 
-  motor_starter(cur_hum, cur_time);
-  motor_stopper(cur_hum, cur_time);
+  if (state == STATE_IDLE)
+    motor_starter(cur_hum, cur_time);
+  else if (state == STATE_POURING)
+    motor_stopper(cur_hum, cur_time);
+  else if (state == STATE_COOLDOWN)
+    motor_off();
+  else
+    Serial.println(state);
+
   update_state(cur_time);
 }
 
@@ -270,9 +282,9 @@ bool is_time_to_work(uint32_t cur_time, uint32_t next_request_time) {
 uint32_t get_next_request_time(uint32_t cur_time, bool motor_is_on) {
   uint32_t result;
   if (motor_is_on)
-    result = cur_time + POUR_MEASUREMENT_DELAY;
+    result = cur_time + MOTOR_ON_TICK_MS;
   else
-    result = cur_time + IDLE_MEASUREMENT_DELAY;
+    result = cur_time + MOTOR_OFF_TICK_MS;
   return result;
 }
 
