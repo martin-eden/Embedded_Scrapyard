@@ -130,15 +130,19 @@ int16_t get_humidity() {
   capacitiveFilter.addValue(raw_result);
   result = capacitiveFilter.getValue();
 
-  display.showNumberDec((int16_t)result, false);
+  uint16_t display_result = (int16_t)(result * 10);
+  if (display_result >= 10000)
+    display_result = 9999;
 
-  /*
+  display.showNumberDec(display_result);
+
+  //*
   Serial.print("get_humidity: ");
   Serial.print(result, 3);
   Serial.print(" ");
   Serial.print(raw_result);
   Serial.println("");
-  */
+  //*/
 
   if (is_line_problem()) {
     result = -1;
