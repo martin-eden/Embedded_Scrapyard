@@ -40,23 +40,31 @@ const bool
   MEASURER_HIGH_MEANS_DRY = true;
 
 const uint32_t
+  MAX_MOTOR_ON_TIME_S = 120,
+  /* debug:
+  GET_HUMIDITY_TICK_S = 1,
+  IDLE_DURATION_S = 2,
+  PRE_POUR_DURATION_S = 2,
+  BASE_POUR_DURATION_S = 3,
+  POST_POUR_DURATION_S = 2,
+  DESIRED_POUR_CYCLE_S = 40;
+  //*/
+  //* work:
   GET_HUMIDITY_TICK_S = 10,
   IDLE_DURATION_S = 60,
   PRE_POUR_DURATION_S = 180,
-  POUR_DURATION_S = 20,
-  POST_POUR_DURATION_S = 300;
+  BASE_POUR_DURATION_S = 20,
+  POST_POUR_DURATION_S = 900,
+  DESIRED_POUR_CYCLE_S = 86400;
+  //*/
 
 c_switch motor = c_switch(MOTOR_CONTROL_PIN);
-CapacitiveFilter capacitiveFilter = CapacitiveFilter(21);
+CapacitiveFilter capacitiveFilter = CapacitiveFilter(11);
 TM1637Display display(DISPLAY_CLOCK_PIN, DISPLAY_INPUT_PIN);
 
 void setup() {
   Serial.begin(9600);
-
   display.setBrightness(0x0F);
-
-  // Assure normal business logic was done before printing status:
-  loop();
 }
 
 const char
@@ -136,7 +144,7 @@ int16_t get_humidity() {
 
   display.showNumberDec(display_result);
 
-  //*
+  /*
   Serial.print("get_humidity: ");
   Serial.print(result, 3);
   Serial.print(" ");
@@ -152,18 +160,6 @@ int16_t get_humidity() {
   }
 
   return result;
-}
-
-void print_status() {
-  String msg = "";
-
-  msg = "";
-  msg =
-    msg +
-    "  Motor: " + motor.is_on() + "\n";
-  Serial.print(msg);
-
-  Serial.print("\n");
 }
 
 bool is_low_rh(int16_t cur_hum) {
@@ -219,6 +215,23 @@ void serialEvent() {
   handle_command();
 }
 
+uint32_t last_motor_off_moment = 0;
+uint32_t pour_duration_ms = BASE_POUR_DURATION_S * 1000;
+
+void print_status() {
+  String msg = "";
+
+  msg = "";
+  msg =
+    msg +
+    "motor.is_on(): " + motor.is_on() + "\n" +
+    "cur_time: " + millis() + "\n" +
+    "last_motor_off_moment: " + last_motor_off_moment + "\n" +
+    "pour_duration_ms: " + pour_duration_ms + "\n" +
+    "\n";
+  Serial.print(msg);
+}
+
 void loop() {
   uint32_t cur_time = millis();
   int16_t cur_hum = get_humidity();
@@ -236,15 +249,21 @@ void loop() {
       }
     } else if (state == STATE_PRE_POUR_STAGING) {
       if (is_low_rh(cur_hum)) {
-        motor_on();
         state = STATE_POURING;
-        next_state_update_time = cur_time + POUR_DURATION_S * 1000;
+        motor_on();
+        if (last_motor_off_moment != 0) {
+          pour_duration_ms = pour_duration_ms * ((float)(DESIRED_POUR_CYCLE_S * 1000) / (cur_time - last_motor_off_moment));
+          pour_duration_ms = min(pour_duration_ms, MAX_MOTOR_ON_TIME_S * 1000);
+        }
+
+        next_state_update_time = cur_time + pour_duration_ms;
       } else {
         state = STATE_IDLE;
         next_state_update_time = cur_time + IDLE_DURATION_S * 1000;
       }
     } else if (state == STATE_POURING) {
       motor_off();
+      last_motor_off_moment = cur_time;
       state = STATE_IDLE;
       next_state_update_time = cur_time + POST_POUR_DURATION_S * 1000;
     }
@@ -262,4 +281,6 @@ void loop() {
     Reduced code even more.
   2020-12-28
     [+] CapacitiveFilter. Reduced code.
+  2020-12-31
+    [+] Dynamic calculation of pour duration.
 */
