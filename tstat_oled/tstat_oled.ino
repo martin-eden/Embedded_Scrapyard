@@ -71,7 +71,7 @@ void announce(const char* msg) {
 void init_oled() {
   announce("OLED");
   oled.begin();
-  oled.setFont(u8x8_font_courR18_2x3_f);
+  oled.setFont(u8x8_font_profont29_2x3_f);
   oled.setPowerSave(0);
 }
 
@@ -113,12 +113,12 @@ void do_business() {
   thermometer.requestTemperatures();
   float temperature = thermometer.getTempCByIndex(0);
 
-  String value_str = String(temperature, 2);
+  String value_str = String(temperature, 2); // + "\260C";
   char buf_str[10];
   value_str.toCharArray(buf_str, 10);
 
-  oled.drawString(4, 3, "     ");
-  oled.drawString(4, 3, buf_str);
+  oled.drawString(3, 4, "     ");
+  oled.drawString(3, 4, buf_str);
 
   if (temperature != DISCONNECTED_TEMP) {
     thermostat.process(temperature);
