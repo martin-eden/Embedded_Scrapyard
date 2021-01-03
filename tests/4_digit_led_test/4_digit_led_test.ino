@@ -8,8 +8,8 @@
 #include <TM1637Display.h>
 
 const uint8_t
-  INPUT_PIN = 5,
-  CLOCK_PIN = 6,
+  INPUT_PIN = A4,
+  CLOCK_PIN = A5,
 
   ANALOG_PIN = A0;
 
