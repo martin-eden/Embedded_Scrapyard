@@ -1,40 +1,29 @@
-// Table clock (with optional thermostat)
+// Table clock
 
 /*
   Status: testing
-  Last mod.: 2020-02-11
-  Version: 1.4.0
+  Last mod.: 2021-01-01
+  Version: 2.0.0
 */
 
 /*
   Built on:
     16x2 LCD display
     DS3231 RTC
-    relay module
-    Dallas 18B20 thermometer
     Arduino Uno
 
   It sets DS3231 to emit square wave at 1Hz, connects output to
-  interrupt pin and use it to update display. Also it reads
-  temperature from DS3231 and if it below <MIN_TEMP_ON> turns
-  <SWITCH_PIN> on. If it above <MAX_TEMP_OFF> - turns switch off.
+  interrupt pin and use it to update display.
 
   Wiring.
     Connect LCD to <LCD_..> pins.
     Connect DS3231.BBSQW to <TICK_PIN> pin which accepts interrupts.
-    Connect relay to <SWITCH_PIN>.
-    Connect 18B20 to <TEMP_PIN>.
-    Adjust <DESIRED_TEMP_..> to required temperature band.
 */
 
 #include <LiquidCrystal.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
 
 #include <me_ds3231.h>
-#include <me_switch.h>
 #include <me_DateTime.h>
-#include <me_Thermostat.h>
 
 const uint8_t
   LCD_RS = 7,
@@ -44,18 +33,7 @@ const uint8_t
   LCD_D6 = 11,
   LCD_D7 = 12,
 
-  TEMP_PIN = 2,
-
-  TICK_PIN = 3,
-
-  SWITCH_PIN = 4;
-
-const float
-  MIN_TEMP_ON = 22.50,
-  MAX_TEMP_OFF = 23.20;
-
-const bool
-  THERMOSTAT_ENABLING_INCREASES_VALUE = true;
+  TICK_PIN = 3;
 
 const uint8_t
   MAX_MSG_LEN = 2 * 16;
@@ -63,10 +41,6 @@ char msg_buf[MAX_MSG_LEN];
 
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 me_ds3231 ds3231 = me_ds3231();
-OneWire one_wire(TEMP_PIN);
-DallasTemperature thermometer(&one_wire);
-c_switch relay(SWITCH_PIN);
-cThermostat thermostat(relay);
 
 void announce(char* msg) {
   Serial.print("  ");
@@ -102,47 +76,21 @@ void init_clock() {
   attachInterrupt(internal_pin_no, tick_handler, RISING);
 }
 
-void init_thermometer() {
-  announce("Thermometer");
-  thermometer.begin();
-}
-
-void init_relay() {
-  announce("Relay");
-  pinMode(SWITCH_PIN, OUTPUT);
-}
-
-void init_thermostat() {
-  announce("Thermostat");
-  thermostat.min_value = MIN_TEMP_ON;
-  thermostat.max_value = MAX_TEMP_OFF;
-  thermostat.enabling_increases_value = THERMOSTAT_ENABLING_INCREASES_VALUE;
-}
-
 void setup() {
   Serial.begin(9600);
   Serial.println("Initializing...");
 
   init_lcd();
   init_clock();
-  init_thermometer();
-  init_relay();
-  init_thermostat();
 
   Serial.println("Initialization done.");
 }
-
-const float
-  DISCONNECTED_TEMP = -127.0;
 
 void do_business() {
   Serial.println("*click*");
 
   DateTime dt = ds3231.getDateTime();
-  float temperature;
-
-  thermometer.requestTemperatures();
-  temperature = thermometer.getTempCByIndex(0);
+  float temperature = ds3231.getTemp();
 
   dt.represent_date(msg_buf, MAX_MSG_LEN);
   lcd.setCursor(0, 0);
@@ -159,10 +107,6 @@ void do_business() {
   lcd.setCursor(9, 1);
   lcd.print(temperature, 2);
   lcd.print("\337C");
-
-  if (temperature != DISCONNECTED_TEMP) {
-    thermostat.process(temperature);
-  }
 }
 
 volatile bool tick_registered;
@@ -177,10 +121,3 @@ void loop() {
 void tick_handler() {
   tick_registered = true;
 }
-
-/*
-  2019-12
-  2020-01
-  2020-02 added MAX_HEAT_SECS logic
-  2020-02 removed MAX_HEAT_SECS logic, lul
-*/
