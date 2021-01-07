@@ -5,7 +5,7 @@
 
   We define "empty" slot as slot containing FF's.
 
-  To add data we finding first empty slot, write data there, move offset to
+  To add data we searching first empty slot, write data there, move offset to
   next slot and write empty data there.
 */
 
