@@ -3,11 +3,11 @@
 const char
   code_name[] = "Pour manager",
   code_descr[] = "Measures soil dryness and pours if needed.",
-  version[] = "2.5.0";
+  version[] = "2.6.0";
 
 /*
   Status: stable
-  Last mod.: 2020-12-28
+  Last mod.: 2021-01-07
 */
 
 /*
@@ -20,15 +20,16 @@ const char
 
 #include <me_switch.h>
 #include <me_CapacitiveFilter.h>
+#include <me_EepromCircularStack.h>
 #include <TM1637Display.h>
 
 const uint8_t
   MEASURER_SIGNAL_PIN = A0,
 
-  MOTOR_CONTROL_PIN = 2,
+  MOTOR_CONTROL_PIN = A2,
 
-  DISPLAY_INPUT_PIN = 5,
-  DISPLAY_CLOCK_PIN = 6;
+  DISPLAY_INPUT_PIN = A4,
+  DISPLAY_CLOCK_PIN = A5;
 
 const uint16_t
   MEASURER_RANGE_LOW = 315,
@@ -40,31 +41,35 @@ const bool
   MEASURER_HIGH_MEANS_DRY = true;
 
 const uint32_t
-  MAX_MOTOR_ON_TIME_S = 120,
   /* debug:
+  MAX_MOTOR_ON_TIME_S = 2,
   GET_HUMIDITY_TICK_S = 1,
   IDLE_DURATION_S = 2,
   PRE_POUR_DURATION_S = 2,
-  BASE_POUR_DURATION_S = 3,
+  BASE_POUR_DURATION_S = 1,
   POST_POUR_DURATION_S = 2,
-  DESIRED_POUR_CYCLE_S = 40;
+  DESIRED_POUR_CYCLE_H = 1;
   //*/
   //* work:
-  GET_HUMIDITY_TICK_S = 10,
+  MAX_MOTOR_ON_TIME_S = 120,
+  GET_HUMIDITY_TICK_S = 1,
   IDLE_DURATION_S = 60,
   PRE_POUR_DURATION_S = 180,
-  BASE_POUR_DURATION_S = 20,
+  BASE_POUR_DURATION_S = 1,
   POST_POUR_DURATION_S = 900,
-  DESIRED_POUR_CYCLE_S = 86400;
+  DESIRED_POUR_CYCLE_H = 1;
   //*/
 
 c_switch motor = c_switch(MOTOR_CONTROL_PIN);
 CapacitiveFilter capacitiveFilter = CapacitiveFilter(11);
+EepromCircularStack stack = EepromCircularStack(sizeof(uint32_t));
 TM1637Display display(DISPLAY_CLOCK_PIN, DISPLAY_INPUT_PIN);
 
 void setup() {
   Serial.begin(9600);
   display.setBrightness(0x0F);
+  stack.dump();
+  loadPourSettings();
 }
 
 const char
@@ -218,6 +223,27 @@ void serialEvent() {
 uint32_t last_motor_off_moment = 0;
 uint32_t pour_duration_ms = BASE_POUR_DURATION_S * 1000;
 
+void loadPourSettings() {
+  int16_t offset = stack.get_offs();
+  if (offset >= 0) {
+    EEPROM.get(offset, pour_duration_ms);
+    pour_duration_ms = min(pour_duration_ms, MAX_MOTOR_ON_TIME_S * 1000);
+
+    Serial.print("loadPourSettings(): ");
+    Serial.print(pour_duration_ms);
+    Serial.println();
+  }
+}
+
+void savePourSettings() {
+  int16_t offset = stack.add_offs();
+  EEPROM.put(offset, pour_duration_ms);
+
+  Serial.print("savePourSettings(): ");
+  Serial.print(pour_duration_ms);
+  Serial.println();
+}
+
 void print_status() {
   String msg = "";
 
@@ -250,13 +276,15 @@ void loop() {
     } else if (state == STATE_PRE_POUR_STAGING) {
       if (is_low_rh(cur_hum)) {
         state = STATE_POURING;
-        motor_on();
         if (last_motor_off_moment != 0) {
-          pour_duration_ms = pour_duration_ms * ((float)(DESIRED_POUR_CYCLE_S * 1000) / (cur_time - last_motor_off_moment));
+          float numHoursPassed = (float)(cur_time - last_motor_off_moment) / 1000 / 3600;
+          float correctionCoeff = DESIRED_POUR_CYCLE_H / numHoursPassed;
+          pour_duration_ms = pour_duration_ms * correctionCoeff;
           pour_duration_ms = min(pour_duration_ms, MAX_MOTOR_ON_TIME_S * 1000);
         }
-
         next_state_update_time = cur_time + pour_duration_ms;
+        savePourSettings();
+        motor_on();
       } else {
         state = STATE_IDLE;
         next_state_update_time = cur_time + IDLE_DURATION_S * 1000;
