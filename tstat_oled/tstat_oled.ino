@@ -1,9 +1,9 @@
 // Thermostat with OLED display.
 
 /*
-  Status: stable?
-  Last mod.: 2021-01-01
-  Version: 1.0.0
+  Status: stable
+  Last mod.: 2021-01-12
+  Version: 1.1.0
 */
 
 /*
@@ -40,6 +40,7 @@
 #include <me_switch.h>
 #include <me_DateTime.h>
 #include <me_Thermostat.h>
+#include <me_CapacitiveFilter.h>
 
 const uint8_t
   OLED_RES_PIN = 8,
@@ -57,11 +58,15 @@ const float
 const bool
   THERMOSTAT_ENABLING_INCREASES_VALUE = true;
 
+const float
+  DATA_FILTER_CAPACITANCE = 1.25;
+
 U8X8_SH1106_128X64_NONAME_4W_HW_SPI oled(OLED_CS_PIN, OLED_DC_PIN, OLED_RES_PIN);
 OneWire one_wire(TEMP_PIN);
 DallasTemperature thermometer(&one_wire);
 c_switch relay(SWITCH_PIN);
 cThermostat thermostat(relay);
+CapacitiveFilter capacitiveFilter = CapacitiveFilter(DATA_FILTER_CAPACITANCE);
 
 void announce(const char* msg) {
   Serial.print("  ");
@@ -112,14 +117,16 @@ void do_business() {
 
   thermometer.requestTemperatures();
   float temperature = thermometer.getTempCByIndex(0);
+  capacitiveFilter.addValue(temperature);
+  temperature = capacitiveFilter.getValue();
 
   if (temperature != prevTemp) {
-    String value_str = String(temperature, 2); // + "\260C";
+    String value_str = String(temperature, 3); // + "\260C";
     char buf_str[10];
     value_str.toCharArray(buf_str, 10);
 
-    oled.drawString(3, 4, "     ");
-    oled.drawString(3, 4, buf_str);
+    oled.drawString(2, 4, "      ");
+    oled.drawString(2, 4, buf_str);
   }
 
   if (temperature != DISCONNECTED_TEMP) {
@@ -131,5 +138,5 @@ void do_business() {
 
 void loop() {
   do_business();
-  delay(1000);
+  delay(100);
 }
