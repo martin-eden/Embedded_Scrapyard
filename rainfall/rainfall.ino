@@ -1,7 +1,7 @@
 // Rainfall imitation
 
 /*
-  Status: testing
+  Status: stable
   Version: 0.4
   Last mod.: 2020-12-02
 */
