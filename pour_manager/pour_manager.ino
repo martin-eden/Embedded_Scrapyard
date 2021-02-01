@@ -233,6 +233,7 @@ void print_status() {
     "  State: " + state + "\n" +
     "  Motor on?: " + motor.is_on() + "\n" +
     "  Uptime (h): " + millis_to_hours(millis()) + "\n" +
+    "  Uptime from last motor off (h): " + millis_to_hours(millis() - last_motor_off_moment) + "\n" +
     "  Last motor off moment (h): " + millis_to_hours(last_motor_off_moment) + "\n" +
     "  Next state update moment (h): " + millis_to_hours(next_state_update_time) + "\n" +
     "\n";
