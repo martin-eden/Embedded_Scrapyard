@@ -3,11 +3,11 @@
 const char
   code_name[] = "Pour manager",
   code_descr[] = "Measures soil dryness and pours if needed.",
-  version[] = "2.7.1";
+  version[] = "2.7.2";
 
 /*
   Status: stable
-  Last mod.: 2021-01-15
+  Last mod.: 2021-02-01
 */
 
 /*
@@ -32,7 +32,7 @@ const uint8_t
   DISPLAY_CLOCK_PIN = A5;
 
 const uint32_t
-  MAX_MOTOR_ON_TIME_MS = 120 * 1000L,
+  MAX_MOTOR_ON_TIME_MS = 100 * 1000L,
   GET_HUMIDITY_TICK_MS = 1 * 1000L,
   IDLE_DURATION_MS = 60 * 1000L,
   PRE_POUR_DURATION_MS = 300 * 1000L,
