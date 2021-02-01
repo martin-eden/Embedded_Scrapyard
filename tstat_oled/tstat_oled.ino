@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Last mod.: 2021-01-12
-  Version: 1.1.0
+  Last mod.: 2021-02-01
+  Version: 1.2.0
 */
 
 /*
@@ -58,6 +58,9 @@ const float
 const bool
   THERMOSTAT_ENABLING_INCREASES_VALUE = true;
 
+const uint32_t
+  TEMP_MEASURE_TICK_MS = 200;
+
 const float
   DATA_FILTER_CAPACITANCE = 1.25;
 
@@ -76,7 +79,7 @@ void announce(const char* msg) {
 void init_oled() {
   announce("OLED");
   oled.begin();
-  oled.setFont(u8x8_font_profont29_2x3_n);
+  oled.setFont(u8x8_font_inr46_4x8_n);
   oled.setPowerSave(0);
 }
 
@@ -97,18 +100,6 @@ void init_thermostat() {
   thermostat.enabling_increases_value = THERMOSTAT_ENABLING_INCREASES_VALUE;
 }
 
-void setup() {
-  Serial.begin(9600);
-  Serial.println("Initializing...");
-
-  init_oled();
-  init_thermometer();
-  init_relay();
-  init_thermostat();
-
-  Serial.println("Initialization done.");
-}
-
 const float
   DISCONNECTED_TEMP = -127.0;
 
@@ -119,14 +110,16 @@ void do_business() {
   float temperature = thermometer.getTempCByIndex(0);
   capacitiveFilter.addValue(temperature);
   temperature = capacitiveFilter.getValue();
+  temperature = int32_t(temperature * 10) / 10.0;
 
   if (temperature != prevTemp) {
-    String value_str = String(temperature, 3); // + "\260C";
+    String value_str = String(temperature, 1); // + "\260C";
     char buf_str[10];
     value_str.toCharArray(buf_str, 10);
-
-    oled.drawString(2, 4, "      ");
-    oled.drawString(2, 4, buf_str);
+    uint8_t x = 0;
+    uint8_t y = 1;
+    oled.drawString(x, y, "      ");
+    oled.drawString(x, y, buf_str);
   }
 
   if (temperature != DISCONNECTED_TEMP) {
@@ -136,7 +129,20 @@ void do_business() {
   prevTemp = temperature;
 }
 
+void setup() {
+  Serial.begin(9600);
+
+  Serial.println("Thermostat with OLED display.");
+
+  Serial.println("Initializing...");
+  init_oled();
+  init_thermometer();
+  init_relay();
+  init_thermostat();
+  Serial.println("Initialization done.");
+}
+
 void loop() {
   do_business();
-  delay(100);
+  delay(TEMP_MEASURE_TICK_MS);
 }
