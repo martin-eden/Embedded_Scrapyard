@@ -8,7 +8,7 @@
 
 /*
   Wiring
-  
+
   GND
   VCC 5V
   SCL 13
@@ -22,7 +22,6 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
 #include <SPI.h>
-#include <Arduino.h>
 
 #include <me_RotaryEncoder.h>
 
@@ -88,7 +87,7 @@ void loop() {
     bool NeedSwitchRedisplay = (RotaryEncoder.SwitchState != PrevSwitchState_printed);
     if (NeedSwitchRedisplay) {
       PrevSwitchState_printed = RotaryEncoder.SwitchState;
-      Display.invertDisplay(PrevSwitchState_printed);      
+      Display.invertDisplay(PrevSwitchState_printed);
     }
     RotaryEncoder.SwitchHasChanged = false;
   }
