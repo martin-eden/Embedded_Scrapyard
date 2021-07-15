@@ -10,7 +10,7 @@
 
 #include <IRremote.h>
 
-int RECV_PIN = 12;
+int RECV_PIN = 10;
 
 IRrecv irrecv(RECV_PIN);
 
@@ -46,7 +46,7 @@ void dump(decode_results *results) {
   }
   else if (results->decode_type == PANASONIC) {
     Serial.print("Decoded PANASONIC - Address: ");
-    Serial.print(results->panasonicAddress,HEX);
+    //Serial.print(results->panasonicAddress,HEX);
     Serial.print(" Value: ");
   }
   else if (results->decode_type == LG) {
@@ -72,7 +72,7 @@ void dump(decode_results *results) {
   Serial.print("Raw (");
   Serial.print(count, DEC);
   Serial.print("): ");
-  /*
+  //*
   for (int i = 0; i < count; i++) {
     if ((i % 2) == 1) {
       Serial.print(results->rawbuf[i]*USECPERTICK, DEC);
@@ -83,7 +83,7 @@ void dump(decode_results *results) {
     Serial.print(" ");
   }
   Serial.println("");
-  */
+  //*/
 }
 
 
