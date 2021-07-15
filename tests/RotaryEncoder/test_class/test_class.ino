@@ -6,6 +6,7 @@
   Last mod.: 2021-04-28
 */
 
+#include <Arduino.h>
 #include <me_RotaryEncoder.h>
 
 const uint8_t
