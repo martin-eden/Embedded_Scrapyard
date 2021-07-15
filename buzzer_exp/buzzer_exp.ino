@@ -1,4 +1,4 @@
-const uint8_t piezo_pin = 13;
+const uint8_t piezo_pin = A0;
 
 const uint16_t duration = 1000;
 const uint16_t pause = 500;
