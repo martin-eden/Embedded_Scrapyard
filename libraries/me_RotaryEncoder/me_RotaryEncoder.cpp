@@ -20,6 +20,15 @@ RotaryEncoder::RotaryEncoder(uint8_t _PhaseA_pin, uint8_t _PhaseB_pin, uint8_t _
   SwitchHasChanged = true;
 }
 
+int32_t RotaryEncoder::GetPosition() {
+  int32_t result;
+  uint8_t sreg = SREG;
+  cli();
+  result = Position;
+  SREG = sreg;
+  return result;
+}
+
 uint8_t RotaryEncoder::GetState(bool PhaseA, bool PhaseB) {
   if (!PhaseA & !PhaseB)
     return 0;

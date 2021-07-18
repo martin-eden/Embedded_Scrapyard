@@ -57,8 +57,8 @@ class RotaryEncoder {
     uint8_t Switch_pin;
     uint32_t Debounce_ms = 40;
 
-    int32_t Position = 0;
     bool PositionHasChanged = false;
+    int32_t GetPosition();
 
     bool SwitchState;
     bool SwitchHasChanged = false;
@@ -66,6 +66,7 @@ class RotaryEncoder {
     void UpdateState();
     void UpdateSwitch();
   private:
+    int32_t Position = 0;
     uint8_t CurState, PrevState;
     bool PrevSwitchState;
     int32_t LastSwitchTime_ms;
