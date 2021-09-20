@@ -1,3 +1,11 @@
+// Rotary encoder KY-040 support for Arduino
+
+/*
+  Status: works
+  Version: 1.0
+  Last mod.: 2021-09-19
+*/
+
 #include <Arduino.h>
 #include "me_RotaryEncoder.h"
 
@@ -70,17 +78,15 @@ void RotaryEncoder::UpdateState() {
 }
 
 bool RotaryEncoder::GetSwitchState() {
-  return digitalRead(Switch_pin);
+  return !digitalRead(Switch_pin);
 }
 
 void RotaryEncoder::UpdateSwitch() {
   PrevSwitchState = SwitchState;
   SwitchState = GetSwitchState();
   int32_t CurTime_ms = millis();
-  if (SwitchState != PrevSwitchState) {
-    if (CurTime_ms - LastSwitchTime_ms > Debounce_ms) {
-      LastSwitchTime_ms = CurTime_ms;
-      SwitchHasChanged = true;
-    }
+  if ((SwitchState != PrevSwitchState) && (CurTime_ms - LastSwitchTime_ms > Debounce_ms)) {
+    LastSwitchTime_ms = CurTime_ms;
+    SwitchHasChanged = true;
   }
 }
