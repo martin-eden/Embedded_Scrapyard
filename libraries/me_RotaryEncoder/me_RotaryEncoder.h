@@ -59,6 +59,7 @@ class RotaryEncoder {
 
     bool PositionHasChanged = false;
     int32_t GetPosition();
+    void SetPosition(int32_t _position);
 
     bool SwitchState;
     bool SwitchHasChanged = false;

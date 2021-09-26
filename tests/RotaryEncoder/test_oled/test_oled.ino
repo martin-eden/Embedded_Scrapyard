@@ -28,34 +28,50 @@ public:
   EncoderGauge();
   int32_t getNumPositions();
   void setNumPositions(int32_t _numPositions);
+  int32_t getPosition();
   void setPosition(int32_t _position);
   void initDisplay();
 private:
   int32_t numPositions;
   int32_t position;
   int32_t prevPosition;
+  bool forceRedraw;
   void erasePointer();
   void drawPointer();
+  void erasePosition();
+  void drawPosition();
+  void eraseNumPositions();
+  void drawNumPositions();
   void drawPointer_raw(int32_t _position, int16_t _color);
-  void drawText_raw(int32_t _position, int16_t _color);
+  void drawPositionText_raw(int32_t _position, int16_t _color);
+  void drawNumPositionsText_raw(int32_t _numPositions, int16_t _color);
   void drawBackground();
 };
 
 EncoderGauge::EncoderGauge() {
   numPositions = 80;
+  prevPosition = 0;
+  position = 0;
+  forceRedraw = false;
 }
 
+const uint16_t
+  displayWidth = 240,
+  displayHeight = 240;
+
 void EncoderGauge::initDisplay() {
-  display.init(240, 240);
+  display.init(displayWidth, displayHeight);
   display.setRotation(2);
   display.fillScreen(ST77XX_BLACK);
   display.setTextSize(2);
 
   drawBackground();
 
-  prevPosition = numPositions;
-  position = 0;
+  forceRedraw = true;
   setPosition(position);
+  forceRedraw = false;
+
+  drawNumPositions();
 }
 
 int32_t EncoderGauge::getNumPositions() {
@@ -65,13 +81,20 @@ int32_t EncoderGauge::getNumPositions() {
 void EncoderGauge::setNumPositions(int32_t _numPositions) {
   if (_numPositions != 0) {
     erasePointer();
+    eraseNumPositions();
     numPositions = _numPositions;
+    drawBackground();
+    drawNumPositions();
     drawPointer();
   }
 }
 
+int32_t EncoderGauge::getPosition() {
+  return position;
+}
+
 void EncoderGauge::setPosition(int32_t _position) {
-  if (_position == prevPosition)
+  if (!forceRedraw && (_position == position) && (position == prevPosition))
     return;
 
   position = _position;
@@ -79,44 +102,61 @@ void EncoderGauge::setPosition(int32_t _position) {
   erasePointer();
   drawPointer();
 
+  erasePosition();
+  drawPosition();
+
   prevPosition = position;
 }
 
 void EncoderGauge::erasePointer() {
   drawPointer_raw(prevPosition, ST77XX_BLACK);
-  drawText_raw(prevPosition, ST77XX_BLACK);
 }
 
 void EncoderGauge::drawPointer() {
   drawPointer_raw(position, ST77XX_YELLOW);
-  drawText_raw(position, ST77XX_WHITE);
+}
+
+void EncoderGauge::erasePosition() {
+  drawPositionText_raw(prevPosition, ST77XX_BLACK);
+}
+
+void EncoderGauge::drawPosition() {
+  drawPositionText_raw(position, ST77XX_WHITE);
+}
+
+void EncoderGauge::eraseNumPositions() {
+  drawNumPositionsText_raw(numPositions, ST77XX_BLACK);
+}
+
+void EncoderGauge::drawNumPositions() {
+  drawNumPositionsText_raw(numPositions, ST77XX_WHITE);
 }
 
 void EncoderGauge::drawBackground() {
   uint16_t x, y, radius, color;
-  x = display.width() / 2;
-  y = display.height() / 2;
 
-  radius = 120;
+  x = displayWidth / 2;
+  y = displayHeight / 2;
+  radius = min(displayWidth, displayHeight) / 2;
   color = ST77XX_BLUE;
-/*  for (uint8_t i = 0; i < 6; ++i) {
-    display.drawCircle(x, y, radius - i, color);
-  }
-*/
+
   display.fillCircle(x, y, radius, color);
 }
 
 void EncoderGauge::drawPointer_raw(int32_t _position, int16_t _color) {
   float scale = 2 * PI / numPositions;
   float circleX, circleY;
-  uint16_t radius = 6;
-  circleX = 120 + (104 + radius) * sin(_position * scale);
-  circleY = 120 - (104 + radius) * cos(_position * scale);
+  const uint16_t
+    pointerRadius = 8,
+    outerCircleGap = 0,
+    pointerPosition = displayWidth / 2 - 2 * pointerRadius - outerCircleGap;
+  circleX = displayWidth / 2 + sin(_position * scale) * (pointerPosition + pointerRadius);
+  circleY = displayHeight / 2 - cos(_position * scale) * (pointerPosition + pointerRadius);
 
-  display.fillCircle(circleX, circleY, radius, _color);
+  display.fillCircle(circleX, circleY, pointerRadius, _color);
 }
 
-void EncoderGauge::drawText_raw(int32_t _position, int16_t _color) {
+void EncoderGauge::drawPositionText_raw(int32_t _position, int16_t _color) {
   const uint16_t
     x = 0,
     y = 0;
@@ -124,6 +164,16 @@ void EncoderGauge::drawText_raw(int32_t _position, int16_t _color) {
   display.setTextColor(_color);
   display.setCursor(x, y);
   display.print(_position);
+}
+
+void EncoderGauge::drawNumPositionsText_raw(int32_t _numPositions, int16_t _color) {
+  const uint16_t
+    x = displayWidth - 4 * 12,
+    y = 0;
+
+  display.setTextColor(_color);
+  display.setCursor(x, y);
+  display.print(_numPositions);
 }
 
 EncoderGauge encoderGauge;
@@ -146,9 +196,11 @@ void Phase_change() {
 
 void loop() {
   int32_t position = rotaryEncoder.GetPosition();
-  rotaryEncoder.PositionHasChanged = false;
 
-  encoderGauge.setPosition(position);
+  if (rotaryEncoder.PositionHasChanged) {
+    rotaryEncoder.PositionHasChanged = false;
+    encoderGauge.setPosition(position);
+  }
 
   rotaryEncoder.UpdateSwitch();
   if (rotaryEncoder.SwitchHasChanged) {
@@ -157,7 +209,8 @@ void loop() {
     if (!rotaryEncoder.SwitchState) {
       if (position != 0.0) {
         encoderGauge.setNumPositions(position);
-        Serial.println(encoderGauge.getNumPositions());
+        encoderGauge.setPosition(0);
+        rotaryEncoder.SetPosition(0);
       }
     }
   }

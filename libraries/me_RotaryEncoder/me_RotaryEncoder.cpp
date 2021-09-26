@@ -37,6 +37,14 @@ int32_t RotaryEncoder::GetPosition() {
   return result;
 }
 
+void RotaryEncoder::SetPosition(int32_t _position) {
+  uint8_t sreg = SREG;
+  cli();
+  Position = _position;
+  SREG = sreg;
+}
+
+
 uint8_t RotaryEncoder::GetState(bool PhaseA, bool PhaseB) {
   if (!PhaseA & !PhaseB)
     return 0;
