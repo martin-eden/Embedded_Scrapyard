@@ -2,8 +2,8 @@
 
 /*
   Status: done
-  Version: 2.0
-  Last mod.: 2021-09-19
+  Version: 2.1
+  Last mod.: 2021-09-26
 */
 
 #include <me_RotaryEncoder.h>
@@ -135,25 +135,43 @@ void EncoderGauge::drawNumPositions() {
 void EncoderGauge::drawBackground() {
   uint16_t x, y, radius, color;
 
-  x = displayWidth / 2;
-  y = displayHeight / 2;
-  radius = min(displayWidth, displayHeight) / 2;
+  x = (displayWidth - 1) / 2;
+  y = (displayHeight - 1) / 2;
+  radius = min(displayWidth - 1, displayHeight - 1) / 2;
   color = ST77XX_BLUE;
 
   display.fillCircle(x, y, radius, color);
 }
 
 void EncoderGauge::drawPointer_raw(int32_t _position, int16_t _color) {
-  float scale = 2 * PI / numPositions;
-  float circleX, circleY;
-  const uint16_t
-    pointerRadius = 8,
-    outerCircleGap = 0,
-    pointerPosition = displayWidth / 2 - 2 * pointerRadius - outerCircleGap;
-  circleX = displayWidth / 2 + sin(_position * scale) * (pointerPosition + pointerRadius);
-  circleY = displayHeight / 2 - cos(_position * scale) * (pointerPosition + pointerRadius);
+  const int16_t
+    markLongLen = 24,
+    markShortLen = 12,
+    centerX = (displayWidth - 1) / 2,
+    centerY = (displayHeight - 1) / 2,
+    markOuterRadius = displayWidth / 2 - 2;
 
-  display.fillCircle(circleX, circleY, pointerRadius, _color);
+  bool isLongMark = (_position % 4 == 0);
+
+  float scale = 2 * PI / numPositions;
+
+  float x = cos(_position * scale - PI / 2);
+  float y = sin(_position * scale - PI / 2);
+
+  float x1, y1, x2, y2;
+
+  x2 = centerX + x * markOuterRadius;
+  y2 = centerY + y * markOuterRadius;
+  if (isLongMark) {
+    x1 = centerX + x * (markOuterRadius - markLongLen);
+    y1 = centerY + y * (markOuterRadius - markLongLen);
+  }
+  else {
+    x1 = centerX + x * (markOuterRadius - markShortLen);
+    y1 = centerY + y * (markOuterRadius - markShortLen);
+  }
+
+  display.drawLine(x1, y1, x2, y2, _color);
 }
 
 void EncoderGauge::drawPositionText_raw(int32_t _position, int16_t _color) {
