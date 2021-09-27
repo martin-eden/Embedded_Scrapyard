@@ -151,6 +151,10 @@ void EncoderGauge::drawPointer_raw(int32_t _position, int16_t _color) {
     centerY = (displayHeight - 1) / 2,
     markOuterRadius = displayWidth / 2 - 2;
 
+  _position = _position % numPositions;
+  if (_position < 0)
+    _position += abs(numPositions);
+
   bool isLongMark = (_position % 4 == 0);
 
   float scale = 2 * PI / numPositions;
@@ -197,6 +201,10 @@ void EncoderGauge::drawNumPositionsText_raw(int32_t _numPositions, int16_t _colo
 EncoderGauge encoderGauge;
 RotaryEncoder rotaryEncoder(PhaseA_pin, PhaseB_pin, Switch_pin);
 
+void Phase_change() {
+  rotaryEncoder.UpdateState();
+}
+
 void setup() {
   Serial.begin(9600);
 
@@ -206,10 +214,6 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PhaseB_pin), Phase_change, CHANGE);
 
   encoderGauge.initDisplay();
-}
-
-void Phase_change() {
-  rotaryEncoder.UpdateState();
 }
 
 void loop() {
