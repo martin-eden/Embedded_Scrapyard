@@ -9,7 +9,7 @@ me_DataLogger::me_DataLogger(uint8_t a_cs_pin)
 
 void me_DataLogger::writeString(String s)
 {
-  Serial.println(s);
+  // Serial.println(s);
 
   if (!SD.begin(cs_pin))
   {
