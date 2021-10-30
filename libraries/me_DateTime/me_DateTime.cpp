@@ -195,6 +195,18 @@ void DateTime::represent_time(char* pszResult, uint8_t capacity) const
   snprintf(pszResult, capacity, "%02d:%02d:%02d", hour(), minute(), second());
 }
 
+String DateTime::representDateTime() {
+  String result = "";
+  const uint8_t maxBufLen = 16;
+  char buf[maxBufLen];
+  represent_date(buf, maxBufLen);
+  result += buf;
+  represent_time(buf, maxBufLen);
+  result += " " + String(buf);
+  return result;
+}
+
+
 const uint8_t dow_name_size = 4;
 const uint8_t num_dows = 7;
 const char dow_name[num_dows][dow_name_size] =

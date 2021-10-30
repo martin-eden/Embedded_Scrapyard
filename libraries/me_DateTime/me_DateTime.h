@@ -44,6 +44,7 @@ class DateTime {
 
     void represent_date(char* pszResult, uint8_t capacity) const;
     void represent_time(char* pszResult, uint8_t capacity) const;
+    String representDateTime();
     void represent_dow(char* pszResult, uint8_t capacity) const;
     // void represent(char* pszResult, uint8_t capacity) const; // -- need debugging
 
