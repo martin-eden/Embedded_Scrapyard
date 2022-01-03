@@ -23,11 +23,11 @@
 #include "me_ds3231.h"
 #include "me_DateTime.h"
 
-const uint8_t 
+const uint8_t
   Sdcard_Cs_pin = 10,
   Dht22_pin = 2;
 
-const uint32_t 
+const uint32_t
   MeasurementDelay_sec = 10;
 
 Adafruit_BMP280 bmp;
