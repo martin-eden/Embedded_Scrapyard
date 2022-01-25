@@ -2,8 +2,8 @@
 
 /*
   Status: done
-  Version: 1.1
-  Last mod.: 2021-10-30
+  Version: 1.2
+  Last mod.: 2022-01-24
 */
 
 /*
@@ -28,7 +28,7 @@ const uint8_t
   Dht22_pin = 2;
 
 const uint32_t
-  MeasurementDelay_sec = 10;
+  MeasurementDelay_sec = 15;
 
 Adafruit_BMP280 bmp;
 SimpleDHT22 dht22(Dht22_pin);
@@ -98,7 +98,7 @@ void loop() {
 
   DateTime dt = rtc.getDateTime();
 
-  //lcd.clear();
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(dt.representDateTime());
 
@@ -123,10 +123,10 @@ void loop() {
 
   String DataLoggerStr = "";
   DataLoggerStr += dt.representDateTime();
-  DataLoggerStr += " " + String(temperature, 2);
-  DataLoggerStr += " " + String(pressure, 2);
-  DataLoggerStr += " " + String(temperature_dht, 2);
-  DataLoggerStr += " " + String(humidity, 2);
+  DataLoggerStr += "\t" + String(temperature, 2);
+  DataLoggerStr += "\t" + String(pressure, 2);
+  DataLoggerStr += "\t" + String(temperature_dht, 2);
+  DataLoggerStr += "\t" + String(humidity, 2);
 
   dataLogger.writeString(DataLoggerStr);
   Serial.println(DataLoggerStr);
