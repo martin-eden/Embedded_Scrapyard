@@ -1,19 +1,19 @@
-// BMP280 barometer datalogger
+// Barometer and hygrometer with data logging and LCD display.
 
 /*
-  Status: done
-  Version: 1.2
-  Last mod.: 2022-01-24
+  Status: stable
+  Version: 1.3
+  Last mod.: 2022-02-01
 */
 
 /*
-  Equipment and wiring:
+  Equipment, interface and wiring:
 
-    * Barometer BMP280, I2C;
-    * Humidity meter DHT22;
-    * LCD 20x4, I2C;
-    * SD card FAT32, SPI;
     * RTC DS3231, I2C;
+    * Barometer BMP280, I2C;
+    * Hygrometer DHT22, <Hygrometer_pin>;
+    * LCD 20x4, I2C;
+    * SD card (FAT32), SPI, <Sdcard_Cs_pin>;
 */
 
 #include <Adafruit_BMP280.h>
@@ -25,18 +25,18 @@
 
 const uint8_t
   Sdcard_Cs_pin = 10,
-  Dht22_pin = 2;
+  Hygrometer_pin = 2;
 
 const uint32_t
   MeasurementDelay_sec = 15;
 
-Adafruit_BMP280 bmp;
-SimpleDHT22 dht22(Dht22_pin);
-LiquidCrystal_I2C lcd(0x27, 20, 4);
-me_DataLogger dataLogger(Sdcard_Cs_pin);
-me_ds3231 rtc = me_ds3231();
+Adafruit_BMP280 Barometer;
+SimpleDHT22 Hygrometer(Hygrometer_pin);
+LiquidCrystal_I2C LCD(0x27, 20, 4);
+me_DataLogger DataLogger(Sdcard_Cs_pin);
+me_ds3231 RTC = me_ds3231();
 
-uint8_t deg[8] = {
+const uint8_t degreeSignData[8] = {
   B00110,
   B01001,
   B01001,
@@ -46,12 +46,13 @@ uint8_t deg[8] = {
   B00000,
   B00000,
 };
+const uint8_t degreeSignCode = 0;
 
 void setup() {
   Serial.begin(9600);
   // Serial.println(F("Barometer BMP280 data logger."));
 
-  if (!bmp.begin()) {
+  if (!Barometer.begin()) {
     Serial.println(
       F("Could not find a valid BMP280 sensor, check wiring or "
         "try a different address!")
@@ -64,11 +65,11 @@ void setup() {
     Default settings from datasheet.
       Operating Mode.
       Temp. oversampling.
-      Pressure oversampling.
+      barometerPressure oversampling.
       Filtering.
       Standby time.
   */
-  bmp.setSampling(
+  Barometer.setSampling(
     Adafruit_BMP280::MODE_NORMAL,
     Adafruit_BMP280::SAMPLING_X2,
     Adafruit_BMP280::SAMPLING_X16,
@@ -76,59 +77,67 @@ void setup() {
     Adafruit_BMP280::STANDBY_MS_500
   );
 
-  lcd.init();
-  lcd.backlight();
-  lcd.createChar(0, deg);
+  LCD.init();
+  LCD.backlight();
+  LCD.createChar(0, degreeSignData);
 
   // Serial.println("Init done.");
 }
 
 void loop() {
   float
-    temperature = bmp.readTemperature(),
-    pressure = bmp.readPressure(),
-    temperature_dht,
-    humidity;
+    barometerTemperature = Barometer.readTemperature(),
+    barometerPressure = Barometer.readPressure(),
+    hygrometerTemperature,
+    hygrometerHumidity;
 
-  int16_t result = dht22.read2(&temperature_dht, &humidity, NULL);
+  int16_t result = Hygrometer.read2(&hygrometerTemperature, &hygrometerHumidity, NULL);
   if (result != SimpleDHTErrSuccess) {
-    temperature_dht = -128.0;
-    humidity = -1.0;
+    hygrometerTemperature = -128.0;
+    hygrometerHumidity = -1.0;
   }
 
-  DateTime dt = rtc.getDateTime();
+  DateTime dt = RTC.getDateTime();
 
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(dt.representDateTime());
+  LCD.clear();
+  LCD.setCursor(0, 0);
+  LCD.print(dt.representDateTime());
 
-  lcd.setCursor(0, 1);
-  lcd.print(temperature);
-  lcd.print(" ");
-  lcd.write(0);
-  lcd.print("C ");
+  LCD.setCursor(0, 1);
+  LCD.print("Pa");
+  LCD.print(" ");
+  LCD.print((int32_t) barometerPressure);
 
-  lcd.setCursor(0, 2);
-  lcd.print(pressure);
-  lcd.print(" Pa ");
+  LCD.print(" ");
+  LCD.write(degreeSignCode);
+  LCD.print("C");
+  LCD.print(" ");
+  LCD.print(barometerTemperature);
 
-  lcd.setCursor(0, 3);
-  lcd.print(temperature_dht);
-  lcd.print(" ");
-  lcd.write(0);
-  lcd.print("C");
-  lcd.print(" ");
-  lcd.print(humidity);
-  lcd.print(" %");
+  LCD.setCursor(0, 2);
+  LCD.print("RH%");
+  LCD.print(" ");
+  LCD.print(hygrometerHumidity);
+  LCD.print(" ");
+  LCD.write(degreeSignCode);
+  LCD.print("C");
+  LCD.print(" ");
+  LCD.print(hygrometerTemperature);
 
   String DataLoggerStr = "";
   DataLoggerStr += dt.representDateTime();
-  DataLoggerStr += "\t" + String(temperature, 2);
-  DataLoggerStr += "\t" + String(pressure, 2);
-  DataLoggerStr += "\t" + String(temperature_dht, 2);
-  DataLoggerStr += "\t" + String(humidity, 2);
+  DataLoggerStr += "\t" + String(barometerTemperature, 2);
+  DataLoggerStr += "\t" + String(barometerPressure, 2);
+  DataLoggerStr += "\t" + String(hygrometerTemperature, 2);
+  DataLoggerStr += "\t" + String(hygrometerHumidity, 2);
 
-  dataLogger.writeString(DataLoggerStr);
+  bool sdStatus = DataLogger.writeString(DataLoggerStr);
+  LCD.setCursor(0, 3);
+  if (sdStatus)
+    LCD.print("[SD OK]");
+  else
+    LCD.print("[no SD?]");
+
   Serial.println(DataLoggerStr);
 
   delay(MeasurementDelay_sec * 1000);

@@ -7,14 +7,14 @@ me_DataLogger::me_DataLogger(uint8_t a_cs_pin)
   cs_pin = a_cs_pin;
 }
 
-void me_DataLogger::writeString(String s)
+bool me_DataLogger::writeString(String s)
 {
   // Serial.println(s);
 
   if (!SD.begin(cs_pin))
   {
     Serial.println("SD card failed, or not present.");
-    return;
+    return false;
   }
 
   File data_file = SD.open("datalog.txt", FILE_WRITE);
@@ -27,7 +27,9 @@ void me_DataLogger::writeString(String s)
   else
   {
     Serial.println("Error opening 'datalog.txt'.");
+    return false;
   }
 
   SD.end();
+  return true;
 }
