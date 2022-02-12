@@ -1,128 +1,89 @@
 #include "me_DHT11.h"
 
+const uint8_t
+  Status_Init = 0,
+  Status_WaitTimeout = 1,
+  Status_PacketReceived = 2,
+  Status_PacketVerified = 3,
+  Status_BadChecksum = 4,
+  Status_UncertainBit = 5;
+
 me_DHT11::me_DHT11(uint8_t aDataPin)
 {
-  SetDataPin(aDataPin);
-}
-
-void me_DHT11::SetDataPin(uint8_t aDataPin)
-{
   DataPin = aDataPin;
-  PinBitmask = digitalPinToBitMask(DataPin);
-  PinPort = digitalPinToPort(DataPin);
 }
 
-uint8_t me_DHT11::Read(float* HumidityPtr, float* TemperaturePtr)
+bool me_DHT11::Get()
 {
-  uint8_t Result;
-  uint16_t HumidityWordPtr, TemperatureWordPtr;
-
-  Result = ReadRaw(&HumidityWordPtr, &TemperatureWordPtr);
-  *HumidityPtr = ((int16_t) HumidityWordPtr) / 0x100;
-  float TemperatureIntPart = (TemperatureWordPtr & 0xFF00) >> 8;
-  // OMG, BCD for low nibble represents tenths of temperature:
-  float TemperatureFracPart = (float) (TemperatureWordPtr & 0x000F) / 10;
-  bool IsNegativeTemp = (TemperatureIntPart < 0);
-  TemperatureIntPart = abs(TemperatureIntPart);
-  *TemperaturePtr = TemperatureIntPart + TemperatureFracPart;
-  if (IsNegativeTemp)
-    *TemperaturePtr = -*TemperaturePtr;
-
-  if ((*TemperaturePtr == 0.0) && (*HumidityPtr == 0.0))
-    return me_DHT11_ErrZeroSamples;
-
-  return Result;
+  Status = Status_Init;
+  ReadData();
+  Verify();
+  Parse();
+  return (Status == Status_PacketVerified);
 }
 
-uint8_t me_DHT11::ReadRaw(uint16_t* HumidityPtr, uint16_t* TemperaturePtr)
+void me_DHT11::ReadData()
 {
-  uint8_t Result;
-  uint8_t Data[40] = {0};
-
-  Result = Sample(Data);
-  if (Result == me_DHT11_OK)
-    Result = Convert(Data, HumidityPtr, TemperaturePtr);
-
-  return Result;
-}
-
-uint8_t me_DHT11::Sample(uint8_t Data[40])
-{
-  memset(Data, 0, 40);
+  uint8_t DataBits[40] = {1};
 
   pinMode(DataPin, OUTPUT);
   digitalWrite(DataPin, LOW);
   delay(20);
-
   digitalWrite(DataPin, HIGH);
-  pinMode(DataPin, INPUT);
+  delayMicroseconds(40);
+  pinMode(DataPin, INPUT_PULLUP);
 
-  delayMicroseconds(25);
+  if (!WaitForLevel(LOW, 80)) return;
+  if (!WaitForLevel(HIGH, 150)) return;
+  if (!WaitForLevel(LOW, 150)) return;
 
-  uint32_t t = LevelTime(LOW);
-  if (t < 30)
-    return me_DHT11_CompileError(t, me_DHT11_ErrStartLow);
-
-  t = LevelTime(HIGH);
-  if (t < 50)
-    return me_DHT11_CompileError(t, me_DHT11_ErrStartHigh);
-
-  for (uint8_t j = 0; j < 40; j++)
+  for (uint8_t i = 0; i < 40; ++i)
   {
-    t = LevelTime(LOW);
-    if (t < 24)
-      return me_DHT11_CompileError(t, me_DHT11_ErrDataLow);
+    if (!WaitForLevel(HIGH, 100)) return;
 
-    t = LevelTime(HIGH);
-    if (t < 11)
-      return me_DHT11_CompileError(t, me_DHT11_ErrDataRead);
+    uint32_t McrsPassed = WaitForLevel(LOW, 150);
 
-    if (t > 40)
-      Data[j] = 1;
+    if (McrsPassed == 0) return;
+    if ((McrsPassed > 0) && (McrsPassed <= 35))
+      DataBits[i] = 0;
+    else if ((McrsPassed >= 40) && (McrsPassed <= 90))
+      DataBits[i] = 1;
     else
-      Data[j] = 0;
+    {
+      Status = Status_UncertainBit;
+      return;
+    }
   }
 
-  t = LevelTime(LOW);
-  if (t < 24)
-    return me_DHT11_CompileError(t, me_DHT11_ErrDataEOF);
+  if (!WaitForLevel(HIGH, 100)) return;
 
-  return me_DHT11_OK;
+  for (uint8_t i = 0; i < 5; ++i)
+    Data[i] = BitsToByte(DataBits + (i * 8));
+
+  Status = Status_PacketReceived;
 }
 
-uint32_t me_DHT11::LevelTime(uint8_t Level, uint8_t FirstWait, uint8_t Interval)
+uint32_t me_DHT11::WaitForLevel(uint8_t AwaitedLevel, uint8_t LevelTimeout)
 {
+  uint8_t CurrentLevel;
+  uint32_t TimePassedMcr;
   uint32_t StartTime = micros();
-  uint32_t CurTime = micros();
-
-  uint8_t PortState = Level ? PinBitmask : 0;
-
-  bool IsOriginalLevel = true;
-  bool IsFirstIteration = true;
-  uint32_t TimePassed = CurTime - StartTime;
-
-  while (IsOriginalLevel && (TimePassed <= LevelTimeout))
+  bool IsTimeout;
+  do
   {
-    if (IsFirstIteration)
-    {
-      delayMicroseconds(FirstWait);
-      IsFirstIteration = false;
-    }
-    else
-    {
-      delayMicroseconds(Interval);
-    }
+    CurrentLevel = digitalRead(DataPin);
+    TimePassedMcr = (micros() - StartTime);
+    IsTimeout = (TimePassedMcr > LevelTimeout);
+  }
+  while ((CurrentLevel != AwaitedLevel) && !IsTimeout);
 
-    CurTime = micros();
-    TimePassed = CurTime - StartTime;
-
-    IsOriginalLevel = ((*portInputRegister(PinPort) & PinBitmask) == PortState);
+  if (IsTimeout)
+  {
+    Status = Status_WaitTimeout;
+    return 0;
   }
 
-  if (TimePassed > LevelTimeout)
-    return 0;
-
-  return TimePassed;
+  return TimePassedMcr;
 }
 
 uint8_t me_DHT11::BitsToByte(uint8_t Bits[8])
@@ -133,23 +94,23 @@ uint8_t me_DHT11::BitsToByte(uint8_t Bits[8])
   return Result;
 }
 
-uint8_t me_DHT11::Convert(uint8_t Data[40], uint16_t* HumidityPtr, uint16_t* TemperaturePtr)
+void me_DHT11::Verify()
 {
-  uint8_t HumidityHighByte = BitsToByte(Data);
-  uint8_t HumidityLowByte = BitsToByte(Data + 8);
-  uint8_t TemperatureHighByte = BitsToByte(Data + 16);
-  uint8_t TemperatureLowByte = BitsToByte(Data + 24);
-  uint8_t Checksum = BitsToByte(Data + 32);
+  if (Status != Status_PacketReceived)
+    return;
 
-  uint8_t ExpectedChecksum =
-    HumidityHighByte + HumidityLowByte + TemperatureHighByte + TemperatureLowByte;
-
-  if (Checksum != ExpectedChecksum)
-    return me_DHT11_ErrDataChecksum;
-
-  *HumidityPtr = (HumidityHighByte << 8) | HumidityLowByte;
-  *TemperaturePtr = (TemperatureHighByte << 8) | TemperatureLowByte;
-
-  return me_DHT11_OK;
+  if (Data[0] + Data[1] + Data[2] + Data[3] == Data[4])
+    Status = Status_PacketVerified;
+  else
+    Status = Status_BadChecksum;
 }
 
+void me_DHT11::Parse()
+{
+  if (Status != Status_PacketVerified)
+    return;
+
+  Humidity = (float) ((Data[0] << 8) | Data[1]) / 0x100;
+  // OMG, BCD for low nibble represents tenths of temperature:
+  Temperature = (float) ((int16_t) Data[2] * 10 + (Data[3] & 0x0F)) / 10;
+}
