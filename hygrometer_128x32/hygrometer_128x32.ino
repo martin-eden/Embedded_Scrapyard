@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.4
-  Last mod.: 2022-02-12
+  Version: 1.5
+  Last mod.: 2022-02-16
 */
 
 /*
@@ -29,17 +29,7 @@ void setup()
 {
   Serial.begin(9600);
   Display.begin();
-  Display.setFont(u8g2_font_lubR14_tf);
-}
-
-void PrintRawData()
-{
-  String DataStr = String(Hygrometer.Data[0], HEX) + " ";
-  DataStr += String(Hygrometer.Data[1], HEX) + " ";
-  DataStr += String(Hygrometer.Data[2], HEX) + " ";
-  DataStr += String(Hygrometer.Data[3], HEX) + " ";
-  DataStr += String(Hygrometer.Data[4], HEX) + " ";
-  Serial.println(DataStr);
+  Display.setFont(u8g2_font_lubR12_tf);
 }
 
 void DisplayString(String aStr)
@@ -55,32 +45,43 @@ void DisplayString(String aStr)
   Display.sendBuffer();
 }
 
+String GetData()
+{
+  Hygrometer.Get();
+  uint16_t Lighting = analogRead(A0);
+
+  String Result = String(Hygrometer.Humidity, 0) + "%";
+  Result += " " + String(Hygrometer.Temperature, 1) + "\260C";
+  Result += " " + String(Lighting);
+
+  return Result;
+}
+
+String GetRawData()
+{
+  String Result = String(Hygrometer.Data[0], HEX) + " ";
+  Result += String(Hygrometer.Data[1], HEX) + " ";
+  Result += String(Hygrometer.Data[2], HEX) + " ";
+  Result += String(Hygrometer.Data[3], HEX) + " ";
+  Result += String(Hygrometer.Data[4], HEX) + " ";
+
+  return Result;
+}
+
 void loop()
 {
   float
     hygrometerHumidity,
     hygrometerTemperature;
 
-  bool result = Hygrometer.Get();
-  if (result)
-  {
-    hygrometerHumidity = Hygrometer.Humidity;
-    hygrometerTemperature = Hygrometer.Temperature;
-  }
-  else
-  {
-    hygrometerHumidity = -1.0;
-    hygrometerTemperature = -128.0;
-  }
+  String DataStr = GetData();
 
-  String valueStr = String(hygrometerHumidity, 0) + "%";
-  valueStr += " " + String(hygrometerTemperature, 1) + "\260C";
+  DisplayString(DataStr);
+  // Serial.println(DataStr);
 
-  // Serial.println(valueStr);
-
-  DisplayString(valueStr);
-
-  PrintRawData();
+  String RawDataStr = GetRawData();
+  // DisplayString(RawDataStr);
+  // Serial.println(RawDataStr);
 
   delay(MeasurementDelay_sec * 1000);
 }
