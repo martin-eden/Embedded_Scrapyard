@@ -13,11 +13,14 @@ class me_DHT11
     me_DHT11(uint8_t aDataPin);
 
     bool Get();
+
+  protected:
+    virtual bool Parse();
+
   private:
     uint8_t DataPin;
-    void ReadData();
+    bool ReadData();
     uint32_t WaitForLevel(uint8_t AwaitedLevel, uint8_t LevelTimeout);
     uint8_t BitsToByte(uint8_t Bits[8]);
-    void Verify();
-    void Parse();
+    bool Verify();
 };
