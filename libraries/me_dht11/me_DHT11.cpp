@@ -28,9 +28,9 @@ void me_DHT11::ReadData()
 
   pinMode(DataPin, OUTPUT);
   digitalWrite(DataPin, LOW);
-  delay(20);
+  delay(23); // 11..34
   digitalWrite(DataPin, HIGH);
-  delayMicroseconds(40);
+  delayMicroseconds(40); // 0..83
   pinMode(DataPin, INPUT_PULLUP);
 
   if (!WaitForLevel(LOW, 80)) return;
