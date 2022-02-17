@@ -42,8 +42,9 @@ void me_DHT11::ReadData()
     if (!WaitForLevel(HIGH, 100)) return;
 
     uint32_t McrsPassed = WaitForLevel(LOW, 150);
-
     if (McrsPassed == 0) return;
+
+    // Bit 0 has duration near 25 us, bit 1 near 75 us.
     if ((McrsPassed > 0) && (McrsPassed <= 35))
       DataBits[i] = 0;
     else if ((McrsPassed >= 40) && (McrsPassed <= 90))
