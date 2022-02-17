@@ -107,10 +107,15 @@ void me_DHT11::Verify()
 
 void me_DHT11::Parse()
 {
-  if (Status != Status_PacketVerified)
-    return;
+  Humidity = -1;
+  Temperature = -128;
+
+  if (Status != Status_PacketVerified) return;
 
   Humidity = (float) ((Data[0] << 8) | Data[1]) / 0x100;
-  // OMG, BCD for low nibble represents tenths of temperature:
+  // 2nd temperature byte: tenths of temperature in low nibble in BCD.
   Temperature = (float) ((int16_t) Data[2] * 10 + (Data[3] & 0x0F)) / 10;
+  // 2nd temperature byte: bit 7 is temperature sign.
+  if (Data[3] & 0x80)
+    Temperature = -Temperature;
 }
