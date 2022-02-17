@@ -100,7 +100,7 @@ void me_DHT11::Verify()
   if (Status != Status_PacketReceived)
     return;
 
-  if (Data[0] + Data[1] + Data[2] + Data[3] == Data[4])
+  if ((uint8_t) (Data[0] + Data[1] + Data[2] + Data[3]) == Data[4])
     Status = Status_PacketVerified;
   else
     Status = Status_BadChecksum;
