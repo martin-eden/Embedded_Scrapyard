@@ -29,7 +29,7 @@ void setup()
 {
   Serial.begin(9600);
   Display.begin();
-  Display.setFont(u8g2_font_lubR12_tf);
+  Display.setFont(u8g2_font_lubR14_tf);
 }
 
 void DisplayString(String aStr)
@@ -48,11 +48,9 @@ void DisplayString(String aStr)
 String GetData()
 {
   Hygrometer.Get();
-  uint16_t Lighting = analogRead(A0);
 
   String Result = String(Hygrometer.Humidity, 0) + "%";
   Result += " " + String(Hygrometer.Temperature, 1) + "\260C";
-  Result += " " + String(Lighting);
 
   return Result;
 }
