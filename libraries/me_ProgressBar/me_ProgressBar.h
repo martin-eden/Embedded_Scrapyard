@@ -3,8 +3,6 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 
-#include <me_DHT11.h>
-
 class me_ProgressBar
 {
   public:
