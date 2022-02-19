@@ -5,7 +5,7 @@
 
 #include <me_DHT11.h>
 
-class me_128x32_ProgressBar
+class me_ProgressBar
 {
   public:
     U8G2* Display;
@@ -15,7 +15,7 @@ class me_128x32_ProgressBar
     int32_t CurrentValue = 0;
     uint8_t Left, Top, Right, Bottom;
 
-    me_128x32_ProgressBar(
+    me_ProgressBar(
       U8G2* aDisplay,
       uint8_t aLeft = 0,
       uint8_t aTop = 0,

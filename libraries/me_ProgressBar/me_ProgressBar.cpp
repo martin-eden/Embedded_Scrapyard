@@ -6,9 +6,9 @@
   Last mod.: 2022-02-18
 */
 
-#include "me_128x32_ProgressBar.h"
+#include "me_ProgressBar.h"
 
-me_128x32_ProgressBar::me_128x32_ProgressBar(
+me_ProgressBar::me_ProgressBar(
   U8G2* aDisplay,
   uint8_t aLeft = 0,
   uint8_t aTop = 0,
@@ -23,13 +23,13 @@ me_128x32_ProgressBar::me_128x32_ProgressBar(
   Bottom = aBottom;
 }
 
-void me_128x32_ProgressBar::Draw()
+void me_ProgressBar::Draw()
 {
   DrawOuterBox();
   DrawFill();
 }
 
-void me_128x32_ProgressBar::DrawOuterBox()
+void me_ProgressBar::DrawOuterBox()
 {
   Display->setDrawColor(1);
   Display->drawFrame(Left, Top, Right - Left + 1, Bottom - Top + 1);
@@ -37,7 +37,7 @@ void me_128x32_ProgressBar::DrawOuterBox()
   Display->drawBox(Left + 1, Top + 1, Right - 1 - Left - 1 + 1, Bottom - 1 - Top - 1 + 1);
 }
 
-void me_128x32_ProgressBar::DrawFill()
+void me_ProgressBar::DrawFill()
 {
   CurrentValue = constrain(CurrentValue, MinValue, MaxValue);
   uint8_t AwailableWidth = Right - Left - 3;
