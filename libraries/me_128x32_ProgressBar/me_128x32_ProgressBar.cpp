@@ -9,7 +9,7 @@
 #include "me_128x32_ProgressBar.h"
 
 me_128x32_ProgressBar::me_128x32_ProgressBar(
-  U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C* aDisplay,
+  U8G2* aDisplay,
   uint8_t aLeft = 0,
   uint8_t aTop = 0,
   uint8_t aRight = 127,

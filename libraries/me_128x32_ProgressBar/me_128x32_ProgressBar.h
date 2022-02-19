@@ -8,7 +8,7 @@
 class me_128x32_ProgressBar
 {
   public:
-    U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C* Display;
+    U8G2* Display;
 
     int32_t MinValue = 0;
     int32_t MaxValue = 1023;
@@ -16,7 +16,7 @@ class me_128x32_ProgressBar
     uint8_t Left, Top, Right, Bottom;
 
     me_128x32_ProgressBar(
-      U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C* aDisplay,
+      U8G2* aDisplay,
       uint8_t aLeft = 0,
       uint8_t aTop = 0,
       uint8_t aRight = 127,
