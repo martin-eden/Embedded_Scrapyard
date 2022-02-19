@@ -2,7 +2,7 @@
 #include <me_128x32_ProgressBar.h>
 
 U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R0);
-me_128x32_ProgressBar ProgressBar(&Display, 10, 7, 120, 25);
+me_128x32_ProgressBar ProgressBar((U8G2*) &Display, 10, 7, 120, 25);
 
 void setup()
 {
