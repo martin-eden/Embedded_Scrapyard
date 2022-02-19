@@ -10,15 +10,13 @@ void setup()
   Display.begin();
 }
 
-void fillScreen(int16_t fillRatio)
+void fillScreen(uint16_t fillRatio)
 {
-  int16_t fillCounter = 0;
-
   for (uint8_t y = 0; y < 32; ++y)
   {
     for (uint8_t x = 0; x < 128; ++x)
     {
-      if (random(1024) <= fillRatio)
+      if ((fillRatio != 0) && (random(1024) <= fillRatio))
         Display.setDrawColor(1);
       else
         Display.setDrawColor(0);
@@ -30,7 +28,7 @@ void fillScreen(int16_t fillRatio)
 
 void loop()
 {
-  int16_t lighting = 1023 - analogRead(A0);
+  uint16_t lighting = 1023 - analogRead(A0);
   // Serial.println(lightingStr);
   ProgressBar.CurrentValue = lighting;
 
@@ -42,5 +40,5 @@ void loop()
 
   Display.sendBuffer();
 
-  delay(1000);
+  delay(250);
 }
