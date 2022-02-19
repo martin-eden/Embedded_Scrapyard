@@ -17,11 +17,11 @@
 */
 
 #include <Adafruit_BMP280.h>
-#include <SimpleDHT.h>
 #include <LiquidCrystal_I2C.h>
-#include "me_DataLogger.h"
-#include "me_ds3231.h"
-#include "me_DateTime.h"
+#include <me_DHT22.h>
+#include <me_DataLogger.h>
+#include <me_ds3231.h>
+#include <me_DateTime.h>
 
 const uint8_t
   Sdcard_Cs_pin = 10,
@@ -31,7 +31,7 @@ const uint32_t
   MeasurementDelay_sec = 15;
 
 Adafruit_BMP280 Barometer;
-SimpleDHT22 Hygrometer(Hygrometer_pin);
+me_DHT22 Hygrometer(Hygrometer_pin);
 LiquidCrystal_I2C LCD(0x27, 20, 4);
 me_DataLogger DataLogger(Sdcard_Cs_pin);
 me_ds3231 RTC = me_ds3231();
@@ -91,11 +91,9 @@ void loop() {
     hygrometerTemperature,
     hygrometerHumidity;
 
-  int16_t result = Hygrometer.read2(&hygrometerTemperature, &hygrometerHumidity, NULL);
-  if (result != SimpleDHTErrSuccess) {
-    hygrometerTemperature = -128.0;
-    hygrometerHumidity = -1.0;
-  }
+  Hygrometer.Get();
+  hygrometerTemperature = Hygrometer.Temperature;
+  hygrometerHumidity = Hygrometer.Humidity;
 
   DateTime dt = RTC.getDateTime();
 
