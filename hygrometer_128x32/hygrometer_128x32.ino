@@ -2,22 +2,22 @@
 
 /*
   Status: stable
-  Version: 1.5
-  Last mod.: 2022-02-16
+  Version: 1.51
+  Last mod.: 2022-02-24
 */
 
 /*
   Equipment and wiring
 
-    display: 128x32 ".9 OLED I2C
-    hygrometer: DHT11
+    Display: 128x32 ".9 OLED, <I2C>
+    Hygrometer: DHT11, <Hygrometer_pin>
 */
 
 #include <me_DHT11.h>
 #include <U8g2lib.h>
 
 const uint8_t
-  Hygrometer_pin = 12;
+  Hygrometer_pin = 2;
 
 const float
   MeasurementDelay_sec = 1.0;
