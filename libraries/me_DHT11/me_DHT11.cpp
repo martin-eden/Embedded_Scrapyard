@@ -121,3 +121,12 @@ bool me_DHT11::Parse()
 
   return true;
 }
+
+/*
+  Implementation notice.
+
+  I've tried implementation via standard Arduino library function
+  pulseInLong() instead of WaitForLevel(). It is possible and makes
+  code shorter. But the drawback is that we can no longer track LOW
+  signal times. So implementation will be more loose to protocol.
+*/
