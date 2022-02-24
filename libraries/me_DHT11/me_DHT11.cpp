@@ -36,21 +36,21 @@ bool me_DHT11::ReadData()
   delayMicroseconds(40); // 0..83
   pinMode(DataPin, INPUT_PULLUP);
 
-  if (!WaitForLevel(LOW, 80)) return false;
-  if (!WaitForLevel(HIGH, 150)) return false;
-  if (!WaitForLevel(LOW, 150)) return false;
+  if (!WaitWhileLevel(HIGH, 80)) return false;
+  if (!WaitWhileLevel(LOW, 150)) return false;
+  if (!WaitWhileLevel(HIGH, 150)) return false;
 
   for (uint8_t i = 0; i < 40; ++i)
   {
-    if (!WaitForLevel(HIGH, 100)) return false;
+    if (!WaitWhileLevel(LOW, 100)) return false;
 
-    uint32_t McrsPassed = WaitForLevel(LOW, 150);
-    if (McrsPassed == 0) return false;
+    uint32_t PulseDuration = GetLevelTime(HIGH, 150);
+    if (PulseDuration == 0) return false;
 
     // Bit 0 has duration near 25 us, bit 1 near 75 us.
-    if ((McrsPassed > 0) && (McrsPassed <= 35))
+    if ((PulseDuration > 0) && (PulseDuration <= 35))
       DataBits[i] = 0;
-    else if ((McrsPassed >= 40) && (McrsPassed <= 90))
+    else if ((PulseDuration >= 40) && (PulseDuration <= 90))
       DataBits[i] = 1;
     else
     {
@@ -59,7 +59,7 @@ bool me_DHT11::ReadData()
     }
   }
 
-  if (!WaitForLevel(HIGH, 100)) return false;
+  if (!WaitWhileLevel(LOW, 100)) return false;
 
   for (uint8_t i = 0; i < 5; ++i)
     Data[i] = BitsToByte(DataBits + (i * 8));
@@ -69,7 +69,7 @@ bool me_DHT11::ReadData()
   return true;
 }
 
-uint32_t me_DHT11::WaitForLevel(uint8_t AwaitedLevel, uint8_t LevelTimeout)
+uint32_t me_DHT11::GetLevelTime(uint8_t OriginalLevel, uint8_t LevelTimeout)
 {
   uint8_t CurrentLevel;
   uint32_t TimePassedMcr;
@@ -81,7 +81,7 @@ uint32_t me_DHT11::WaitForLevel(uint8_t AwaitedLevel, uint8_t LevelTimeout)
     TimePassedMcr = (micros() - StartTime);
     IsTimeout = (TimePassedMcr > LevelTimeout);
   }
-  while ((CurrentLevel != AwaitedLevel) && !IsTimeout);
+  while ((CurrentLevel == OriginalLevel) && !IsTimeout);
 
   if (IsTimeout)
   {
@@ -90,6 +90,11 @@ uint32_t me_DHT11::WaitForLevel(uint8_t AwaitedLevel, uint8_t LevelTimeout)
   }
 
   return TimePassedMcr;
+}
+
+bool me_DHT11::WaitWhileLevel(uint8_t OriginalLevel, uint8_t LevelTimeout)
+{
+  return (GetLevelTime(OriginalLevel, LevelTimeout) != 0);
 }
 
 uint8_t me_DHT11::BitsToByte(uint8_t Bits[8])

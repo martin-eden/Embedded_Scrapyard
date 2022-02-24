@@ -20,7 +20,8 @@ class me_DHT11
   private:
     uint8_t DataPin;
     bool ReadData();
-    uint32_t WaitForLevel(uint8_t AwaitedLevel, uint8_t LevelTimeout);
+    uint32_t GetLevelTime(uint8_t OriginalLevel, uint8_t LevelTimeout);
+    bool WaitWhileLevel(uint8_t OriginalLevel, uint8_t LevelTimeout);
     uint8_t BitsToByte(uint8_t Bits[8]);
     bool Verify();
 };
