@@ -29,12 +29,7 @@ bool me_DHT11::ReadData()
 {
   uint8_t DataBits[40] = {1};
 
-  pinMode(DataPin, OUTPUT);
-  digitalWrite(DataPin, LOW);
-  delay(23); // 11..34
-  digitalWrite(DataPin, HIGH);
-  delayMicroseconds(40); // 0..83
-  pinMode(DataPin, INPUT_PULLUP);
+  EmitRequest();
 
   if (!WaitWhileLevel(HIGH, 80)) return false;
   if (!WaitWhileLevel(LOW, 150)) return false;
@@ -67,6 +62,16 @@ bool me_DHT11::ReadData()
   Status = Status_PacketReceived;
 
   return true;
+}
+
+void me_DHT11::EmitRequest()
+{
+  pinMode(DataPin, OUTPUT);
+  digitalWrite(DataPin, LOW);
+  delay(23); // 11..34
+  digitalWrite(DataPin, HIGH);
+  delayMicroseconds(40); // 0..83
+  pinMode(DataPin, INPUT_PULLUP);
 }
 
 uint32_t me_DHT11::GetLevelTime(uint8_t OriginalLevel, uint8_t LevelTimeout)

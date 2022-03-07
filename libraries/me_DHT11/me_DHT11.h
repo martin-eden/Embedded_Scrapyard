@@ -16,6 +16,7 @@ class me_DHT11
 
   protected:
     virtual bool Parse();
+    void EmitRequest();
 
   private:
     uint8_t DataPin;
