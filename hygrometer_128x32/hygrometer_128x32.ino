@@ -29,19 +29,32 @@ void setup()
 {
   Serial.begin(9600);
   Display.begin();
-  Display.setFont(u8g2_font_lubR14_tf);
+  Display.setFont(u8g2_font_ncenB24_tr);
 }
 
-void DisplayString(String aStr)
+void InvertDisplayColors()
 {
-  char buf[20];
-  aStr.toCharArray(buf, 20);
+  Display.sendF("c", 0x0a7);
+}
 
-  uint8_t x = 8;
-  uint8_t y = 28;
+void ResetDisplayColors()
+{
+  Display.sendF("c", 0x0a6);
+}
 
+void DisplayState()
+{
   Display.clearBuffer();
-  Display.drawStr(x, y, buf);
+
+  const uint8_t CharBufSize = 10;
+  char buf[CharBufSize];
+
+  String(Hygrometer.Humidity, 0).toCharArray(buf, CharBufSize);
+  Display.drawStr(3, 30, buf);
+
+  String(Hygrometer.Temperature, 1).toCharArray(buf, CharBufSize);
+  Display.drawStr(58, 26, buf);
+
   Display.sendBuffer();
 }
 
@@ -74,11 +87,11 @@ void loop()
 
   String DataStr = GetData();
 
-  DisplayString(DataStr);
+  DisplayState();
   // Serial.println(DataStr);
 
   String RawDataStr = GetRawData();
-  // DisplayString(RawDataStr);
+  // DisplayState(RawDataStr);
   // Serial.println(RawDataStr);
 
   delay(MeasurementDelay_sec * 1000);
