@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.51
-  Last mod.: 2022-02-24
+  Version: 1.7
+  Last mod.: 2022-03-08
 */
 
 /*
@@ -44,7 +44,7 @@ void ResetDisplayColors()
 
 void DisplayState()
 {
-  Display.clearBuffer();
+  Display.setDrawColor(1);
 
   const uint8_t CharBufSize = 10;
   char buf[CharBufSize];
@@ -55,7 +55,15 @@ void DisplayState()
   String(Hygrometer.Temperature, 1).toCharArray(buf, CharBufSize);
   Display.drawStr(58, 26, buf);
 
-  Display.sendBuffer();
+  HeartBeat();
+}
+
+void HeartBeat()
+{
+  static bool flip = false;
+  Display.setDrawColor(flip ? 0 : 1);
+  Display.drawDisc(49, 16, 3);
+  flip = !flip;
 }
 
 String GetData()
@@ -81,9 +89,7 @@ String GetRawData()
 
 void loop()
 {
-  float
-    hygrometerHumidity,
-    hygrometerTemperature;
+  Display.clearBuffer();
 
   String DataStr = GetData();
 
@@ -93,6 +99,8 @@ void loop()
   String RawDataStr = GetRawData();
   // DisplayState(RawDataStr);
   // Serial.println(RawDataStr);
+
+  Display.sendBuffer();
 
   delay(MeasurementDelay_sec * 1000);
 }
