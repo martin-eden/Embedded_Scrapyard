@@ -1,7 +1,7 @@
 // Capturing and parsing IR signals in NEC format.
 
 /*
-  Status: works
+  Status: hangs after 50-70 prints
   Version: 1.0
   Last mod.: 2022-03-15
 */
@@ -39,10 +39,13 @@ void OnSignalChange()
   DSR.Add(micros(), digitalRead(SignalPin));
 }
 
+char Buffer[50];
+
 void loop()
 {
   if (IrDecoder.Get())
   {
+
     String IrData = "";
     String AddrStr = String(IrDecoder.Address, HEX);
     AddrStr.toUpperCase();
@@ -51,9 +54,19 @@ void loop()
     CmdStr.toUpperCase();
     CmdStr = String("0x") + CmdStr;
     IrData +=
-      "{\"address\": " + AddrStr + ", " +
-      "\"command\": " + CmdStr + "}";
+      "{\"address\": \"" + AddrStr + "\", " +
+      "\"command\": \"" + CmdStr + "\"}";
     Serial.println(IrData);
+
+    /*
+    sprintf(
+      Buffer,
+      "{\"address\": \"0x%04X\", \"command\": \"0x%02X\"}",
+      IrDecoder.Address,
+      IrDecoder.Command
+    );
+    Serial.println(Buffer);
+    */
   }
   delay(100);
 }
