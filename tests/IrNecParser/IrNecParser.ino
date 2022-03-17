@@ -45,7 +45,7 @@ void loop()
 {
   if (IrDecoder.Get())
   {
-
+    /*
     String IrData = "";
     String AddrStr = String(IrDecoder.Address, HEX);
     AddrStr.toUpperCase();
@@ -57,8 +57,8 @@ void loop()
       "{\"address\": \"" + AddrStr + "\", " +
       "\"command\": \"" + CmdStr + "\"}";
     Serial.println(IrData);
+    */
 
-    /*
     sprintf(
       Buffer,
       "{\"address\": \"0x%04X\", \"command\": \"0x%02X\"}",
@@ -66,7 +66,17 @@ void loop()
       IrDecoder.Command
     );
     Serial.println(Buffer);
-    */
+
   }
-  delay(100);
+  delay(10);
+
+  /*
+  static uint32_t LastTime = millis;
+  if (millis() - LastTime > 5000)
+  {
+    Serial.println("Still alive.");
+    LastTime = millis();
+  }
+  */
+
 }
