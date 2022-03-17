@@ -31,6 +31,8 @@ bool me_IrNecParser::Get()
     Command = tempCommand;
   }
 
+  DSR->Clear();
+
   return result;
 }
 
