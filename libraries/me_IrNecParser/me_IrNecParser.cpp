@@ -1,5 +1,7 @@
 #include <me_IrNecParser.h>
 
+using namespace IrNecParser;
+
 me_IrNecParser::me_IrNecParser(me_DigitalSignalRecorder* aDSR)
 {
   DSR = aDSR;
@@ -8,15 +10,18 @@ me_IrNecParser::me_IrNecParser(me_DigitalSignalRecorder* aDSR)
 bool me_IrNecParser::Get()
 {
   const uint32_t
-    MinimalDelayToProcess = 50000,
-    MinimalPacketDuration = 59000;
+    MinimalDelayToProcess = 125000;
 
-  if (!DSR->HasEvents() || (micros() - DSR->GetLastEventTime() <= MinimalDelayToProcess))
+  if (
+    !DSR->HasEvents() ||
+    (micros() - DSR->GetLastEventTime() <= MinimalDelayToProcess)
+    )
+  {
     return false;
+  }
 
   ConsumeTillStartOfFrame();
-
-  while (ConsumeRepeatFrame());
+  ConsumeRepeatFrames();
 
   uint16_t tempAddress;
   uint8_t tempCommand;
@@ -25,13 +30,19 @@ bool me_IrNecParser::Get()
 
   if (result)
   {
-    while (ConsumeRepeatFrame());
+    ConsumeRepeatFrames();
 
     Address = tempAddress;
     Command = tempCommand;
   }
+  // else
+  //   Serial.println("Not a data frame.");
 
-  DSR->Clear();
+  if (DSR->HasEvents())
+  {
+    // DSR_PrintJSON(DSR);
+    DSR->Clear();
+  }
 
   return result;
 }
@@ -42,89 +53,176 @@ bool IsWithin(uint32_t CurValue, uint32_t MinValue, uint32_t MaxValue)
 }
 
 const uint32_t
-  DataFrameSignalDuration = 9000,
-  DataFramePauseDuration = 4500,
+  FrameHeaderDuration = 9000,
+  BaseDuration = 562; // 562.5 actually but I dont want to introduce floats
 
-  RepeatFramePause1Duration = 40000,
-  RepeatFrameSignalDuration = 9000,
-  RepeatFramePause2Duration = 2250,
+RecordType me_IrNecParser::GetRecordType(uint32_t PauseDuration, uint32_t SignalDuration)
+{
+  if (IsWithin(SignalDuration, FrameHeaderDuration - 500, FrameHeaderDuration + 500))
+    return RecordType::FrameHeader;
 
-  BitZeroPause = 562,
-  BitOnePause = 1687,
-  BitAnySignal = 562;
+  RecordType Result = RecordType::Unknown;
+
+  /*
+    For some reason, Pause-Singal durations may vary considerably from
+    base duration of 562.5. But their sum remains close to multiple of
+    that value:
+
+      Consider Pause = 672, Signal = 476.
+      Delta Pause = 109.5, delta Signal = -86.5.
+      Sum = 672 + 476 = 1148.
+      Delta Sum = 1148 % 562.5 = 23.
+  */
+
+  uint32_t TotalDuration = PauseDuration + SignalDuration;
+  uint32_t DeltaOvershoot = TotalDuration % BaseDuration;
+  uint32_t DeltaUndershoot = BaseDuration - DeltaOvershoot;
+
+  bool IsGoodDelta =
+    IsWithin(DeltaOvershoot, 0, 120) ||
+    IsWithin(DeltaUndershoot, 0, 120);
+
+  /*
+  if (!IsGoodDelta)
+  {
+    Serial.println("---");
+    Serial.println(PauseDuration);
+    Serial.println(SignalDuration);
+    Serial.println(TotalDuration);
+    Serial.println(DeltaOvershoot);
+    Serial.println(DeltaUndershoot);
+    Serial.println("===");
+  }
+  */
+
+  if (IsGoodDelta)
+  {
+    if (DeltaOvershoot < DeltaUndershoot)
+      TotalDuration -= DeltaOvershoot;
+    else
+      TotalDuration += DeltaUndershoot;
+
+    uint32_t Multiplicity = TotalDuration / BaseDuration;
+
+    switch (Multiplicity)
+    {
+      case 5:
+        Result = RecordType::RepeatFrame;
+        break;
+      case 9:
+        Result = RecordType::DataFrame;
+        break;
+      case 2:
+        Result = RecordType::BitZero;
+        break;
+      case 4:
+        Result = RecordType::BitOne;
+        break;
+      default:
+        // Serial.print("Multiplicity: ");
+        // Serial.println(Multiplicity);
+        break;
+    }
+  }
+
+  return Result;
+}
+
+RecordType me_IrNecParser::GetHistoryRecType(uint16_t Idx)
+{
+  uint32_t Pause = DSR->History[Idx].Pause;
+  uint32_t Signal = DSR->History[Idx].Signal;
+
+  return GetRecordType(Pause, Signal);
+}
 
 void me_IrNecParser::ConsumeTillStartOfFrame()
 {
   while (!DSR->Queue.IsEmpty())
   {
-    uint8_t CurIdx = DSR->Queue.GetFirstIdx();
-    uint32_t Signal = DSR->History[CurIdx].Signal;
-    if (IsWithin(Signal, DataFrameSignalDuration - 500, DataFrameSignalDuration + 500))
+    uint16_t CurIdx = DSR->Queue.GetFirstIdx();
+    if (GetHistoryRecType(CurIdx) == RecordType::FrameHeader)
       break;
     DSR->Queue.RemoveFirst();
   }
 }
 
-bool me_IrNecParser::ConsumeRepeatFrame()
+void me_IrNecParser::ConsumeRepeatFrames()
+{
+  while (DSR->Queue.GetNumElements() >= 2)
+  {
+    uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
+    uint16_t SecondRecIdx = DSR->Queue.GetNextIdx(FirstRecIdx);
+
+    if (
+      (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
+      (GetHistoryRecType(SecondRecIdx) == RecordType::RepeatFrame)
+    )
+    {
+      DSR->Queue.RemoveFirst();
+      DSR->Queue.RemoveFirst();
+    }
+    else
+      break;
+  }
+}
+
+bool me_IrNecParser::ConsumeDataFrameHeader()
 {
   if (DSR->Queue.GetNumElements() < 2)
     return false;
 
-  uint8_t CurIdx = DSR->Queue.GetFirstIdx();
-
-  uint32_t Signal = DSR->History[CurIdx].Signal;
-
-  CurIdx = DSR->Queue.GetNextIdx(CurIdx);
-
-  uint32_t Pause = DSR->History[CurIdx].Pause;
+  uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
+  uint16_t SecondRecIdx = DSR->Queue.GetNextIdx(FirstRecIdx);
 
   if (
-    IsWithin(Signal, RepeatFrameSignalDuration - 500, RepeatFrameSignalDuration + 500) &&
-    IsWithin(Pause, RepeatFramePause2Duration - 100, RepeatFramePause2Duration + 100)
+    (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
+    (GetHistoryRecType(SecondRecIdx) == RecordType::DataFrame)
   )
   {
     DSR->Queue.RemoveFirst();
     DSR->Queue.RemoveFirst();
     return true;
   }
+
   return false;
 }
 
 bool me_IrNecParser::ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand)
 {
-  uint8_t CurIdx = DSR->Queue.GetFirstIdx();
-
-  uint32_t Signal = DSR->History[CurIdx].Signal;
-
-  CurIdx = DSR->Queue.GetNextIdx(CurIdx);
-
-  uint32_t Pause = DSR->History[CurIdx].Pause;
-
-  CurIdx = DSR->Queue.GetNextIdx(CurIdx);
-
-  if (
-    IsWithin(Signal, DataFrameSignalDuration - 500, DataFrameSignalDuration + 500) &&
-    IsWithin(Pause, DataFramePauseDuration - 100, DataFramePauseDuration + 100)
-    )
+  if (DSR->Queue.GetNumElements() < 34)
   {
-    DSR->Queue.RemoveFirst();
-    DSR->Queue.RemoveFirst();
-
-    uint8_t RawData[4];
-
-    for (uint8_t i = 0; i < 4; ++i)
-      if (!ConsumeByte(&RawData[i]))
-        return false;
-
-    *oAddress = (RawData[0] << 8) | RawData[1];
-
-    if (RawData[2] != (uint8_t) ~RawData[3])
-      return false;
-    *oCommand = RawData[2];
-
-    return true;
+    // Serial.println("Too few elements.");
+    // Serial.println(DSR->Queue.GetNumElements());
+    return false;
   }
-  return false;
+
+  if (!ConsumeDataFrameHeader())
+  {
+    // Serial.println("Data frame header not found.");
+    return false;
+  }
+
+  uint8_t RawData[4];
+
+  for (uint8_t i = 0; i < 4; ++i)
+    if (!ConsumeByte(&RawData[i]))
+    {
+      // Serial.println("ConsumeByte() failed.");
+      return false;
+    }
+
+  *oAddress = (RawData[0] << 8) | RawData[1];
+
+  if (RawData[2] != (uint8_t) ~RawData[3])
+  {
+    // Serial.println("Checksum failed.");
+    return false;
+  }
+
+  *oCommand = RawData[2];
+
+  return true;
 }
 
 bool me_IrNecParser::ConsumeByte(uint8_t* pByte)
@@ -135,21 +233,28 @@ bool me_IrNecParser::ConsumeByte(uint8_t* pByte)
   {
     if (DSR->Queue.IsEmpty())
       return false;
-    uint8_t CurIdx = DSR->Queue.GetFirstIdx();
 
-    uint32_t Pause = DSR->History[CurIdx].Pause;
-    uint32_t Signal = DSR->History[CurIdx].Signal;
-
-    if (!IsWithin(Signal, BitAnySignal - 100, BitAnySignal + 100))
-      return false;
 
     uint8_t BitValue;
-    if (IsWithin(Pause, BitZeroPause - 100, BitZeroPause + 100))
-      BitValue = 0;
-    else if (IsWithin(Pause, BitOnePause - 100, BitOnePause + 100))
-      BitValue = 1;
-    else
-      return false;
+
+    switch (GetHistoryRecType(DSR->Queue.GetFirstIdx()))
+    {
+      case RecordType::BitZero:
+        BitValue = 0;
+        break;
+      case RecordType::BitOne:
+        BitValue = 1;
+        break;
+      default:
+        /*
+        uint16_t CurIdx = DSR->Queue.GetFirstIdx();
+        Serial.println(CurIdx);
+        Serial.println(DSR->History[CurIdx].Pause);
+        Serial.println(DSR->History[CurIdx].Signal);
+        */
+        return false;
+        break;
+    }
 
     *pByte |= (BitValue << i);
 
