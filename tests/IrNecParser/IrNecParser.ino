@@ -9,6 +9,8 @@
 #include <me_DigitalSignalRecorder.h>
 #include <me_IrNecParser.h>
 
+using namespace IrNecParser;
+
 me_DigitalSignalRecorder DSR;
 me_IrNecParser IrDecoder(&DSR);
 
@@ -66,9 +68,9 @@ void loop()
       IrDecoder.Command
     );
     Serial.println(Buffer);
-
   }
-  delay(10);
+
+  delay(100);
 
   /*
   static uint32_t LastTime = millis;
