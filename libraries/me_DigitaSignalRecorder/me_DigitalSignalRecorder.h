@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <me_DequeMind.h>
+#include <me_QueueMind.h>
 
 struct DurationsRec
 {
@@ -12,7 +12,7 @@ struct DurationsRec
 class me_DigitalSignalRecorder
 {
   public:
-    me_DequeMind Queue;
+    me_QueueMind Queue;
     DurationsRec* History;
     uint8_t IdleValue = HIGH;
 
