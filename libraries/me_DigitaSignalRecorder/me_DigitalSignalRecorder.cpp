@@ -60,6 +60,15 @@ bool me_DigitalSignalRecorder::HasEvents()
   return !Queue.IsEmpty();
 }
 
+uint16_t me_DigitalSignalRecorder::GetNumElements()
+{
+  if (Queue.IsEmpty())
+    return 0;
+  if (History[Queue.GetFirstIdx()].Signal == 0)
+    return Queue.GetNumElements() - 1;
+  return Queue.GetNumElements();
+}
+
 bool me_DigitalSignalRecorder::IsFull()
 {
   return Queue.IsFull() && (LastValue == IdleValue);
