@@ -143,7 +143,7 @@ void me_IrNecParser::ConsumeTillStartOfFrame()
     uint16_t CurIdx = DSR->Queue.GetFirstIdx();
     if (GetHistoryRecType(CurIdx) == RecordType::FrameHeader)
       break;
-    DSR->Queue.RemoveFirst();
+    DSR->Queue.Dequeue();
   }
 }
 
@@ -159,8 +159,8 @@ void me_IrNecParser::ConsumeRepeatFrames()
       (GetHistoryRecType(SecondRecIdx) == RecordType::RepeatFrame)
     )
     {
-      DSR->Queue.RemoveFirst();
-      DSR->Queue.RemoveFirst();
+      DSR->Queue.Dequeue();
+      DSR->Queue.Dequeue();
     }
     else
       break;
@@ -180,8 +180,8 @@ bool me_IrNecParser::ConsumeDataFrameHeader()
     (GetHistoryRecType(SecondRecIdx) == RecordType::DataFrame)
   )
   {
-    DSR->Queue.RemoveFirst();
-    DSR->Queue.RemoveFirst();
+    DSR->Queue.Dequeue();
+    DSR->Queue.Dequeue();
     return true;
   }
 
@@ -190,7 +190,7 @@ bool me_IrNecParser::ConsumeDataFrameHeader()
 
 bool me_IrNecParser::ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand)
 {
-  if (DSR->Queue.GetNumElements() < 34)
+  if (DSR->GetNumElements() < 34)
   {
     // Serial.println("Too few elements.");
     // Serial.println(DSR->Queue.GetNumElements());
@@ -258,7 +258,7 @@ bool me_IrNecParser::ConsumeByte(uint8_t* pByte)
 
     *pByte |= (BitValue << i);
 
-    DSR->Queue.RemoveFirst();
+    DSR->Queue.Dequeue();
   }
 
   // Serial.println(*pByte, HEX);
