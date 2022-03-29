@@ -117,7 +117,7 @@ void DSR_PrintJSON(me_DigitalSignalRecorder* DSR)
   Serial.println("  },");
 
   Serial.println("  \"Durations\": [");
-  uint8_t CurIdx = DSR->Queue.GetFirstIdx();
+  uint16_t CurIdx = DSR->Queue.GetFirstIdx();
   while (1)
   {
     s =
