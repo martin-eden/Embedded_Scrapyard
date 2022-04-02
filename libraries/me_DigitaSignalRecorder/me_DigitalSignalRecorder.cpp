@@ -65,7 +65,7 @@ uint16_t me_DigitalSignalRecorder::GetCount()
 {
   if (Queue.IsEmpty())
     return 0;
-  if (History[Queue.GetFirstIdx()].Signal == 0)
+  if (History[Queue.GetLastIdx()].Signal == 0)
     return Queue.GetCount() - 1;
   return Queue.GetCount();
 }
