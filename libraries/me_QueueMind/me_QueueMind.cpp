@@ -1,64 +1,5 @@
 #include <me_QueueMind.h>
 
-const uint16_t InvalidIdx = 0xFFFF;
-
-me_QueueMind::me_QueueMind(uint16_t aCapacity)
-{
-  SetCapacity(aCapacity);
-}
-
-void me_QueueMind::Clear()
-{
-  FirstIdx = InvalidIdx;
-  LastIdx = InvalidIdx;
-}
-
-uint16_t me_QueueMind::GetFirstIdx()
-{
-  return FirstIdx;
-}
-
-uint16_t me_QueueMind::GetLastIdx()
-{
-  return LastIdx;
-}
-
-uint16_t me_QueueMind::GetCount()
-{
-  if ((FirstIdx == InvalidIdx) && (LastIdx == InvalidIdx))
-    return 0;
-  if (FirstIdx <= LastIdx)
-    return (LastIdx - FirstIdx + 1);
-  else
-    return (LastIdx + Capacity - FirstIdx + 1);
-}
-
-uint16_t me_QueueMind::GetCapacity()
-{
-  return Capacity;
-}
-
-void me_QueueMind::SetCapacity(uint16_t aCapacity)
-{
-  Capacity = aCapacity;
-  Clear();
-}
-
-uint16_t me_QueueMind::GetNextIdx(uint16_t aIdx)
-{
-  return (aIdx + 1) % Capacity;
-}
-
-bool me_QueueMind::IsFull()
-{
-  return (GetCount() == Capacity);
-}
-
-bool me_QueueMind::IsEmpty()
-{
-  return (GetCount() == 0);
-}
-
 bool me_QueueMind::Enqueue()
 {
   if (IsFull())
@@ -68,6 +9,7 @@ bool me_QueueMind::Enqueue()
   {
     FirstIdx = 0;
     LastIdx = 0;
+    _IsEmpty = false;
   }
   else
     LastIdx = GetNextIdx(LastIdx);
@@ -81,7 +23,7 @@ bool me_QueueMind::Dequeue()
     return false;
 
   if (GetCount() == 1)
-    Clear();
+    MakeEmpty();
   else
     FirstIdx = GetNextIdx(FirstIdx);
 
@@ -92,8 +34,9 @@ void QueueMind_PrintState(me_QueueMind* Queue)
 {
   String msg = "";
   msg +=
-    "Idx first: " +
-    String(Queue->GetFirstIdx()) + "\n";
+    "Idx first, last: " +
+    String(Queue->GetFirstIdx()) + ", " +
+    String(Queue->GetLastIdx()) + "\n";
   msg +=
     "Num elements: " +
     String(Queue->GetCount()) + " of " +
