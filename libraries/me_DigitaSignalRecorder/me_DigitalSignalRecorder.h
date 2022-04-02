@@ -22,7 +22,7 @@ class me_DigitalSignalRecorder
 
     void Add(uint32_t CurrentTime, uint8_t Value);
     bool HasEvents();
-    uint16_t GetNumElements();
+    uint16_t GetCount();
     bool IsFull();
     void Clear();
     uint32_t GetFirstEventTime();

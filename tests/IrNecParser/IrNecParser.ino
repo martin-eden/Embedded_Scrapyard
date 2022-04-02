@@ -1,9 +1,9 @@
 // Capturing and parsing IR signals in NEC format.
 
 /*
-  Status: hangs after 50-70 prints
-  Version: 1.0
-  Last mod.: 2022-03-15
+  Status: stable
+  Version: 1.1
+  Last mod.: 2022-04-02
 */
 
 #include <me_DigitalSignalRecorder.h>

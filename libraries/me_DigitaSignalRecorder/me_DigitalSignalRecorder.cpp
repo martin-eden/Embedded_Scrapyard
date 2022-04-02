@@ -60,13 +60,13 @@ bool me_DigitalSignalRecorder::HasEvents()
   return !Queue.IsEmpty();
 }
 
-uint16_t me_DigitalSignalRecorder::GetNumElements()
+uint16_t me_DigitalSignalRecorder::GetCount()
 {
   if (Queue.IsEmpty())
     return 0;
   if (History[Queue.GetFirstIdx()].Signal == 0)
-    return Queue.GetNumElements() - 1;
-  return Queue.GetNumElements();
+    return Queue.GetCount() - 1;
+  return Queue.GetCount();
 }
 
 bool me_DigitalSignalRecorder::IsFull()
@@ -140,7 +140,7 @@ void DSR_PrintJSON(me_DigitalSignalRecorder* DSR)
     "    \"First event\": " + DSR->GetFirstEventTime() + ",\n" +
     "    \"Last event\": " + DSR->GetLastEventTime() + ",\n" +
     "    \"Duration\": " + DSR->GetRecordsDuration() + ",\n" +
-    "    \"Num elements\": " + DSR->Queue.GetNumElements();
+    "    \"Num elements\": " + DSR->Queue.GetCount();
   Serial.println(s);
 
   Serial.println("  }");

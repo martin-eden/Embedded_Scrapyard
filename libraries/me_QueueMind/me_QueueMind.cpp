@@ -23,7 +23,7 @@ uint16_t me_QueueMind::GetLastIdx()
   return LastIdx;
 }
 
-uint16_t me_QueueMind::GetNumElements()
+uint16_t me_QueueMind::GetCount()
 {
   if ((FirstIdx == InvalidIdx) && (LastIdx == InvalidIdx))
     return 0;
@@ -51,12 +51,12 @@ uint16_t me_QueueMind::GetNextIdx(uint16_t aIdx)
 
 bool me_QueueMind::IsFull()
 {
-  return (GetNumElements() == Capacity);
+  return (GetCount() == Capacity);
 }
 
 bool me_QueueMind::IsEmpty()
 {
-  return (GetNumElements() == 0);
+  return (GetCount() == 0);
 }
 
 bool me_QueueMind::Enqueue()
@@ -80,7 +80,7 @@ bool me_QueueMind::Dequeue()
   if (IsEmpty())
     return false;
 
-  if (GetNumElements() == 1)
+  if (GetCount() == 1)
     Clear();
   else
     FirstIdx = GetNextIdx(FirstIdx);
@@ -96,7 +96,7 @@ void QueueMind_PrintState(me_QueueMind* Queue)
     String(Queue->GetFirstIdx()) + "\n";
   msg +=
     "Num elements: " +
-    String(Queue->GetNumElements()) + " of " +
+    String(Queue->GetCount()) + " of " +
     String(Queue->GetCapacity()) + "\n";
   msg +=
     "IsFull, IsEmpty: " +

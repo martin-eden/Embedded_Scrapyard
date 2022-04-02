@@ -9,7 +9,7 @@ class me_QueueMind
     void Clear();
     uint16_t GetFirstIdx();
     uint16_t GetLastIdx();
-    uint16_t GetNumElements();
+    uint16_t GetCount();
     uint16_t GetCapacity();
     void SetCapacity(uint16_t aCapacity);
     uint16_t GetNextIdx(uint16_t aIdx);
