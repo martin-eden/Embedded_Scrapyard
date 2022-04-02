@@ -77,7 +77,7 @@ bool me_DigitalSignalRecorder::IsFull()
 
 void me_DigitalSignalRecorder::Clear()
 {
-  Queue.Clear();
+  Queue.MakeEmpty();
   LastEventTime = 0;
   LastValue = IdleValue;
 }
