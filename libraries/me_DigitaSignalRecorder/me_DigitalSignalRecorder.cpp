@@ -1,4 +1,5 @@
 #include "me_DigitalSignalRecorder.h"
+#include "me_QueueMindEnumerator.h"
 
 me_DigitalSignalRecorder::me_DigitalSignalRecorder(uint8_t aIdleValue)
 {
@@ -116,22 +117,19 @@ void DSR_PrintJSON(me_DigitalSignalRecorder* DSR)
   Serial.println(s);
   Serial.println("  },");
 
+  me_QueueMindEnumerator Cursor(&DSR->Queue);
+
   Serial.println("  \"Durations\": [");
-  uint16_t CurIdx = DSR->Queue.GetFirstIdx();
-  while (1)
+  do
   {
     s =
       String("    {") +
-      "\"Pause\": " + DSR->History[CurIdx].Pause + ", " +
-      "\"Signal\": " + DSR->History[CurIdx].Signal + "}";
-    if (CurIdx != DSR->Queue.GetLastIdx())
+      "\"Pause\": " + DSR->History[Cursor.Get()].Pause + ", " +
+      "\"Signal\": " + DSR->History[Cursor.Get()].Signal + "}";
+    if (Cursor.Get() != DSR->Queue.GetLastIdx())
       s += ",";
     Serial.println(s);
-
-    if (CurIdx == DSR->Queue.GetLastIdx())
-      break;
-    CurIdx = DSR->Queue.GetNextIdx(CurIdx);
-  };
+  } while (Cursor.Move());
   Serial.println("  ],");
 
   Serial.println("  \"Statistics\": {");
