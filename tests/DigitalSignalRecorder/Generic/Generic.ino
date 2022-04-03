@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.0
-  Last mod.: 2022-03-14
+  Version: 1.1
+  Last mod.: 2022-04-02
 */
 
 /*
@@ -14,13 +14,14 @@
 */
 
 #include <me_DigitalSignalRecorder.h>
+#include <me_StatePrinters_DigitalSignalRecorder.h>
 
 const uint8_t
   IdleSignalValue = HIGH,
   SignalPin = 2; // 2 or 3 for ATmega328P
 
 const uint16_t
-  RecorderCapacity = 40;
+  RecorderCapacity = 100;
 
 me_DigitalSignalRecorder DSR(IdleSignalValue);
 
