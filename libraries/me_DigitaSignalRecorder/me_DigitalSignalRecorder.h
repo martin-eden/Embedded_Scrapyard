@@ -33,5 +33,3 @@ class me_DigitalSignalRecorder
     uint8_t LastValue = IdleValue;
     volatile uint32_t LastEventTime = 0;
 };
-
-void DSR_PrintJSON(me_DigitalSignalRecorder* DSR);
