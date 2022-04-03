@@ -1,4 +1,4 @@
-// Digital signale recorder library generic test setup
+// Digital signal recorder library generic test setup
 
 /*
   Status: stable

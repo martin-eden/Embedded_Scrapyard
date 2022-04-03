@@ -31,5 +31,6 @@ class me_DigitalSignalRecorder
 
   private:
     uint8_t LastValue = IdleValue;
-    volatile uint32_t LastEventTime = 0;
+    uint32_t FirstEventTime;
+    volatile uint32_t LastEventTime;
 };
