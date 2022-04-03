@@ -47,20 +47,6 @@ void loop()
 {
   if (IrDecoder.Get())
   {
-    /*
-    String IrData = "";
-    String AddrStr = String(IrDecoder.Address, HEX);
-    AddrStr.toUpperCase();
-    AddrStr = String("0x") + AddrStr;
-    String CmdStr = String(IrDecoder.Command, HEX);
-    CmdStr.toUpperCase();
-    CmdStr = String("0x") + CmdStr;
-    IrData +=
-      "{\"address\": \"" + AddrStr + "\", " +
-      "\"command\": \"" + CmdStr + "\"}";
-    Serial.println(IrData);
-    */
-
     sprintf(
       Buffer,
       "{\"address\": \"0x%04X\", \"command\": \"0x%02X\"}",
