@@ -149,7 +149,7 @@ void me_IrNecParser::ConsumeTillStartOfFrame()
 
 void me_IrNecParser::ConsumeRepeatFrames()
 {
-  while (DSR->Queue.GetNumElements() >= 2)
+  while (DSR->Queue.GetCount() >= 2)
   {
     uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
     uint16_t SecondRecIdx = DSR->Queue.GetNextIdx(FirstRecIdx);
@@ -169,7 +169,7 @@ void me_IrNecParser::ConsumeRepeatFrames()
 
 bool me_IrNecParser::ConsumeDataFrameHeader()
 {
-  if (DSR->Queue.GetNumElements() < 2)
+  if (DSR->Queue.GetCount() < 2)
     return false;
 
   uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
@@ -190,10 +190,10 @@ bool me_IrNecParser::ConsumeDataFrameHeader()
 
 bool me_IrNecParser::ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand)
 {
-  if (DSR->GetNumElements() < 34)
+  if (DSR->GetCount() < 34)
   {
     // Serial.println("Too few elements.");
-    // Serial.println(DSR->Queue.GetNumElements());
+    // Serial.println(DSR->Queue.GetCount());
     return false;
   }
 
