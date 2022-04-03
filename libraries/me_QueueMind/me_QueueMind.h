@@ -9,5 +9,3 @@ class me_QueueMind : public me_QueueSubconscious
     bool Enqueue();
     bool Dequeue();
 };
-
-void QueueMind_PrintState(me_QueueMind* Queue);
