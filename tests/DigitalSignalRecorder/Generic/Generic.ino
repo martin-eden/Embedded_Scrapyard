@@ -47,11 +47,10 @@ void OnSignalChange()
   DSR.Add(micros(), digitalRead(SignalPin));
 }
 
-const uint32_t
-  CutoffDelayToPrintMcrs = 1000000;
-
 void loop()
 {
+  const static uint32_t CutoffDelayToPrintMcrs = 1000000;
+
   if (
     DSR.IsFull() ||
     (
