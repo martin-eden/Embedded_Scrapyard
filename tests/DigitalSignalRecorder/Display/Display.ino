@@ -28,8 +28,8 @@ me_DigitalSignalRecorder DSR(IdleSignalValue);
 U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R1);
 
 static u8g2_uint_t
-  Width,
-  Height;
+  ScreenWidth,
+  ScreenHeight;
 
 void setup()
 {
@@ -44,10 +44,8 @@ void setup()
   }
 
   Display.begin();
-  Width = Display.getWidth(),
-  Height = Display.getHeight();
-  Serial.println(Width);
-  Serial.println(Height);
+  ScreenWidth = Display.getWidth(),
+  ScreenHeight = Display.getHeight();
 
   pinMode(SignalPin, INPUT);
   attachInterrupt(digitalPinToInterrupt(SignalPin), OnSignalChange, CHANGE);
@@ -58,21 +56,40 @@ void OnSignalChange()
   DSR.Add(micros(), digitalRead(SignalPin));
 }
 
-void DisplaySignals()
+uint8_t GetMostSignificatByte(uint32_t value)
+{
+  if (value <= 0xFF)
+    return 1;
+  else if (value <= 0xFFFF)
+    return 2;
+  else if (value <= 0xFFFFFF)
+    return 3;
+  else
+    return 4;
+}
+
+void DisplaySignals(
+  u8g2_uint_t Left,
+  u8g2_uint_t Top,
+  u8g2_uint_t Width,
+  u8g2_uint_t Height
+)
 {
   const u8g2_uint_t
-    StartRow = 10,
-    RowsPerData = 3;
+    RowsPerData = 3,
+    MagnitudeWidth = 5;
 
   Display.clearBuffer();
   me_QueueMindEnumerator Cursor(&DSR.Queue);
-  u8g2_uint_t Row = StartRow;
+  u8g2_uint_t Row = Top;
   do
   {
     uint32_t Pause = DSR.History[Cursor.Get()].Pause;
     uint32_t Signal = DSR.History[Cursor.Get()].Signal;
-    u8g2_uint_t SignalPart = Width * Signal / (Pause + Signal);
-    Display.drawHLine(0, Row, SignalPart);
+    u8g2_uint_t SignalPart = (Width - MagnitudeWidth) * Signal / (Pause + Signal);
+    Display.drawHLine(Left + MagnitudeWidth, Row, SignalPart);
+    u8g2_uint_t MagnitudePart = GetMostSignificatByte(Pause + Signal);
+    Display.drawHLine(Left, Row, MagnitudePart);
     Row += RowsPerData;
     if (Row >= Height)
       break;
@@ -95,7 +112,7 @@ void loop()
   )
   {
     detachInterrupt(digitalPinToInterrupt(SignalPin));
-    DisplaySignals();
+    DisplaySignals(0, 0, ScreenWidth, ScreenHeight);
     DSR.Clear();
     attachInterrupt(digitalPinToInterrupt(SignalPin), OnSignalChange, CHANGE);
   }
