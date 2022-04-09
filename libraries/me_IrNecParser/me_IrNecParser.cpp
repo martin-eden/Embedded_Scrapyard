@@ -156,14 +156,12 @@ bool IsWithin(uint32_t CurValue, uint32_t MinValue, uint32_t MaxValue)
 }
 
 const uint32_t
-  FrameHeaderDuration = 9000,
-  ShortRepeatDuration = 40000,
   LongRepeatDuration = 96000,
   BaseDuration = 562; // 562.5 actually but I dont want to introduce floats
 
 RecordType me_IrNecParser::GetRecordType(uint32_t PauseDuration, uint32_t SignalDuration)
 {
-  if (IsWithin(SignalDuration, FrameHeaderDuration - 500, FrameHeaderDuration + 500))
+  if (IsWithin(SignalDuration, 8500, 9500))
     return RecordType::FrameHeader;
 
   RecordType Result = RecordType::Unknown;
@@ -275,7 +273,7 @@ bool me_IrNecParser::ConsumeShortRepeatFrame()
     if (
       (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
       (GetHistoryRecType(SecondRecIdx) == RecordType::RepeatFrame) &&
-      IsWithin(DSR->History[FirstRecIdx].Pause, ShortRepeatDuration - 1000, ShortRepeatDuration + 2500)
+      IsWithin(DSR->History[FirstRecIdx].Pause, 39000, 45000)
     )
     {
       DSR->Queue.Dequeue();
@@ -301,7 +299,7 @@ bool me_IrNecParser::ConsumeLongRepeatFrame()
       (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
       (GetHistoryRecType(SecondRecIdx) == RecordType::RepeatFrame) &&
       (
-        IsWithin(DSR->History[FirstRecIdx].Pause, LongRepeatDuration - 1000, LongRepeatDuration + 1000) ||
+        IsWithin(DSR->History[FirstRecIdx].Pause, 95000, 105000) ||
         (DSR->History[FirstRecIdx].Pause == 0)
       )
     )
