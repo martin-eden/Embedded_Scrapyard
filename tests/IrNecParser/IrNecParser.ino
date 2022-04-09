@@ -18,7 +18,7 @@ const uint8_t
   SignalPin = 2; // 2 or 3 for ATmega328P
 
 const uint16_t
-  RecorderCapacity = 40;
+  RecorderCapacity = 36;
 
 void setup()
 {
@@ -41,7 +41,7 @@ void OnSignalChange()
   DSR.Add(micros(), digitalRead(SignalPin));
 }
 
-char Buffer[50];
+char Buffer[100];
 
 void loop()
 {
@@ -49,9 +49,16 @@ void loop()
   {
     sprintf(
       Buffer,
-      "{\"address\": \"0x%04X\", \"command\": \"0x%02X\"}",
+      "{"
+      "\"address\": \"0x%04X\", "
+      "\"command\": \"0x%02X\", "
+      "\"hasShortRepeat\": %u, "
+      "\"numRepeats\": %u"
+      "}",
       IrDecoder.Address,
-      IrDecoder.Command
+      IrDecoder.Command,
+      IrDecoder.HasShortRepeat,
+      IrDecoder.NumRepeats
     );
     Serial.println(Buffer);
   }
