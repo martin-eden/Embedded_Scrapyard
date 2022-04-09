@@ -1,10 +1,10 @@
 #include <FastLED.h>
 
-#define LED_PIN     10
+#define LED_PIN     3
 
 // Information about the LED strip itself
 #define NUM_LEDS    60
-#define CHIPSET     WS2812
+#define CHIPSET     WS2811
 #define COLOR_ORDER GRB
 CRGB leds[NUM_LEDS];
 
@@ -13,7 +13,7 @@ CRGB leds[NUM_LEDS];
 
 // FastLED v2.1 provides two color-management controls:
 //   (1) color correction settings for each LED strip, and
-//   (2) master control of the overall output 'color temperature'
+//   (2) master control of the overall output 'color temperature' 
 //
 // THIS EXAMPLE demonstrates the second, "color temperature" control.
 // It shows a simple rainbow animation first with one temperature profile,
@@ -25,7 +25,7 @@ CRGB leds[NUM_LEDS];
 // * Don't look directly at the LED pixels.  Shine the LEDs aganst
 //   a white wall, table, or piece of paper, and look at the reflected light.
 //
-// * If you watch it for a bit, and then walk away, and then come back
+// * If you watch it for a bit, and then walk away, and then come back 
 //   to it, you'll probably be able to "see" whether it's currently using
 //   the 'redder' or the 'bluer' temperature profile, even not counting
 //   the lowest 'indicator' pixel.
@@ -41,13 +41,13 @@ CRGB leds[NUM_LEDS];
 // FastLED also provides an "Uncorrected temperature" profile
 //    UncorrectedTemperature;
 
-#define TEMPERATURE_1 StandardFluorescent
-#define TEMPERATURE_2 SodiumVapor
+#define TEMPERATURE_1 Tungsten100W
+#define TEMPERATURE_2 OvercastSky
 
 // How many seconds to show each temperature before switching
-#define DISPLAYTIME 7
+#define DISPLAYTIME 20
 // How many seconds to show black between switches
-#define BLACKTIME   1
+#define BLACKTIME   3
 
 void loop()
 {
@@ -70,7 +70,7 @@ void loop()
   if( (secs % DISPLAYTIME) < BLACKTIME) {
     memset8( leds, 0, NUM_LEDS * sizeof(CRGB));
   }
-
+  
   FastLED.show();
   FastLED.delay(8);
 }

@@ -23,13 +23,13 @@
 //
 //////////////////////////////////////////////////
 
-#define NUM_LEDS 60
+#define NUM_LEDS 7
 
 // For led chips like WS2812, which have a data line, ground, and power, you just
 // need to define DATA_PIN.  For led chipsets that are SPI based (four wires - data, clock,
 // ground, and power), like the LPD8806 define both DATA_PIN and CLOCK_PIN
 // Clock pin only needed for SPI based chipsets when not using hardware SPI
-#define DATA_PIN 10
+#define DATA_PIN 3
 #define CLOCK_PIN 13
 
 CRGB leds[NUM_LEDS];
@@ -50,7 +50,7 @@ void setup() {
     // FastLED.addLeds<UCS1903B, DATA_PIN, RGB>(leds, NUM_LEDS);
     // FastLED.addLeds<UCS1904, DATA_PIN, RGB>(leds, NUM_LEDS);
     // FastLED.addLeds<UCS2903, DATA_PIN, RGB>(leds, NUM_LEDS);
-    FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB ordering is typical
+    // FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB ordering is typical
     // FastLED.addLeds<WS2852, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB ordering is typical
     // FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB ordering is typical
     // FastLED.addLeds<GS1903, DATA_PIN, RGB>(leds, NUM_LEDS);
@@ -83,13 +83,13 @@ void setup() {
 }
 
 void loop() {
-    leds[NUM_LEDS - 1 - 0] = CRGB(255,0,0);
-    leds[NUM_LEDS - 1 - 1] = CRGB(0,255,0);
-    leds[NUM_LEDS - 1 - 2] = CRGB(0,255,0);
-    leds[NUM_LEDS - 1 - 3] = CRGB(0,0,255);
-    leds[NUM_LEDS - 1 - 4] = CRGB(0,0,255);
-    leds[NUM_LEDS - 1 - 5] = CRGB(0,0,255);
-    leds[NUM_LEDS - 1 - 6] = CRGB(0,0,0);
+    leds[0] = CRGB(255,0,0);
+    leds[1] = CRGB(0,255,0);
+    leds[2] = CRGB(0,255,0);
+    leds[3] = CRGB(0,0,255);
+    leds[4] = CRGB(0,0,255);
+    leds[5] = CRGB(0,0,255);
+    leds[6] = CRGB(0,0,0);
     FastLED.show();
     delay(1000);
 }

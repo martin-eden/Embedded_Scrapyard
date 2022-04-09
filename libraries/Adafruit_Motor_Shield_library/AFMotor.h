@@ -11,20 +11,20 @@
  *    M1 motor output will not have PWM ability when used with a PIC32 board.
  *    However, there is a very simple workaround. If you need to drive a stepper
  *    or DC motor with PWM on motor output M1, you can use the PWM output on pin
- *    9 or pin 10 (normally use for RC servo outputs on Arduino, not needed for
+ *    9 or pin 10 (normally use for RC servo outputs on Arduino, not needed for 
  *    RC servo outputs on PIC32) to drive the PWM input for M1 by simply putting
  *    a jumber from pin 9 to pin 11 or pin 10 to pin 11. Then uncomment one of the
  *    two #defines below to activate the PWM on either pin 9 or pin 10. You will
  *    then have a fully functional microstepping for 2 stepper motors, or four
  *    DC motor outputs with PWM.
  *
- * 2) There is a conflict between RC Servo outputs on pins 9 and pins 10 and
+ * 2) There is a conflict between RC Servo outputs on pins 9 and pins 10 and 
  *    the operation of DC motors and stepper motors as of 9/2012. This issue
  *    will get fixed in future MPIDE releases, but at the present time it means
  *    that the Motor Party example will NOT work properly. Any time you attach
  *    an RC servo to pins 9 or pins 10, ALL PWM outputs on the whole board will
  *    stop working. Thus no steppers or DC motors.
- *
+ * 
  */
 // <BPS> 09/15/2012 Modified for use with chipKIT boards
 
@@ -48,15 +48,15 @@
     #define MOTOR34_64KHZ _BV(CS00)             // no prescale
     #define MOTOR34_8KHZ _BV(CS01)              // divide by 8
     #define MOTOR34_1KHZ _BV(CS01) | _BV(CS00)  // divide by 64
-
+    
     #define DC_MOTOR_PWM_RATE   MOTOR34_8KHZ    // PWM rate for DC motors
     #define STEPPER1_PWM_RATE   MOTOR12_64KHZ   // PWM rate for stepper 1
     #define STEPPER2_PWM_RATE   MOTOR34_64KHZ   // PWM rate for stepper 2
-
+    
 #elif defined(__PIC32MX__)
     //#define MOTORDEBUG 1
-
-    // Uncomment the one of following lines if you have put a jumper from
+    
+    // Uncomment the one of following lines if you have put a jumper from 
     // either pin 9 to pin 11 or pin 10 to pin 11 on your Motor Shield.
     // Either will enable PWM for M1
     //#define PIC32_USE_PIN9_FOR_M1_PWM
@@ -84,14 +84,14 @@
     #define MOTOR34_4_8KHZ  6   // 1:64, actual frequency 4.8KHz
     #define MOTOR34_2KHZ    7   // 1:256, actual frequency 1.2KHz
     #define MOTOR34_1KHZ    7   // 1:256, actual frequency 1.2KHz
-
+    
     // PWM rate for DC motors.
     #define DC_MOTOR_PWM_RATE   MOTOR34_39KHZ
     // Note: for PIC32, both of these must be set to the same value
     // since there's only one timebase for all 4 PWM outputs
     #define STEPPER1_PWM_RATE   MOTOR12_39KHZ
     #define STEPPER2_PWM_RATE   MOTOR34_39KHZ
-
+    
 #endif
 
 // Bit positions in the 74HCT595 shift register output

@@ -20,6 +20,7 @@ Distributed as-is; no warranty is given.
 ******************************************************************************/
 //See SparkFunBME280.h for additional topology notes.
 
+#include <math.h>
 #include "SparkFunBME280.h"
 
 //****************************************************************************//
@@ -70,17 +71,18 @@ uint8_t BME280::begin()
 
 	case I2C_MODE:
 		
-		switch(_wireType)
-		{
-			case(HARD_WIRE):
-				_hardPort->begin(); //The caller can begin their port and set the speed. We just confirm it here otherwise it can be hard to debug.
-				break;
-			case(SOFT_WIRE):
-			#ifdef SoftwareWire_h
-				_softPort->begin(); //The caller can begin their port and set the speed. We just confirm it here otherwise it can be hard to debug.
-			#endif
-				break;
-		}
+		//Removing port begin from library. This should be done by user otherwise this library will overwrite Wire settings such as clock speed.
+		// switch(_wireType)
+		// {
+		// 	case(HARD_WIRE):
+		// 		_hardPort->begin(); //The caller can begin their port and set the speed. We just confirm it here otherwise it can be hard to debug.
+		// 		break;
+		// 	case(SOFT_WIRE):
+		// 	#ifdef SoftwareWire_h
+		// 		_softPort->begin(); //The caller can begin their port and set the speed. We just confirm it here otherwise it can be hard to debug.
+		// 	#endif
+		// 		break;
+		// }
 		break;
 
 	case SPI_MODE:
@@ -357,6 +359,29 @@ void BME280::reset( void )
 
 //****************************************************************************//
 //
+//  Burst Measurement Section
+//
+//****************************************************************************//
+
+//Read all sensor registers as a burst. See BME280 Datasheet section 4. Data readout
+//tempScale = 0 for Celsius scale (default setting)
+//tempScale = 1 for Fahrenheit scale
+void BME280::readAllMeasurements(BME280_SensorMeasurements *measurements, byte tempScale){
+	
+	uint8_t dataBurst[8];
+	readRegisterRegion(dataBurst, BME280_MEASUREMENTS_REG, 8);
+	
+	if(tempScale == 0){
+		readTempCFromBurst(dataBurst, measurements);
+	}else{
+		readTempFFromBurst(dataBurst, measurements);
+	}
+	readFloatPressureFromBurst(dataBurst, measurements);
+	readFloatHumidityFromBurst(dataBurst, measurements);
+}
+
+//****************************************************************************//
+//
 //  Pressure Section
 //
 //****************************************************************************//
@@ -390,7 +415,44 @@ float BME280::readFloatPressure( void )
 	
 }
 
-//Sets the internal variable _referencePressure so the 
+void BME280::readFloatPressureFromBurst(uint8_t buffer[], BME280_SensorMeasurements *measurements)
+{
+
+	// Set pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
+	// Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
+  
+  int32_t adc_P = ((uint32_t)buffer[0] << 12) | ((uint32_t)buffer[1] << 4) | ((buffer[2] >> 4) & 0x0F);
+	
+	int64_t var1, var2, p_acc;
+	var1 = ((int64_t)t_fine) - 128000;
+	var2 = var1 * var1 * (int64_t)calibration.dig_P6;
+	var2 = var2 + ((var1 * (int64_t)calibration.dig_P5)<<17);
+	var2 = var2 + (((int64_t)calibration.dig_P4)<<35);
+	var1 = ((var1 * var1 * (int64_t)calibration.dig_P3)>>8) + ((var1 * (int64_t)calibration.dig_P2)<<12);
+	var1 = (((((int64_t)1)<<47)+var1))*((int64_t)calibration.dig_P1)>>33;
+	if (var1 == 0)
+	{
+		measurements->pressure = 0; // avoid exception caused by division by zero
+	}
+	else
+	{
+		p_acc = 1048576 - adc_P;
+		p_acc = (((p_acc<<31) - var2)*3125)/var1;
+		var1 = (((int64_t)calibration.dig_P9) * (p_acc>>13) * (p_acc>>13)) >> 25;
+		var2 = (((int64_t)calibration.dig_P8) * p_acc) >> 19;
+		p_acc = ((p_acc + var1 + var2) >> 8) + (((int64_t)calibration.dig_P7)<<4);
+		
+		measurements->pressure = (float)p_acc / 256.0;
+	}
+}
+
+// Sets the internal variable _referencePressure so the altitude is calculated properly.
+// This is also known as "sea level pressure" and is in Pascals. The value is probably
+// within 10% of 101325. This varies based on the weather:
+// https://en.wikipedia.org/wiki/Atmospheric_pressure#Mean_sea-level_pressure
+//
+// if you are concerned about accuracy or precision, make sure to pull the
+// "sea level pressure"value from a trusted source like NOAA.
 void BME280::setReferencePressure(float refPressure)
 {
 	_referencePressure = refPressure;
@@ -406,7 +468,13 @@ float BME280::readFloatAltitudeMeters( void )
 {
 	float heightOutput = 0;
 	
-	//heightOutput = ((float)-45846.2)*(pow(((float)readFloatPressure()/(float)_referencePressure), 0.190263) - (float)1);
+  // Getting height from a pressure reading is called the "international barometric height formula".
+  // The magic value of 44330.77 was adjusted in issue #30.
+  // There's also some discussion of it here: https://www.sparkfun.com/tutorials/253
+  // This calculation is NOT designed to work on non-Earthlike planets such as Mars or Venus;
+  // see NRLMSISE-00. That's why it is the "international" formula, not "interplanetary".
+  // Sparkfun is not liable for incorrect altitude calculations from this
+  // code on those planets. Interplanetary selfies are welcome, however.
 	heightOutput = ((float)-44330.77)*(pow(((float)readFloatPressure()/(float)_referencePressure), 0.190263) - (float)1); //Corrected, see issue 30
 	return heightOutput;
 	
@@ -447,6 +515,25 @@ float BME280::readFloatHumidity( void )
 	return (float)(var1>>12) / 1024.0;
 }
 
+void BME280::readFloatHumidityFromBurst(uint8_t buffer[], BME280_SensorMeasurements *measurements)
+{
+	
+	// Set humidity in %RH as unsigned 32 bit integer in Q22. 10 format (22 integer and 10 fractional bits).
+	// Output value of “47445” represents 47445/1024 = 46. 333 %RH
+  int32_t adc_H = ((uint32_t)buffer[6] << 8) | ((uint32_t)buffer[7]);
+	
+	int32_t var1;
+	var1 = (t_fine - ((int32_t)76800));
+	var1 = (((((adc_H << 14) - (((int32_t)calibration.dig_H4) << 20) - (((int32_t)calibration.dig_H5) * var1)) +
+	((int32_t)16384)) >> 15) * (((((((var1 * ((int32_t)calibration.dig_H6)) >> 10) * (((var1 * ((int32_t)calibration.dig_H3)) >> 11) + ((int32_t)32768))) >> 10) + ((int32_t)2097152)) *
+	((int32_t)calibration.dig_H2) + 8192) >> 14));
+	var1 = (var1 - (((((var1 >> 15) * (var1 >> 15)) >> 7) * ((int32_t)calibration.dig_H1)) >> 4));
+	var1 = (var1 < 0 ? 0 : var1);
+	var1 = (var1 > 419430400 ? 419430400 : var1);
+
+	measurements->humidity = (float)(var1>>12) / 1024.0;
+}
+
 //****************************************************************************//
 //
 //  Temperature Section
@@ -482,12 +569,43 @@ float BME280::readTempC( void )
 	return output;
 }
 
+float BME280::readTempFromBurst(uint8_t buffer[])
+{
+  int32_t adc_T = ((uint32_t)buffer[3] << 12) | ((uint32_t)buffer[4] << 4) | ((buffer[5] >> 4) & 0x0F);
+
+	//By datasheet, calibrate
+	int64_t var1, var2;
+
+	var1 = ((((adc_T>>3) - ((int32_t)calibration.dig_T1<<1))) * ((int32_t)calibration.dig_T2)) >> 11;
+	var2 = (((((adc_T>>4) - ((int32_t)calibration.dig_T1)) * ((adc_T>>4) - ((int32_t)calibration.dig_T1))) >> 12) *
+	((int32_t)calibration.dig_T3)) >> 14;
+	t_fine = var1 + var2;
+	float output = (t_fine * 5 + 128) >> 8;
+
+	output = output / 100 + settings.tempCorrection;
+	
+ 	return output;
+}
+
+void BME280::readTempCFromBurst(uint8_t buffer[], BME280_SensorMeasurements *measurements)
+{
+  measurements->temperature = readTempFromBurst(buffer);
+}
+
 float BME280::readTempF( void )
 {
 	float output = readTempC();
 	output = (output * 9) / 5 + 32;
 
 	return output;
+}
+
+void BME280::readTempFFromBurst(uint8_t buffer[], BME280_SensorMeasurements *measurements)
+{
+  float output = readTempFromBurst(buffer);
+	output = (output * 9) / 5 + 32;
+
+	measurements->temperature = output;
 }
 
 //****************************************************************************//

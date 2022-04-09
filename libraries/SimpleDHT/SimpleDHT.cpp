@@ -31,6 +31,23 @@ SimpleDHT::SimpleDHT(int pin) {
     setPin(pin);
 }
 
+void SimpleDHT::setPin(int pin) {
+    this->pin = pin;
+#ifdef __AVR
+    // (only AVR) - set low level properties for configured pin
+    bitmask = digitalPinToBitMask(pin);
+    port = digitalPinToPort(pin);
+#endif
+}
+
+int SimpleDHT::setPinInputMode(uint8_t mode) {
+    if (mode != INPUT && mode != INPUT_PULLUP) {
+        return SimpleDHTErrPinMode;
+    }
+    this->pinInputMode = mode;
+    return SimpleDHTErrSuccess;
+}
+
 int SimpleDHT::read(byte* ptemperature, byte* phumidity, byte pdata[40]) {
     int ret = SimpleDHTErrSuccess;
 
@@ -58,15 +75,6 @@ int SimpleDHT::read(byte* ptemperature, byte* phumidity, byte pdata[40]) {
 int SimpleDHT::read(int pin, byte* ptemperature, byte* phumidity, byte pdata[40]) {
     setPin(pin);
     return read(ptemperature, phumidity, pdata);
-}
-
-void SimpleDHT::setPin(int pin) {
-    this->pin = pin;
-#ifdef __AVR
-    // (only AVR) - set low level properties for configured pin
-    bitmask = digitalPinToBitMask(pin);
-    port = digitalPinToPort(pin);
-#endif
 }
 
 #ifdef __AVR
@@ -196,7 +204,7 @@ int SimpleDHT11::sample(byte data[40]) {
     // notify DHT11 to start:
     //    1. PULL LOW 20ms.
     //    2. PULL HIGH 20-40us.
-    //    3. SET TO INPUT.
+    //    3. SET TO INPUT or INPUT_PULLUP.
     // Changes in timing done according to:
     //  [2] https://www.mouser.com/ds/2/758/DHT11-Technical-Data-Sheet-Translated-Version-1143054.pdf
     // - original values specified in code
@@ -210,7 +218,7 @@ int SimpleDHT11::sample(byte data[40]) {
     // @see https://github.com/winlinvip/SimpleDHT/issues/4
     // @see https://github.com/winlinvip/SimpleDHT/pull/5
     digitalWrite(pin, HIGH);           // 2.
-    pinMode(pin, INPUT);
+    pinMode(pin, this->pinInputMode);
     delayMicroseconds(25);             // specs [2]: 20-40us
 
     // DHT11 starting:
@@ -302,10 +310,10 @@ int SimpleDHT22::sample(byte data[40]) {
     memset(data, 0, 40);
 
     // According to protocol: http://akizukidenshi.com/download/ds/aosong/AM2302.pdf
-    // notify DHT11 to start:
+    // notify DHT22 to start:
     //    1. T(be), PULL LOW 1ms(0.8-20ms).
     //    2. T(go), PULL HIGH 30us(20-200us), use 40us.
-    //    3. SET TO INPUT.
+    //    3. SET TO INPUT or INPUT_PULLUP.
     pinMode(pin, OUTPUT);
     digitalWrite(pin, LOW);
     delayMicroseconds(1000);
@@ -313,10 +321,10 @@ int SimpleDHT22::sample(byte data[40]) {
     // @see https://github.com/winlinvip/SimpleDHT/issues/4
     // @see https://github.com/winlinvip/SimpleDHT/pull/5
     digitalWrite(pin, HIGH);
-    pinMode(pin, INPUT);
+    pinMode(pin, this->pinInputMode);
     delayMicroseconds(40);
 
-    // DHT11 starting:
+    // DHT22 starting:
     //    1. T(rel), PULL LOW 80us(75-85us).
     //    2. T(reh), PULL HIGH 80us(75-85us).
     long t = 0;
@@ -327,7 +335,7 @@ int SimpleDHT22::sample(byte data[40]) {
         return simpleDHTCombileError(t, SimpleDHTErrStartHigh);
     }
 
-    // DHT11 data transmite:
+    // DHT22 data transmite:
     //    1. T(LOW), 1bit start, PULL LOW 50us(48-55us).
     //    2. T(H0), PULL HIGH 26us(22-30us), bit(0)
     //    3. T(H1), PULL HIGH 70us(68-75us), bit(1)
@@ -345,7 +353,7 @@ int SimpleDHT22::sample(byte data[40]) {
           data[ j ] = (t > 40 ? 1 : 0);     // specs: 22-30us -> 0, 70us -> 1
     }
 
-    // DHT11 EOF:
+    // DHT22 EOF:
     //    1. T(en), PULL LOW 50us(45-55us).
     t = levelTime(LOW);
     if (t < 24) {
