@@ -5,23 +5,60 @@ using namespace IrNecParser;
 me_IrNecParser::me_IrNecParser(me_DigitalSignalRecorder* aDSR)
 {
   DSR = aDSR;
+  Clear();
 }
 
+void me_IrNecParser::Clear()
+{
+  Address = 0;
+  Command = 0;
+  HasShortRepeat = false;
+  NumRepeats = 0;
+}
+
+/*
+  Parse DSRs queue.
+
+  General NEC data representation in queue:
+
+    FrameHeader Address Command [ShortRepeat] (RepeatFrame)*
+
+  Sets following fields:
+
+    Address
+    Command
+    HasShortRepeat
+    NumRepeats
+
+  If DSRs history starts with repeat frame, we count that
+  repeat frames, and keep previous command.
+
+  Clears queue at end regardless of parse result.
+*/
 bool me_IrNecParser::Get()
 {
   const uint32_t
     MinimalDelayToProcess = 125000;
 
   if (
-    !DSR->HasEvents() ||
-    (micros() - DSR->GetLastEventTime() <= MinimalDelayToProcess)
-    )
+      !DSR->IsFull() &&
+      (
+        !DSR->HasEvents() ||
+        (micros() - DSR->GetLastEventTime() < MinimalDelayToProcess)
+      )
+  )
   {
     return false;
   }
 
-  ConsumeTillStartOfFrame();
-  ConsumeRepeatFrames();
+  if (ConsumeLongRepeatFrame())
+  {
+    NumRepeats = 1;
+    while(ConsumeLongRepeatFrame())
+      ++NumRepeats;
+    DSR->Clear();
+    return true;
+  }
 
   uint16_t tempAddress;
   uint8_t tempCommand;
@@ -30,21 +67,87 @@ bool me_IrNecParser::Get()
 
   if (result)
   {
-    ConsumeRepeatFrames();
-
     Address = tempAddress;
     Command = tempCommand;
+
+    HasShortRepeat = ConsumeShortRepeatFrame();
+
+    NumRepeats = 0;
+    while (ConsumeLongRepeatFrame())
+      ++NumRepeats;
   }
   // else
   //   Serial.println("Not a data frame.");
 
-  if (DSR->HasEvents())
-  {
-    // DSR_PrintJSON(DSR);
-    DSR->Clear();
-  }
+  DSR->Clear();
 
   return result;
+}
+
+bool me_IrNecParser::ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand)
+{
+  if (!ConsumeDataFrameHeader())
+  {
+    // Serial.println("Data frame header not found.");
+    return false;
+  }
+
+  if (DSR->GetCount() < 32)
+  {
+    // Serial.println("Too few elements.");
+    // Serial.println(DSR->Queue.GetCount());
+    return false;
+  }
+
+  uint8_t RawData[4];
+
+  for (uint8_t i = 0; i < 4; ++i)
+    if (!ConsumeByte(&RawData[i]))
+    {
+      // Serial.println("ConsumeByte() failed.");
+      return false;
+    }
+
+  *oAddress = (RawData[0] << 8) | RawData[1];
+
+  if (RawData[2] != (uint8_t) ~RawData[3])
+  {
+    // Serial.println("Checksum failed.");
+    return false;
+  }
+
+  *oCommand = RawData[2];
+
+  return true;
+}
+
+bool me_IrNecParser::ConsumeDataFrameHeader()
+{
+  if (DSR->GetCount() < 2)
+    return false;
+
+  uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
+  uint16_t SecondRecIdx = DSR->Queue.GetNextIdx(FirstRecIdx);
+
+  if (
+    (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
+    (GetHistoryRecType(SecondRecIdx) == RecordType::DataFrame)
+  )
+  {
+    DSR->Queue.Dequeue();
+    DSR->Queue.Dequeue();
+    return true;
+  }
+
+  return false;
+}
+
+RecordType me_IrNecParser::GetHistoryRecType(uint16_t Idx)
+{
+  uint32_t Pause = DSR->History[Idx].Pause;
+  uint32_t Signal = DSR->History[Idx].Signal;
+
+  return GetRecordType(Pause, Signal);
 }
 
 bool IsWithin(uint32_t CurValue, uint32_t MinValue, uint32_t MaxValue)
@@ -54,6 +157,8 @@ bool IsWithin(uint32_t CurValue, uint32_t MinValue, uint32_t MaxValue)
 
 const uint32_t
   FrameHeaderDuration = 9000,
+  ShortRepeatDuration = 40000,
+  LongRepeatDuration = 96000,
   BaseDuration = 562; // 562.5 actually but I dont want to introduce floats
 
 RecordType me_IrNecParser::GetRecordType(uint32_t PauseDuration, uint32_t SignalDuration)
@@ -128,103 +233,6 @@ RecordType me_IrNecParser::GetRecordType(uint32_t PauseDuration, uint32_t Signal
   return Result;
 }
 
-RecordType me_IrNecParser::GetHistoryRecType(uint16_t Idx)
-{
-  uint32_t Pause = DSR->History[Idx].Pause;
-  uint32_t Signal = DSR->History[Idx].Signal;
-
-  return GetRecordType(Pause, Signal);
-}
-
-void me_IrNecParser::ConsumeTillStartOfFrame()
-{
-  while (!DSR->Queue.IsEmpty())
-  {
-    uint16_t CurIdx = DSR->Queue.GetFirstIdx();
-    if (GetHistoryRecType(CurIdx) == RecordType::FrameHeader)
-      break;
-    DSR->Queue.Dequeue();
-  }
-}
-
-void me_IrNecParser::ConsumeRepeatFrames()
-{
-  while (DSR->Queue.GetCount() >= 2)
-  {
-    uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
-    uint16_t SecondRecIdx = DSR->Queue.GetNextIdx(FirstRecIdx);
-
-    if (
-      (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
-      (GetHistoryRecType(SecondRecIdx) == RecordType::RepeatFrame)
-    )
-    {
-      DSR->Queue.Dequeue();
-      DSR->Queue.Dequeue();
-    }
-    else
-      break;
-  }
-}
-
-bool me_IrNecParser::ConsumeDataFrameHeader()
-{
-  if (DSR->Queue.GetCount() < 2)
-    return false;
-
-  uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
-  uint16_t SecondRecIdx = DSR->Queue.GetNextIdx(FirstRecIdx);
-
-  if (
-    (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
-    (GetHistoryRecType(SecondRecIdx) == RecordType::DataFrame)
-  )
-  {
-    DSR->Queue.Dequeue();
-    DSR->Queue.Dequeue();
-    return true;
-  }
-
-  return false;
-}
-
-bool me_IrNecParser::ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand)
-{
-  if (DSR->GetCount() < 34)
-  {
-    // Serial.println("Too few elements.");
-    // Serial.println(DSR->Queue.GetCount());
-    return false;
-  }
-
-  if (!ConsumeDataFrameHeader())
-  {
-    // Serial.println("Data frame header not found.");
-    return false;
-  }
-
-  uint8_t RawData[4];
-
-  for (uint8_t i = 0; i < 4; ++i)
-    if (!ConsumeByte(&RawData[i]))
-    {
-      // Serial.println("ConsumeByte() failed.");
-      return false;
-    }
-
-  *oAddress = (RawData[0] << 8) | RawData[1];
-
-  if (RawData[2] != (uint8_t) ~RawData[3])
-  {
-    // Serial.println("Checksum failed.");
-    return false;
-  }
-
-  *oCommand = RawData[2];
-
-  return true;
-}
-
 bool me_IrNecParser::ConsumeByte(uint8_t* pByte)
 {
   *pByte = 0;
@@ -233,7 +241,6 @@ bool me_IrNecParser::ConsumeByte(uint8_t* pByte)
   {
     if (DSR->Queue.IsEmpty())
       return false;
-
 
     uint8_t BitValue;
 
@@ -246,12 +253,6 @@ bool me_IrNecParser::ConsumeByte(uint8_t* pByte)
         BitValue = 1;
         break;
       default:
-        /*
-        uint16_t CurIdx = DSR->Queue.GetFirstIdx();
-        Serial.println(CurIdx);
-        Serial.println(DSR->History[CurIdx].Pause);
-        Serial.println(DSR->History[CurIdx].Signal);
-        */
         return false;
         break;
     }
@@ -261,7 +262,58 @@ bool me_IrNecParser::ConsumeByte(uint8_t* pByte)
     DSR->Queue.Dequeue();
   }
 
-  // Serial.println(*pByte, HEX);
-
   return true;
+}
+
+bool me_IrNecParser::ConsumeShortRepeatFrame()
+{
+  while (DSR->GetCount() >= 2)
+  {
+    uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
+    uint16_t SecondRecIdx = DSR->Queue.GetNextIdx(FirstRecIdx);
+
+    if (
+      (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
+      (GetHistoryRecType(SecondRecIdx) == RecordType::RepeatFrame) &&
+      IsWithin(DSR->History[FirstRecIdx].Pause, ShortRepeatDuration - 1000, ShortRepeatDuration + 2500)
+    )
+    {
+      DSR->Queue.Dequeue();
+      DSR->Queue.Dequeue();
+
+      return true;
+    }
+    else
+      break;
+  }
+
+  return false;
+}
+
+bool me_IrNecParser::ConsumeLongRepeatFrame()
+{
+  while (DSR->GetCount() >= 2)
+  {
+    uint16_t FirstRecIdx = DSR->Queue.GetFirstIdx();
+    uint16_t SecondRecIdx = DSR->Queue.GetNextIdx(FirstRecIdx);
+
+    if (
+      (GetHistoryRecType(FirstRecIdx) == RecordType::FrameHeader) &&
+      (GetHistoryRecType(SecondRecIdx) == RecordType::RepeatFrame) &&
+      (
+        IsWithin(DSR->History[FirstRecIdx].Pause, LongRepeatDuration - 1000, LongRepeatDuration + 1000) ||
+        (DSR->History[FirstRecIdx].Pause == 0)
+      )
+    )
+    {
+      DSR->Queue.Dequeue();
+      DSR->Queue.Dequeue();
+
+      return true;
+    }
+    else
+      break;
+  }
+
+  return false;
 }
