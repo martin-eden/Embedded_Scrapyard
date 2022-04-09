@@ -46,6 +46,7 @@ void setup()
   Display.begin();
   ScreenWidth = Display.getWidth(),
   ScreenHeight = Display.getHeight();
+  Display.setContrast(0);
 
   pinMode(SignalPin, INPUT);
   attachInterrupt(digitalPinToInterrupt(SignalPin), OnSignalChange, CHANGE);
