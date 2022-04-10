@@ -72,7 +72,7 @@ bool me_IrNecParser::Get()
 
     HasShortRepeat = ConsumeShortRepeatFrame();
 
-    NumRepeats = 0;
+    NumRepeats = 1;
     while (ConsumeLongRepeatFrame())
       ++NumRepeats;
   }
