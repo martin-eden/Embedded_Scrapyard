@@ -63,7 +63,7 @@ void me_DigitalSignalRecorder::Add(uint32_t CurrentTime, uint8_t Value)
 
 bool me_DigitalSignalRecorder::HasEvents()
 {
-  return !Queue.IsEmpty();
+  return (GetCount() != 0);
 }
 
 uint16_t me_DigitalSignalRecorder::GetCount()
