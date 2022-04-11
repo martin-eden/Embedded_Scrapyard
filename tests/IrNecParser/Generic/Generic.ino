@@ -53,12 +53,12 @@ void loop()
       "\"address\": \"0x%04X\", "
       "\"command\": \"0x%02X\", "
       "\"hasShortRepeat\": %u, "
-      "\"numRepeats\": %u"
+      "\"isRepeat\": %u"
       "}",
       IrDecoder.Address,
       IrDecoder.Command,
       IrDecoder.HasShortRepeat,
-      IrDecoder.NumRepeats
+      IrDecoder.IsRepeat
     );
     Serial.println(Buffer);
   }

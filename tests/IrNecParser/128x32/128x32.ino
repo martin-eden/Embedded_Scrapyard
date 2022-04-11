@@ -56,5 +56,5 @@ void loop()
     Display.sendBuffer();
   }
 
-  delay(100);
+  delay(10);
 }

@@ -24,7 +24,7 @@ void DisplayCommand(U8G2* Display, uint8_t Command)
   char Buffer[5];
   Display->setFont(u8g2_font_chargen_92_tr);
   sprintf(Buffer, "0x%02X", Command);
-  Display->drawStr(24, 26, Buffer);
+  Display->drawStr(62, 26, Buffer);
 }
 
 void DisplayHasShortRepeat(U8G2* Display, bool HasShortRepeat)
@@ -32,23 +32,17 @@ void DisplayHasShortRepeat(U8G2* Display, bool HasShortRepeat)
   if (HasShortRepeat)
   {
     Display->setFont(u8g2_font_chargen_92_tr);
-    Display->drawGlyph(70, 26, '.');
+    Display->drawGlyph(109, 26, '.');
   }
 }
 
-void DisplayNumRepeats(U8G2* Display, uint16_t NumRepeats)
+void DisplayIsRepeat(U8G2* Display, bool IsRepeat)
 {
-  if (NumRepeats != 0)
+  if (IsRepeat)
   {
-    char Buffer[8];
-    Display->setFont(u8g2_font_chargen_92_tr);
-    Display->drawGlyph(90, 22, 'x');
-    NumRepeats++;
-    if (NumRepeats <= 99)
-      sprintf(Buffer, "%d", NumRepeats);
-    else
-      sprintf(Buffer, "%s", "??");
-    Display->drawStr(104, 24, Buffer);
+    Display->setFont(u8g2_font_unifont_t_86);
+    const uint16_t ReplaySymbolCode = 0x2b6e;
+    Display->drawGlyph(42, 25, ReplaySymbolCode);
   }
 }
 
@@ -57,5 +51,5 @@ void IrNec_DisplayState(IrNecParser::me_IrNecParser* IrNec, U8G2* Display)
   DisplayAddress(Display, IrNec->Address);
   DisplayCommand(Display, IrNec->Command);
   DisplayHasShortRepeat(Display, IrNec->HasShortRepeat);
-  DisplayNumRepeats(Display, IrNec->NumRepeats);
+  DisplayIsRepeat(Display, IrNec->IsRepeat);
 }
