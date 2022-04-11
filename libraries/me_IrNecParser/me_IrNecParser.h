@@ -6,14 +6,22 @@
 namespace IrNecParser
 {
   enum class RecordType
-    {
-      Unknown,
-      FrameHeader,
-      RepeatFrame,
-      DataFrame,
-      BitZero,
-      BitOne
-    };
+  {
+    Unknown,
+    FrameHeader,
+    RepeatFrame,
+    DataFrame,
+    BitZero,
+    BitOne
+  };
+
+  enum class FrameType
+  {
+    Unknown,
+    Data,
+    ShortRepeat,
+    LongRepeat
+  };
 
   class me_IrNecParser
   {
@@ -24,19 +32,21 @@ namespace IrNecParser
       uint16_t Address;
       uint8_t Command;
       bool HasShortRepeat;
-      uint16_t NumRepeats;
+      bool IsRepeat;
 
       bool Get();
 
     private:
-      RecordType GetRecordType(uint32_t Pause, uint32_t Signal);
-      RecordType GetHistoryRecType(uint16_t Idx);
+      void ConsumeTillStartOfFrame();
+      FrameType GetFrameType();
+      RecordType GetRecordType(uint16_t Idx);
+      bool ConsumeFrameType();
+
+      bool IsGoodToGo();
+
       void Clear();
-      bool ConsumeDataFrameHeader();
+
       bool ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand);
       bool ConsumeByte(uint8_t* pByte);
-
-      bool ConsumeShortRepeatFrame();
-      bool ConsumeLongRepeatFrame();
   };
 }
