@@ -88,6 +88,11 @@ void me_DigitalSignalRecorder::Clear()
   LastValue = IdleValue;
 }
 
+uint8_t me_DigitalSignalRecorder::GetIdleValue()
+{
+  return IdleValue;
+}
+
 uint32_t me_DigitalSignalRecorder::GetFirstEventTime()
 {
   return FirstEventTime;

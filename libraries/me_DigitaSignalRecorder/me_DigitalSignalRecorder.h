@@ -14,10 +14,10 @@ class me_DigitalSignalRecorder
   public:
     me_QueueMind Queue;
     DurationsRec* History;
-    uint8_t IdleValue = HIGH;
 
     me_DigitalSignalRecorder(uint8_t aIdleValue = HIGH);
     ~me_DigitalSignalRecorder();
+
     bool SetCapacity(uint16_t aCapacity);
 
     void Add(uint32_t CurrentTime, uint8_t Value);
@@ -25,12 +25,15 @@ class me_DigitalSignalRecorder
     uint16_t GetCount();
     bool IsFull();
     void Clear();
+
+    uint8_t GetIdleValue();
     uint32_t GetFirstEventTime();
     uint32_t GetLastEventTime();
     uint32_t GetRecordsDuration();
 
   private:
+    uint8_t IdleValue;
     uint8_t LastValue = IdleValue;
     uint32_t FirstEventTime;
-    volatile uint32_t LastEventTime;
+    uint32_t LastEventTime;
 };
