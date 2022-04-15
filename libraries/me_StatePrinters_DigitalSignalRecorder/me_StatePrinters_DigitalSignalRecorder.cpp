@@ -18,7 +18,7 @@ void DSR_PrintJSON(me_DigitalSignalRecorder* DSR)
   Serial.println("  \"Parameters\": {");
   s =
     String("") +
-    "    \"Idle signal value\": " + DSR->IdleValue + ",\n"
+    "    \"Idle signal value\": " + DSR->GetIdleValue() + ",\n"
     "    \"Capacity\": " + DSR->Queue.GetCapacity();
   Serial.println(s);
   Serial.println("  },");
