@@ -35,14 +35,13 @@ void me_DigitalSignalRecorder::Add(uint32_t CurrentTime, uint8_t Value)
   // If idle state ended and signal started: calculate pause duration.
   if (Value != IdleValue)
   {
-    if (Queue.IsFull())
-      return;
     if (Queue.IsEmpty())
     {
       FirstEventTime = CurrentTime;
       TimePassed = 0;
     }
-    Queue.Enqueue();
+    if (!Queue.Enqueue())
+      return;
     CurIdx = Queue.GetLastIdx();
     History[CurIdx].Pause = TimePassed;
     History[CurIdx].Signal = 0;
