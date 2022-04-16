@@ -1,2 +1,6 @@
 # Specify filepatterns you want git to ignore.
 
+libraries/*
+!libraries/me_*
+!libraries/rover/
+!libraries/joystick/
