@@ -28,7 +28,6 @@ namespace IrNecParser
     public:
       me_IrNecParser(me_DigitalSignalRecorder* aDSR);
 
-      me_DigitalSignalRecorder* DSR;
       uint16_t Address;
       uint8_t Command;
       bool HasShortRepeat;
@@ -37,6 +36,8 @@ namespace IrNecParser
       bool Get();
 
     private:
+      me_DigitalSignalRecorder* DSR;
+
       void ConsumeTillStartOfFrame();
       FrameType GetFrameType();
       RecordType GetRecordType(uint16_t Idx);

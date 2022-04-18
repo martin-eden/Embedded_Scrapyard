@@ -21,19 +21,30 @@ void me_IrNecParser::Clear()
 /*
   Parse DSRs queue.
 
-  General NEC data representation in queue:
+  NEC data format is:
 
-    FrameHeader Address Command [ShortRepeat] (RepeatFrame)*
+    FrameHeader ─┬─ Address ─ Command ─┬─
+                 ├─ ShortRepeat ───────┤
+                 ╰─ LongRepeat ────────╯
 
-  Sets following fields:
+  Logical sequence is
 
-    Address
-    Command
-    HasShortRepeat
-    NumRepeats
+    DataFrame [ShortRepeat] (LongRepeat)*
 
-  If DSRs history starts with repeat frame, we count that
-  repeat frames, and keep previous command.
+  Short and long repeats are just one signal pulse. They contain no data
+  and indicate that previously pressed button is still pressed.
+
+  Difference between short and long repeats is pause duration before
+  pulse. For short repeat it is near 40ms, for long - near 100ms. Short
+  repeat is often emitted after data just in case. So short repeat
+  should not be treated as new key press.
+
+  This function returns <true> if able to parse <DataFrame> or
+  <LongRepeat>. When it's unable to parse data or data starts with
+  <ShortRepeat>, it returns <false>.
+
+  In process it removes all unrecognized data before <FrameHeader>,
+  <FrameHeader> itself and elements data.
 */
 bool me_IrNecParser::Get()
 {
@@ -66,31 +77,36 @@ bool me_IrNecParser::Get()
       {
         Address = tempAddress;
         Command = tempCommand;
+
         HasShortRepeat = false;
+        if (GetFrameType() == FrameType::ShortRepeat)
+        {
+          ConsumeFrameType();
+          HasShortRepeat = true;
+        }
+
         IsRepeat = false;
+        if (GetFrameType() == FrameType::LongRepeat)
+        {
+          ConsumeFrameType();
+          IsRepeat = true;
+        }
+
+        if (DSR->Queue.IsEmpty())
+          DSR->Clear();
       }
 
       return result;
     }
-    case FrameType::ShortRepeat:
-    {
-      HasShortRepeat = true;
 
-      return true;
-    }
     case FrameType::LongRepeat:
-    {
       IsRepeat = true;
-
       return true;
-    }
+
+    case FrameType::ShortRepeat:
     case FrameType::Unknown:
     default:
-    {
-      DSR->Clear();
-
       return false;
-    }
   }
 }
 
@@ -132,42 +148,27 @@ FrameType me_IrNecParser::GetFrameType()
   me_QueueMindEnumerator Cursor(&DSR->Queue);
 
   uint16_t FirstRecIdx = Cursor.Get();
-
   if (!Cursor.Move())
     return Result;
-
   uint16_t SecondRecIdx = Cursor.Get();
 
   if (GetRecordType(FirstRecIdx) != RecordType::FrameHeader)
     return Result;
 
-  switch (GetRecordType(SecondRecIdx))
+  RecordType recordType = GetRecordType(SecondRecIdx);
+
+  if (recordType == RecordType::DataFrame)
+    Result = FrameType::Data;
+  else if (recordType == RecordType::RepeatFrame)
   {
-    case RecordType::DataFrame:
-    {
-      Result = FrameType::Data;
-      break;
-    }
-    case RecordType::RepeatFrame:
-    {
-      uint32_t PauseDuration = DSR->History[FirstRecIdx].Pause;
-      if (
-        IsWithin(PauseDuration, 95000, 105000) ||
-        (PauseDuration == 0)
-      )
-      {
-        Result = FrameType::LongRepeat;
-      }
-      else if (IsWithin(PauseDuration, 39000, 45000))
-      {
-        Result = FrameType::ShortRepeat;
-      }
-      break;
-    }
-    default:
-    {
-      break;
-    }
+    uint32_t PauseDuration = DSR->History[FirstRecIdx].Pause;
+    if (
+      IsWithin(PauseDuration, 95000, 105000) ||
+      (PauseDuration == 0)
+    )
+      Result = FrameType::LongRepeat;
+    else if (IsWithin(PauseDuration, 39000, 45000))
+      Result = FrameType::ShortRepeat;
   }
 
   return Result;
