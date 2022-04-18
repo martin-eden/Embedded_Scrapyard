@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.1
-  Last mod.: 2022-04-02
+  Version: 1.2
+  Last mod.: 2022-04-17
 */
 
 #include <me_DigitalSignalRecorder.h>
@@ -18,7 +18,7 @@ const uint8_t
   SignalPin = 2; // 2 or 3 for ATmega328P
 
 const uint16_t
-  RecorderCapacity = 36;
+  RecorderCapacity = 38;
 
 void setup()
 {
@@ -45,7 +45,7 @@ char Buffer[100];
 
 void loop()
 {
-  if (IrDecoder.Get())
+  while (IrDecoder.Get())
   {
     sprintf(
       Buffer,

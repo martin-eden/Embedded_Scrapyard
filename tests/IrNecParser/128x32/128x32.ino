@@ -2,7 +2,7 @@
 
 /*
   Status: stable
-  Version: 1.1
+  Version: 1.2
   Last mod.: 2022-04-02
 */
 
@@ -21,7 +21,7 @@ const uint8_t
   SignalPin = 2; // 2 or 3 for ATmega328P
 
 const uint16_t
-  RecorderCapacity = 36;
+  RecorderCapacity = 38;
 
 void setup()
 {
@@ -49,12 +49,12 @@ void OnSignalChange()
 
 void loop()
 {
-  if (IrDecoder.Get())
+  while (IrDecoder.Get())
   {
     Display.clearBuffer();
     IrNec_DisplayState(&IrDecoder, &Display);
     Display.sendBuffer();
   }
 
-  delay(10);
+  delay(50);
 }
