@@ -2,10 +2,11 @@
 
 /*
   Status: stable
-  Version: 1.2
-  Last mod.: 2022-04-17
+  Version: 1.3
+  Last mod.: 2022-04-18
 */
 
+#include <ArduinoJson.h>
 #include <me_DigitalSignalRecorder.h>
 #include <me_IrNecParser.h>
 
@@ -41,37 +42,40 @@ void OnSignalChange()
   DSR.Add(micros(), digitalRead(SignalPin));
 }
 
-char Buffer[100];
-
 void loop()
 {
   while (IrDecoder.Get())
   {
-    sprintf(
-      Buffer,
-      "{"
-      "\"address\": \"0x%04X\", "
-      "\"command\": \"0x%02X\", "
-      "\"hasShortRepeat\": %u, "
-      "\"isRepeat\": %u"
-      "}",
-      IrDecoder.Address,
-      IrDecoder.Command,
-      IrDecoder.HasShortRepeat,
-      IrDecoder.IsRepeat
-    );
-    Serial.println(Buffer);
+    PrintStateJson();
   }
 
   delay(100);
+}
 
-  /*
-  static uint32_t LastTime = millis;
-  if (millis() - LastTime > 5000)
-  {
-    Serial.println("Still alive.");
-    LastTime = millis();
-  }
-  */
+void PrintStateJson()
+{
+  StaticJsonDocument<64> JsonDoc;
+  char AddressStr[7];
+  char CommandStr[5];
 
+  GetAddressStr(AddressStr, sizeof(AddressStr));
+  GetCommandStr(CommandStr, sizeof(CommandStr));
+
+  JsonDoc["Address"] = AddressStr;
+  JsonDoc["Command"] = CommandStr;
+  JsonDoc["HasShortRepeat"] = IrDecoder.HasShortRepeat;
+  JsonDoc["IsRepeat"] = IrDecoder.IsRepeat;
+
+  serializeJsonPretty(JsonDoc, Serial);
+  Serial.println();
+}
+
+void GetAddressStr(char* Buffer, uint16_t BufferSize)
+{
+  snprintf(Buffer, BufferSize, "0x%04X", IrDecoder.Address);
+}
+
+void GetCommandStr(char* Buffer, uint16_t BufferSize)
+{
+  snprintf(Buffer, BufferSize, "0x%02X", IrDecoder.Command);
 }
