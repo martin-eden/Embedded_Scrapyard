@@ -1,3 +1,11 @@
+// IR NEC format parser
+
+/*
+  Status: stable
+  Version: 1.0
+  Last mod.: 2022-04-24
+*/
+
 #include "me_IrNecParser.h"
 
 #include <me_QueueMindEnumerator.h>
@@ -16,6 +24,7 @@ void me_IrNecParser::Clear()
   Command = 0;
   HasShortRepeat = false;
   IsRepeat = false;
+  LastEventTime = 0;
 }
 
 /*
@@ -49,15 +58,7 @@ void me_IrNecParser::Clear()
 bool me_IrNecParser::Get()
 {
   if (!IsGoodToGo())
-  {
-    if (DSR->HasEvents())
-    {
-      // Serial.println("Not good to go.");
-      // Serial.println(micros() - DSR->GetLastEventTime());
-    }
-
     return false;
-  }
 
   ConsumeTillStartOfFrame();
 
@@ -86,7 +87,7 @@ bool me_IrNecParser::Get()
         }
 
         IsRepeat = false;
-        if (GetFrameType() == FrameType::LongRepeat)
+        while (GetFrameType() == FrameType::LongRepeat)
         {
           ConsumeFrameType();
           IsRepeat = true;
@@ -94,14 +95,21 @@ bool me_IrNecParser::Get()
 
         if (DSR->Queue.IsEmpty())
           DSR->Clear();
+
+        LastEventTime = micros();
       }
 
       return result;
     }
 
     case FrameType::LongRepeat:
-      IsRepeat = true;
-      return true;
+      if (micros() - LastEventTime <= 150000)
+      {
+        IsRepeat = true;
+        LastEventTime = micros();
+
+        return true;
+      }
 
     case FrameType::ShortRepeat:
     case FrameType::Unknown:

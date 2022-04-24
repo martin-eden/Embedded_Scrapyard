@@ -36,6 +36,7 @@ namespace IrNecParser
       bool Get();
 
     private:
+      uint32_t LastEventTime;
       me_DigitalSignalRecorder* DSR;
 
       void ConsumeTillStartOfFrame();
