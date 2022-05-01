@@ -20,6 +20,12 @@ U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R2);
 const uint8_t
   SignalPin = 2; // 2 or 3 for ATmega328P
 
+bool
+  SignalCaptureEnabled = false;
+
+uint32_t
+  LastSignalTime = 0;
+
 const uint16_t
   RecorderCapacity = 38;
 
@@ -38,23 +44,100 @@ void setup()
     exit(1);
   }
 
+  InitSignalCapture();
+
+  DisplayIntro();
+
+  EnableSignalCapture();
+}
+
+void InitSignalCapture()
+{
   pinMode(SignalPin, INPUT);
   attachInterrupt(digitalPinToInterrupt(SignalPin), OnSignalChange, CHANGE);
 }
 
 void OnSignalChange()
 {
-  DSR.Add(micros(), digitalRead(SignalPin));
+  if (SignalCaptureEnabled)
+  {
+    uint32_t CurrentTime = micros();
+    DSR.Add(CurrentTime, digitalRead(SignalPin));
+    LastSignalTime = CurrentTime;
+  }
+}
+
+void EnableSignalCapture()
+{
+  SignalCaptureEnabled = true;
+}
+
+void DisableSignalCapture()
+{
+  SignalCaptureEnabled = false;
 }
 
 void loop()
 {
-  while (IrDecoder.Get())
+  static bool IsDisplayingIntro = true;
+  static uint32_t LastActionTimeMs = 0;
+  uint32_t TimePassedMs = millis() - LastActionTimeMs;
+
+  if (!IsDisplayingIntro && (TimePassedMs >= 90000))
   {
-    Display.clearBuffer();
-    IrNec_DisplayState(&IrDecoder, &Display);
-    Display.sendBuffer();
+    DisplayIntro();
+    IsDisplayingIntro = true;
   }
 
-  delay(50);
+  if (micros() - LastSignalTime >= 120000)
+  {
+    DisableSignalCapture();
+    while (IrDecoder.Get())
+    {
+      IsDisplayingIntro = false;
+
+      Display.clearBuffer();
+      IrNec_DisplayState(&IrDecoder, &Display);
+      DisplayFlipFlop();
+      Display.sendBuffer();
+
+      LastActionTimeMs = millis();
+    }
+    DSR.Clear();
+    EnableSignalCapture();
+  }
+
+  delay(5);
+}
+
+void DisplayIntro()
+{
+  Display.clearBuffer();
+  Display.setFont(u8g2_font_commodore64_tr);
+  drawStrCentered(12, "IR NEC");
+  drawStrCentered(29, "parser");
+  Display.sendBuffer();
+}
+
+void DisplayFlipFlop()
+{
+  static bool IsFlip = false;
+
+  if (IsFlip)
+    Display.drawGlyph(115, 7, '/');
+  else
+    Display.drawGlyph(115, 7, '\\');
+
+  IsFlip = !IsFlip;
+}
+
+void drawStrCentered(uint16_t y, const char* s)
+{
+  uint16_t x = GetCenteredStringX(s);
+  Display.drawStr(x, y, s);
+}
+
+uint16_t GetCenteredStringX(const char* s)
+{
+  return (Display.getWidth() - Display.getStrWidth(s)) / 2;
 }
