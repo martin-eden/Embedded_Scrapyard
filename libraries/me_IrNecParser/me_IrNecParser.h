@@ -44,8 +44,6 @@ namespace IrNecParser
       RecordType GetRecordType(uint16_t Idx);
       bool ConsumeFrameType();
 
-      bool IsGoodToGo();
-
       void Clear();
 
       bool ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand);

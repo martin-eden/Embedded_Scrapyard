@@ -57,7 +57,7 @@ void me_IrNecParser::Clear()
 */
 bool me_IrNecParser::Get()
 {
-  if (!IsGoodToGo())
+  if (!DSR->HasEvents())
     return false;
 
   ConsumeTillStartOfFrame();
@@ -107,27 +107,15 @@ bool me_IrNecParser::Get()
       {
         IsRepeat = true;
         LastEventTime = micros();
-
         return true;
       }
+      return false;
 
     case FrameType::ShortRepeat:
     case FrameType::Unknown:
     default:
       return false;
   }
-}
-
-bool me_IrNecParser::IsGoodToGo()
-{
-  const uint32_t MinimalDelayToProcess = 65000;
-
-  return
-    DSR->IsFull() ||
-    (
-      DSR->HasEvents() &&
-      (micros() - DSR->GetLastEventTime() >= MinimalDelayToProcess)
-    );
 }
 
 void me_IrNecParser::ConsumeTillStartOfFrame()
