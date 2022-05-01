@@ -1,9 +1,9 @@
-// Capturing and parsing IR signals in NEC format.
+// Display IR NEC format signal data.
 
 /*
   Status: stable
-  Version: 1.2
-  Last mod.: 2022-04-02
+  Version: 1.25
+  Last mod.: 2022-05-01
 */
 
 #include <me_DigitalSignalRecorder.h>
@@ -98,7 +98,6 @@ void loop()
 
       Display.clearBuffer();
       IrNec_DisplayState(&IrDecoder, &Display);
-      DisplayFlipFlop();
       Display.sendBuffer();
 
       LastActionTimeMs = millis();
@@ -117,18 +116,6 @@ void DisplayIntro()
   drawStrCentered(12, "IR NEC");
   drawStrCentered(29, "parser");
   Display.sendBuffer();
-}
-
-void DisplayFlipFlop()
-{
-  static bool IsFlip = false;
-
-  if (IsFlip)
-    Display.drawGlyph(115, 7, '/');
-  else
-    Display.drawGlyph(115, 7, '\\');
-
-  IsFlip = !IsFlip;
 }
 
 void drawStrCentered(uint16_t y, const char* s)
