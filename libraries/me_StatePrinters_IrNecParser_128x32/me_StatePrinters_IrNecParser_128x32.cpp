@@ -54,6 +54,20 @@ void DisplayIsRepeat(U8G2* Display, bool IsRepeat)
   }
 }
 
+void DisplayFlipFlop(U8G2* Display)
+{
+  static bool IsFlip = false;
+
+  Display->setFont(u8g2_font_chargen_92_tr);
+
+  if (IsFlip)
+    Display->drawGlyph(115, 7, '/');
+  else
+    Display->drawGlyph(115, 7, '\\');
+
+  IsFlip = !IsFlip;
+}
+
 void IrNec_DisplayState(IrNecParser::me_IrNecParser* IrNec, U8G2* Display)
 {
   DisplayGridLines(Display);
@@ -61,4 +75,5 @@ void IrNec_DisplayState(IrNecParser::me_IrNecParser* IrNec, U8G2* Display)
   DisplayCommand(Display, IrNec->Command);
   DisplayHasShortRepeat(Display, IrNec->HasShortRepeat);
   DisplayIsRepeat(Display, IrNec->IsRepeat);
+  DisplayFlipFlop(Display);
 }
