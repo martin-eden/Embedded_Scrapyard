@@ -23,7 +23,7 @@ const uint8_t
 bool
   SignalCaptureEnabled = false;
 
-uint32_t
+volatile uint32_t
   LastSignalTime = 0;
 
 const uint16_t
@@ -80,16 +80,10 @@ void DisableSignalCapture()
 void loop()
 {
   static bool IsDisplayingIntro = true;
-  static uint32_t LastActionTimeMs = 0;
-  uint32_t TimePassedMs = millis() - LastActionTimeMs;
+  static uint32_t LastDisplayTimeMs = 0;
 
-  if (!IsDisplayingIntro && (TimePassedMs >= 90000))
-  {
-    DisplayIntro();
-    IsDisplayingIntro = true;
-  }
-
-  if (micros() - LastSignalTime >= 120000)
+  uint32_t TimeSinceLastSignalMs = (micros() - LastSignalTime) / 1000;
+  if (DSR.IsFull() || ((TimeSinceLastSignalMs >= 120) && (DSR.HasEvents())))
   {
     DisableSignalCapture();
     while (IrDecoder.Get())
@@ -100,10 +94,17 @@ void loop()
       IrNec_DisplayState(&IrDecoder, &Display);
       Display.sendBuffer();
 
-      LastActionTimeMs = millis();
+      LastDisplayTimeMs = millis();
     }
     DSR.Clear();
     EnableSignalCapture();
+  }
+
+  uint32_t TimeSinceLastDisplayS = (millis() - LastDisplayTimeMs) / 1000;
+  if (!IsDisplayingIntro && (TimeSinceLastDisplayS >= 40))
+  {
+    DisplayIntro();
+    IsDisplayingIntro = true;
   }
 
   delay(5);
