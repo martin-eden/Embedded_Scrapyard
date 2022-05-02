@@ -13,36 +13,53 @@
 
 void DisplayGridLines(U8G2* Display)
 {
-  Display->drawVLine(66, 0, 32);
-  Display->drawVLine(106, 0, 32);
+  Display->drawFrame(0, 0, 128, 32);
+  Display->drawVLine(68, 4, 25);
+  Display->drawVLine(106, 4, 25);
 }
+
+const u8g2_uint_t
+  AddressWidgetX = 1,
+  AddressWidgetY = 26;
 
 void DisplayAddress(U8G2* Display, uint16_t Address)
 {
   char Buffer[5];
   sprintf(Buffer, "%04X", Address);
 
-  Display->setFont(u8g2_font_logisoso24_tr);
-  Display->drawStr(0, 26, Buffer);
+  Display->setFont(u8g2_font_osr18_tr);
+  Display->drawStr(AddressWidgetX, AddressWidgetY, Buffer);
 }
+
+const u8g2_uint_t
+  CommandWidgetX = 71,
+  CommandWidgetY = 26;
 
 void DisplayCommand(U8G2* Display, uint8_t Command)
 {
   char Buffer[3];
   sprintf(Buffer, "%02X", Command);
 
-  Display->setFont(u8g2_font_logisoso24_tr);
-  Display->drawStr(71, 26, Buffer);
+  Display->setFont(u8g2_font_osr18_tr);
+  Display->drawStr(CommandWidgetX, CommandWidgetY, Buffer);
 }
+
+const u8g2_uint_t
+  ShortRepeatWidgetX = 109,
+  ShortRepeatWidgetY = 27;
 
 void DisplayHasShortRepeat(U8G2* Display, bool HasShortRepeat)
 {
   if (HasShortRepeat)
   {
-    Display->setFont(u8g2_font_chargen_92_tr);
-    Display->drawGlyph(107, 27, '.');
+    Display->setFont(u8g2_font_osr18_tr);
+    Display->drawGlyph(ShortRepeatWidgetX, ShortRepeatWidgetY, '.');
   }
 }
+
+const u8g2_uint_t
+  RepeatWidgetX = 110,
+  RepeatWidgetY = 20;
 
 void DisplayIsRepeat(U8G2* Display, bool IsRepeat)
 {
@@ -50,22 +67,44 @@ void DisplayIsRepeat(U8G2* Display, bool IsRepeat)
   {
     const uint16_t ReplaySymbolCode = 0x2b6e;
     Display->setFont(u8g2_font_unifont_t_86);
-    Display->drawGlyph(113, 18, ReplaySymbolCode);
+    Display->drawGlyph(RepeatWidgetX, RepeatWidgetY, ReplaySymbolCode);
   }
 }
 
+const u8g2_uint_t
+  FlipFlopWidgetX = 114,
+  FlipFlopWidgetY = 25;
+
 void DisplayFlipFlop(U8G2* Display)
 {
-  static bool IsFlip = false;
+  static uint8_t FlipState = 0;
 
-  Display->setFont(u8g2_font_chargen_92_tr);
+  u8g2_uint_t x, y;
+  switch (FlipState)
+  {
+    case 0:
+      x = 0;
+      y = 0;
+      break;
+    case 1:
+      x = 127;
+      y = 0;
+      break;
+    case 2:
+      x = 127;
+      y = 31;
+      break;
+    case 3:
+      x = 0;
+      y = 31;
+      break;
+    default:
+      exit(1);
+  }
 
-  if (IsFlip)
-    Display->drawGlyph(115, 7, '/');
-  else
-    Display->drawGlyph(115, 7, '\\');
+  Display->drawDisc(x, y, 3);
 
-  IsFlip = !IsFlip;
+  FlipState = (FlipState + 1) % 4;
 }
 
 void IrNec_DisplayState(IrNecParser::me_IrNecParser* IrNec, U8G2* Display)
