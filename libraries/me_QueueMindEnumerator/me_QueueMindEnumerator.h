@@ -8,7 +8,7 @@ class me_QueueMindEnumerator
   public:
     me_QueueMindEnumerator(me_QueueSubconscious* aQueue);
     void Reset();
-    bool Move();
+    bool Next();
     uint16_t Get();
 
   private:

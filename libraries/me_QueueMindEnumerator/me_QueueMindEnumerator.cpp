@@ -16,7 +16,7 @@ uint16_t me_QueueMindEnumerator::Get()
   return Idx;
 }
 
-bool me_QueueMindEnumerator::Move()
+bool me_QueueMindEnumerator::Next()
 {
   if (Queue->IsEmpty())
     return false;
