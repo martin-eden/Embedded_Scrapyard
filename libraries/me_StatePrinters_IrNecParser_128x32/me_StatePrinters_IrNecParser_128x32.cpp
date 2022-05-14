@@ -11,9 +11,13 @@
 #include <me_IrNecParser.h>
 #include <U8g2lib.h>
 
-void DisplayGridLines(U8G2* Display)
+void DisplayOuterFrame(U8G2* Display)
 {
   Display->drawFrame(0, 0, 128, 32);
+}
+
+void DisplayGridLines(U8G2* Display)
+{
   Display->drawVLine(68, 4, 25);
   Display->drawVLine(106, 4, 25);
 }
@@ -109,6 +113,7 @@ void DisplayFlipFlop(U8G2* Display)
 
 void IrNec_DisplayState(IrNecParser::me_IrNecParser* IrNec, U8G2* Display)
 {
+  DisplayOuterFrame(Display);
   DisplayGridLines(Display);
   DisplayAddress(Display, IrNec->Address);
   DisplayCommand(Display, IrNec->Command);
