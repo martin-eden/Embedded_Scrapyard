@@ -33,7 +33,7 @@ void DSR_PrintJSON(me_DigitalSignalRecorder* DSR)
     if (Cursor.Get() != DSR->Queue.GetLastIdx())
       s += ",";
     Serial.println(s);
-  } while (Cursor.Move());
+  } while (Cursor.Next());
   Serial.println("  ],");
 
   Serial.println("  \"Statistics\": {");

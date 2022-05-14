@@ -144,7 +144,7 @@ FrameType me_IrNecParser::GetFrameType()
   me_QueueMindEnumerator Cursor(&DSR->Queue);
 
   uint16_t FirstRecIdx = Cursor.Get();
-  if (!Cursor.Move())
+  if (!Cursor.Next())
     return Result;
   uint16_t SecondRecIdx = Cursor.Get();
 
