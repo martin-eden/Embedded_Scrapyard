@@ -87,28 +87,20 @@ void DisplayFlipFlop(U8G2* Display)
   switch (FlipState)
   {
     case 0:
-      x = 0;
-      y = 0;
+      x = 111;
+      y = 6;
       break;
     case 1:
-      x = 127;
-      y = 0;
-      break;
-    case 2:
-      x = 127;
-      y = 31;
-      break;
-    case 3:
-      x = 0;
-      y = 31;
+      x = 121;
+      y = 6;
       break;
     default:
       exit(1);
   }
 
-  Display->drawDisc(x, y, 3);
+  Display->drawDisc(x, y, 2);
 
-  FlipState = (FlipState + 1) % 4;
+  FlipState = (FlipState + 1) % 2;
 }
 
 void IrNec_DisplayState(IrNecParser::me_IrNecParser* IrNec, U8G2* Display)
