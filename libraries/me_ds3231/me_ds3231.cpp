@@ -1,8 +1,9 @@
-/*
-  JeeLab, LadyAda - some code based on these. But I felt that code was
-  too ugly to keep and tried to rework and simplify it.
+// RTC DS3231 full support
 
-  2019-02-24, Martin
+/*
+  Status: stable, want to rewrite
+  Version: 1.0
+  Last mod.: 2022-05-16
 */
 
 #include "me_ds3231.h"
@@ -148,9 +149,9 @@ float me_ds3231::measureTemp()
 /*
   Measure temperature and return result. Takes some time (near .3s).
 
-  while flag.busy;
-  flag.conv = 1;
-  while flag.conv;
+  while (flags.busy) {};
+  flags.converting = 1;
+  while (flags.converting) {};
   return get_temp()
 */
 {
@@ -316,3 +317,10 @@ void me_ds3231::clearAlarm2Line()
 {
   clearBit(STATUS, A2F);
 }
+
+/*
+  JeeLab, LadyAda - some code based on these. But I felt that code was
+  too ugly to keep and tried to rework and simplify it.
+
+  2019-02-24, Martin
+*/
