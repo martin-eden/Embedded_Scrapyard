@@ -28,7 +28,7 @@ const uint8_t
   TEMP_INT = 0x11,
   TEMP_FRAC = 0x12;
 
-uint8_t getByte(uint8_t offs)
+uint8_t readByte(uint8_t offs)
 {
   Wire.beginTransmission(DS3231_ID);
   Wire.write(offs);
@@ -39,7 +39,7 @@ uint8_t getByte(uint8_t offs)
   return Wire.read();
 }
 
-void setByte(uint8_t offs, uint8_t val)
+void writeByte(uint8_t offs, uint8_t val)
 {
   Wire.beginTransmission(DS3231_ID);
   Wire.write(offs);
@@ -47,7 +47,7 @@ void setByte(uint8_t offs, uint8_t val)
   Wire.endTransmission();
 }
 
-void requestBytes(uint8_t offs, uint8_t numBytes, uint8_t* buf)
+void readBytes(uint8_t offs, uint8_t numBytes, uint8_t* buf)
 {
   Wire.beginTransmission(DS3231_ID);
   Wire.write(offs);
@@ -68,21 +68,21 @@ void writeBytes(uint8_t offs, uint8_t numBytes, uint8_t* buf)
 
 bool getBit(uint8_t byte_offs, uint8_t bit_offs)
 {
-  return getByte(byte_offs) & _BV(bit_offs);
+  return readByte(byte_offs) & _BV(bit_offs);
 }
 
 void setBit(uint8_t byte_offs, uint8_t bit_offs)
 {
-  uint8_t byte_val = getByte(byte_offs);
+  uint8_t byte_val = readByte(byte_offs);
   byte_val |= _BV(bit_offs);
-  setByte(byte_offs, byte_val);
+  writeByte(byte_offs, byte_val);
 }
 
 void clearBit(uint8_t byte_offs, uint8_t bit_offs)
 {
-  uint8_t byte_val = getByte(byte_offs);
+  uint8_t byte_val = readByte(byte_offs);
   byte_val &= ~_BV(bit_offs);
-  setByte(byte_offs, byte_val);
+  writeByte(byte_offs, byte_val);
 }
 
 me_ds3231::me_ds3231()
@@ -92,18 +92,18 @@ me_ds3231::me_ds3231()
 
 uint8_t me_ds3231::getDoW()
 {
-  return getByte(3);
+  return readByte(3);
 }
 
 void me_ds3231::setDoW(uint8_t DoW)
 {
-  setByte(3, DoW);
+  writeByte(3, DoW);
 }
 
 DateTime me_ds3231::getDateTime()
 {
   uint8_t buf[7];
-  requestBytes(0, 7, buf);
+  readBytes(0, 7, buf);
 
   uint8_t ss = bcdToDec(buf[0] & 0x7F);
   uint8_t mm = bcdToDec(buf[1]);
@@ -139,8 +139,8 @@ float me_ds3231::getTemp()
 */
 {
   float result =
-    int8_t(getByte(TEMP_INT)) +
-    (float(getByte(TEMP_FRAC) >> 6) / 4);
+    int8_t(readByte(TEMP_INT)) +
+    (float(readByte(TEMP_FRAC) >> 6) / 4);
 
   return result;
 }
@@ -182,7 +182,7 @@ const uint8_t
 
 void me_ds3231::setSqwMode(uint8_t mode)
 {
-  uint8_t control_reg = getByte(CONTROL);
+  uint8_t control_reg = readByte(CONTROL);
   switch(mode)
   {
     case 0:
@@ -202,12 +202,12 @@ void me_ds3231::setSqwMode(uint8_t mode)
       control_reg |= _BV(RS1);
       break;
   }
-  setByte(CONTROL, control_reg);
+  writeByte(CONTROL, control_reg);
 }
 
 uint8_t me_ds3231::getSqwMode()
 {
-  uint8_t control_reg = getByte(CONTROL);
+  uint8_t control_reg = readByte(CONTROL);
   uint8_t result =
     (control_reg & (_BV(RS1) | _BV(RS2))) >> RS1;
   return result;
