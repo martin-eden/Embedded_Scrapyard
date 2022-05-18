@@ -2,23 +2,23 @@
 
 /*
   Status: stable
-  Version: 1.0
-  Last mod.: 2022-04-24
+  Version: 1.1
+  Last mod.: 2022-05-17
 */
 
 #include "me_IrNecParser.h"
 
 #include <me_QueueMindEnumerator.h>
 
-using namespace IrNecParser;
+using namespace me_IrNecParser;
 
-me_IrNecParser::me_IrNecParser(me_DigitalSignalRecorder* aDSR)
+Parser::Parser(me_DigitalSignalRecorder* aDSR)
 {
   DSR = aDSR;
   Clear();
 }
 
-void me_IrNecParser::Clear()
+void Parser::Clear()
 {
   Address = 0;
   Command = 0;
@@ -55,7 +55,7 @@ void me_IrNecParser::Clear()
   In process it removes all unrecognized data before <FrameHeader>,
   <FrameHeader> itself and elements data.
 */
-bool me_IrNecParser::Get()
+bool Parser::Get()
 {
   if (!DSR->HasEvents())
     return false;
@@ -118,7 +118,7 @@ bool me_IrNecParser::Get()
   }
 }
 
-void me_IrNecParser::ConsumeTillStartOfFrame()
+void Parser::ConsumeTillStartOfFrame()
 {
   while (
     !DSR->Queue.IsEmpty() &&
@@ -134,7 +134,7 @@ bool IsWithin(uint32_t CurValue, uint32_t MinValue, uint32_t MaxValue)
   return ((CurValue >= MinValue) && (CurValue <= MaxValue));
 }
 
-FrameType me_IrNecParser::GetFrameType()
+FrameType Parser::GetFrameType()
 {
   FrameType Result = FrameType::Unknown;
 
@@ -170,7 +170,7 @@ FrameType me_IrNecParser::GetFrameType()
   return Result;
 }
 
-RecordType me_IrNecParser::GetRecordType(uint16_t Idx)
+RecordType Parser::GetRecordType(uint16_t Idx)
 {
   uint32_t PauseDuration = DSR->History[Idx].Pause;
   uint32_t SignalDuration = DSR->History[Idx].Signal;
@@ -238,12 +238,12 @@ RecordType me_IrNecParser::GetRecordType(uint16_t Idx)
   return Result;
 }
 
-bool me_IrNecParser::ConsumeFrameType()
+bool Parser::ConsumeFrameType()
 {
   return DSR->Queue.Dequeue() && DSR->Queue.Dequeue();
 }
 
-bool me_IrNecParser::ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand)
+bool Parser::ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand)
 {
   uint8_t RawData[4];
 
@@ -265,7 +265,7 @@ bool me_IrNecParser::ConsumeDataFrame(uint16_t* oAddress, uint8_t* oCommand)
   return true;
 }
 
-bool me_IrNecParser::ConsumeByte(uint8_t* pByte)
+bool Parser::ConsumeByte(uint8_t* pByte)
 {
   *pByte = 0;
 

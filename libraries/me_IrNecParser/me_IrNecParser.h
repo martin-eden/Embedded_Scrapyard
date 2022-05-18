@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <me_DigitalSignalRecorder.h>
 
-namespace IrNecParser
+namespace me_IrNecParser
 {
   enum class RecordType
   {
@@ -23,10 +23,10 @@ namespace IrNecParser
     LongRepeat
   };
 
-  class me_IrNecParser
+  class Parser
   {
     public:
-      me_IrNecParser(me_DigitalSignalRecorder* aDSR);
+      Parser(me_DigitalSignalRecorder* aDSR);
 
       uint16_t Address;
       uint8_t Command;
