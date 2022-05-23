@@ -2,19 +2,20 @@
 
 /*
   Status: stable
-  Version: 1.25
-  Last mod.: 2022-05-01
+  Version: 1.3
+  Last mod.: 2022-05-23
 */
 
 #include <me_DigitalSignalRecorder.h>
 #include <me_IrNecParser.h>
 #include <me_StatePrinters_IrNecParser_128x32.h>
+#include <me_StateGetters_IrNecParser.h>
 #include <U8g2lib.h>
-
-using namespace IrNecParser;
+#include <ArduinoJson.h>
+#include <LowPower.h>
 
 me_DigitalSignalRecorder DSR;
-me_IrNecParser IrDecoder(&DSR);
+me_IrNecParser::Parser IrDecoder(&DSR);
 U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R2);
 
 const uint8_t
@@ -77,39 +78,6 @@ void DisableSignalCapture()
   SignalCaptureEnabled = false;
 }
 
-void loop()
-{
-  static bool IsDisplayingIntro = true;
-  static uint32_t LastDisplayTimeMs = 0;
-
-  uint32_t TimeSinceLastSignalMs = (micros() - LastSignalTime) / 1000;
-  if (DSR.IsFull() || ((TimeSinceLastSignalMs >= 120) && (DSR.HasEvents())))
-  {
-    DisableSignalCapture();
-    while (IrDecoder.Get())
-    {
-      IsDisplayingIntro = false;
-
-      Display.clearBuffer();
-      IrNec_DisplayState(&IrDecoder, &Display);
-      Display.sendBuffer();
-
-      LastDisplayTimeMs = millis();
-    }
-    DSR.Clear();
-    EnableSignalCapture();
-  }
-
-  uint32_t TimeSinceLastDisplayS = (millis() - LastDisplayTimeMs) / 1000;
-  if (!IsDisplayingIntro && (TimeSinceLastDisplayS >= 40))
-  {
-    DisplayIntro();
-    IsDisplayingIntro = true;
-  }
-
-  delay(5);
-}
-
 void DisplayIntro()
 {
   char Buffer[8];
@@ -135,4 +103,64 @@ void drawStrCentered(uint16_t y, const char* s)
 uint16_t GetCenteredStringX(const char* s)
 {
   return (Display.getWidth() - Display.getStrWidth(s)) / 2;
+}
+
+void PrintStateJson(me_IrNecParser_StateGetter::ParserState parserState)
+{
+  StaticJsonDocument<32> JsonDoc;
+
+  JsonDoc["Address"] = parserState.Address;
+  JsonDoc["Command"] = parserState.Command;
+  JsonDoc["HasShortRepeat"] = parserState.HasShortRepeat;
+  JsonDoc["IsRepeat"] = parserState.IsRepeat;
+
+  serializeJson(JsonDoc, Serial);
+  Serial.println();
+}
+
+void loop()
+{
+  static bool IsDisplayingIntro = true;
+  static uint32_t LastDisplayTimeMs = 0;
+  me_IrNecParser_StateGetter::ParserState parserState;
+
+  uint32_t TimeSinceLastSignalMs = (micros() - LastSignalTime) / 1000;
+  if (DSR.IsFull() || ((TimeSinceLastSignalMs >= 120) && (DSR.HasEvents())))
+  {
+    DisableSignalCapture();
+
+    if (IrDecoder.Get())
+    {
+      GetState(&IrDecoder, parserState);
+
+      IsDisplayingIntro = false;
+
+      Display.clearBuffer();
+      IrNec_DisplayState(parserState, &Display);
+      Display.sendBuffer();
+
+      PrintStateJson(parserState);
+
+      LastDisplayTimeMs = millis();
+      delay(100);
+    }
+
+    DSR.Clear();
+    EnableSignalCapture();
+  }
+
+  uint32_t TimeSinceLastDisplayS = (millis() - LastDisplayTimeMs) / 1000;
+  if (!IsDisplayingIntro && (TimeSinceLastDisplayS >= 40))
+  {
+    DisplayIntro();
+    IsDisplayingIntro = true;
+  }
+
+  LowPower.idle(SLEEP_FOREVER, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_ON,
+                SPI_OFF, USART0_OFF, TWI_OFF);
+
+  // Serial.print("Hello, ");
+  // Serial.println(millis());
+
+  delay(20);
 }
