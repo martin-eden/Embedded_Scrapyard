@@ -15,7 +15,7 @@ me_DigitalSignalRecorder DSR;
 me_IrNecParser::Parser IrDecoder(&DSR);
 
 const uint16_t
-  BaudRate = 57600;
+  BaudRate = 115200;
 
 const uint8_t
   SignalPin = 2; // 2 or 3 for ATmega328P
@@ -32,7 +32,8 @@ bool
 void setup()
 {
   Serial.begin(BaudRate);
-  delay(1000);
+  while (!Serial.available())
+    delay(25);
   Serial.println("IR NEC protocol decoder test.");
 
   if (!DSR.SetCapacity(RecorderCapacity))
