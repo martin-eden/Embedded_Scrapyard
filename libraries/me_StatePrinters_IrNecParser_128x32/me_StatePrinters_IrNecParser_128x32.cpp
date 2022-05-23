@@ -103,13 +103,13 @@ void DisplayFlipFlop(U8G2* Display)
   FlipState = (FlipState + 1) % 2;
 }
 
-void IrNec_DisplayState(IrNecParser::me_IrNecParser* IrNec, U8G2* Display)
+void IrNec_DisplayState(me_IrNecParser_StateGetter::ParserState parserState, U8G2* Display)
 {
   DisplayOuterFrame(Display);
   DisplayGridLines(Display);
-  DisplayAddress(Display, IrNec->Address);
-  DisplayCommand(Display, IrNec->Command);
-  DisplayHasShortRepeat(Display, IrNec->HasShortRepeat);
-  DisplayIsRepeat(Display, IrNec->IsRepeat);
+  DisplayAddress(Display, parserState.Address);
+  DisplayCommand(Display, parserState.Command);
+  DisplayHasShortRepeat(Display, parserState.HasShortRepeat);
+  DisplayIsRepeat(Display, parserState.IsRepeat);
   DisplayFlipFlop(Display);
 }
