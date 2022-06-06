@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.3
-  Last mod.: 2022-05-23
+  Version: 1.4
+  Last mod.: 2022-06-05
 */
 
 #include <me_DigitalSignalRecorder.h>
@@ -87,11 +87,30 @@ void DisplayIntro()
 
   sprintf(Buffer, "%07lX", millis() / 1000);
 
-  drawStrCentered(23, Buffer);
+  drawStrCentered(21, Buffer);
   // drawStrCentered(12, "IR NEC");
   // drawStrCentered(29, "parser");
 
   Display.sendBuffer();
+}
+
+void DisplayParseFailure()
+{
+  static bool FlipFlop = false;
+
+  Display.clearBuffer();
+  Display.setFont(u8g2_font_commodore64_tr);
+
+  drawStrCentered(12, "try again");
+
+  if (FlipFlop)
+    drawStrCentered(29, "/");
+  else
+    drawStrCentered(29, "\\");
+
+  Display.sendBuffer();
+
+  FlipFlop = !FlipFlop;
 }
 
 void drawStrCentered(uint16_t y, const char* s)
@@ -125,6 +144,7 @@ void loop()
   me_IrNecParser_StateGetter::ParserState parserState;
 
   uint32_t TimeSinceLastSignalMs = (micros() - LastSignalTime) / 1000;
+
   if (DSR.IsFull() || ((TimeSinceLastSignalMs >= 120) && (DSR.HasEvents())))
   {
     DisableSignalCapture();
@@ -144,6 +164,8 @@ void loop()
       LastDisplayTimeMs = millis();
       delay(100);
     }
+    else
+      DisplayParseFailure();
 
     DSR.Clear();
     EnableSignalCapture();
