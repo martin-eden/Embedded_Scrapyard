@@ -63,7 +63,7 @@ void DisplayHasShortRepeat(U8G2* Display, bool HasShortRepeat)
 
 const u8g2_uint_t
   RepeatWidgetX = 110,
-  RepeatWidgetY = 20;
+  RepeatWidgetY = 21;
 
 void DisplayIsRepeat(U8G2* Display, bool IsRepeat)
 {
@@ -87,12 +87,12 @@ void DisplayFlipFlop(U8G2* Display)
   switch (FlipState)
   {
     case 0:
-      x = 111;
-      y = 6;
+      x = 112;
+      y = 7;
       break;
     case 1:
-      x = 121;
-      y = 6;
+      x = 120;
+      y = 7;
       break;
     default:
       exit(1);
