@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.4
-  Last mod.: 2022-06-05
+  Version: 1.41
+  Last mod.: 2022-06-15
 */
 
 #include <me_DigitalSignalRecorder.h>
@@ -80,16 +80,11 @@ void DisableSignalCapture()
 
 void DisplayIntro()
 {
-  char Buffer[8];
-
   Display.clearBuffer();
   Display.setFont(u8g2_font_commodore64_tr);
 
-  sprintf(Buffer, "%07lX", millis() / 1000);
-
-  drawStrCentered(21, Buffer);
-  // drawStrCentered(12, "IR NEC");
-  // drawStrCentered(29, "parser");
+  drawStrCentered(12, "IR NEC");
+  drawStrCentered(29, "parser");
 
   Display.sendBuffer();
 }
