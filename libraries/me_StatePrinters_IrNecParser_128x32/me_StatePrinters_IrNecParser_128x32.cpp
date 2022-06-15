@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.1
-  Last mod.: 2022-04-16
+  Version: 1.2
+  Last mod.: 2022-06-15
 */
 
 #include "me_StatePrinters_IrNecParser_128x32.h"
@@ -23,7 +23,7 @@ void DisplayGridLines(U8G2* Display)
 }
 
 const u8g2_uint_t
-  AddressWidgetX = 1,
+  AddressWidgetX = 3,
   AddressWidgetY = 26;
 
 void DisplayAddress(U8G2* Display, uint16_t Address)
@@ -31,12 +31,12 @@ void DisplayAddress(U8G2* Display, uint16_t Address)
   char Buffer[5];
   sprintf(Buffer, "%04X", Address);
 
-  Display->setFont(u8g2_font_osr18_tr);
+  Display->setFont(u8g2_font_profont29_tr);
   Display->drawStr(AddressWidgetX, AddressWidgetY, Buffer);
 }
 
 const u8g2_uint_t
-  CommandWidgetX = 71,
+  CommandWidgetX = 72,
   CommandWidgetY = 26;
 
 void DisplayCommand(U8G2* Display, uint8_t Command)
@@ -44,7 +44,7 @@ void DisplayCommand(U8G2* Display, uint8_t Command)
   char Buffer[3];
   sprintf(Buffer, "%02X", Command);
 
-  Display->setFont(u8g2_font_osr18_tr);
+  Display->setFont(u8g2_font_profont29_tr);
   Display->drawStr(CommandWidgetX, CommandWidgetY, Buffer);
 }
 
@@ -76,8 +76,9 @@ void DisplayIsRepeat(U8G2* Display, bool IsRepeat)
 }
 
 const u8g2_uint_t
-  FlipFlopWidgetX = 114,
-  FlipFlopWidgetY = 25;
+  FlipFlopWidgetX1 = 112,
+  FlipFlopWidgetX2 = 120,
+  FlipFlopWidgetY = 7;
 
 void DisplayFlipFlop(U8G2* Display)
 {
@@ -87,12 +88,12 @@ void DisplayFlipFlop(U8G2* Display)
   switch (FlipState)
   {
     case 0:
-      x = 112;
-      y = 7;
+      x = FlipFlopWidgetX1;
+      y = FlipFlopWidgetY;
       break;
     case 1:
-      x = 120;
-      y = 7;
+      x = FlipFlopWidgetX2;
+      y = FlipFlopWidgetY;
       break;
     default:
       exit(1);
