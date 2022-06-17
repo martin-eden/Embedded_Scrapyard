@@ -1,9 +1,9 @@
-// Display humidity and temperature reading on 128x32 display
+// Display humidity and temperature reading on 128x32 display.
 
 /*
   Status: stable
-  Version: 1.7
-  Last mod.: 2022-03-08
+  Version: 2.0
+  Last mod.: 2022-06-17
 */
 
 /*
@@ -27,53 +27,85 @@ U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R0);
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(57600);
   Display.begin();
-  Display.setFont(u8g2_font_ncenB24_tr);
 }
 
-void InvertDisplayColors()
+void DisplayOuterFrame()
 {
-  Display.sendF("c", 0x0a7);
+  const u8g2_uint_t
+    OuterFrameWidgetX = 0,
+    OuterFrameWidgetY = 0,
+    OuterFrameWidgetWidth = 128,
+    OuterFrameWidgetHeight = 32;
+
+  Display.drawFrame(
+    OuterFrameWidgetX,
+    OuterFrameWidgetY,
+    OuterFrameWidgetWidth,
+    OuterFrameWidgetHeight
+  );
 }
 
-void ResetDisplayColors()
+void DisplayGridLines()
 {
-  Display.sendF("c", 0x0a6);
+  const u8g2_uint_t
+    GridLinesWidgetX1 = 80,
+    GridLinesWidgetX2 = 123;
+
+  Display.drawVLine(GridLinesWidgetX1, 4, 25);
+  Display.drawVLine(GridLinesWidgetX2, 4, 25);
+}
+
+void DisplayTemperature(float Temperature)
+{
+  const u8g2_uint_t
+    TemperatureWidgetX = 5,
+    TemperatureWidgetY = 23;
+
+  char Buffer[8];
+  String(String(Temperature, 1) + "\260C").toCharArray(Buffer, sizeof(Buffer));
+
+  Display.setFont(u8g2_font_profont22_tf);
+  Display.drawStr(TemperatureWidgetX, TemperatureWidgetY, Buffer);
+}
+
+void DisplayHumidity(float Humidity)
+{
+  const u8g2_uint_t
+    HumidityWidgetX = 85,
+    HumidityWidgetY = 23;
+
+  char Buffer[8];
+  String(String(Humidity, 0) + "%") .toCharArray(Buffer, sizeof(Buffer));
+
+  Display.setFont(u8g2_font_profont22_tf);
+  Display.drawStr(HumidityWidgetX, HumidityWidgetY, Buffer);
+}
+
+void DisplayFlipFlop()
+{
+  const u8g2_uint_t
+    FlipFlopWidgetX = 125,
+    FlipFlopWidgetY = 8,
+    FlipFlopWidgetHeight = 19;
+
+  static bool flip = false;
+  if (flip)
+  {
+    // Display.drawVLine(FlipFlopWidgetX, FlipFlopWidgetY, FlipFlopWidgetHeight);
+  }
+
+  flip = !flip;
 }
 
 void DisplayState()
 {
-  Display.setDrawColor(1);
-
-  const uint8_t CharBufSize = 10;
-  char buf[CharBufSize];
-
-  String(Hygrometer.Humidity, 0).toCharArray(buf, CharBufSize);
-  Display.drawStr(3, 30, buf);
-
-  String(Hygrometer.Temperature, 1).toCharArray(buf, CharBufSize);
-  Display.drawStr(58, 26, buf);
-
-  HeartBeat();
-}
-
-void HeartBeat()
-{
-  static bool flip = false;
-  Display.setDrawColor(flip ? 0 : 1);
-  Display.drawDisc(49, 16, 3);
-  flip = !flip;
-}
-
-String GetData()
-{
-  Hygrometer.Get();
-
-  String Result = String(Hygrometer.Humidity, 0) + "%";
-  Result += " " + String(Hygrometer.Temperature, 1) + "\260C";
-
-  return Result;
+  DisplayOuterFrame();
+  DisplayGridLines();
+  DisplayTemperature(Hygrometer.Temperature);
+  DisplayHumidity(Hygrometer.Humidity);
+  DisplayFlipFlop();
 }
 
 String GetRawData()
@@ -91,14 +123,9 @@ void loop()
 {
   Display.clearBuffer();
 
-  String DataStr = GetData();
+  Hygrometer.Get();
 
   DisplayState();
-  // Serial.println(DataStr);
-
-  String RawDataStr = GetRawData();
-  // DisplayState(RawDataStr);
-  // Serial.println(RawDataStr);
 
   Display.sendBuffer();
 
