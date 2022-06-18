@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.2
-  Last mod.: 2022-06-15
+  Version: 1.3
+  Last mod.: 2022-06-18
 */
 
 #include "me_StatePrinters_IrNecParser_128x32.h"
@@ -22,12 +22,12 @@ void DisplayGridLines(U8G2* Display)
   Display->drawVLine(106, 4, 25);
 }
 
-const u8g2_uint_t
-  AddressWidgetX = 3,
-  AddressWidgetY = 26;
-
 void DisplayAddress(U8G2* Display, uint16_t Address)
 {
+  const u8g2_uint_t
+    AddressWidgetX = 3,
+    AddressWidgetY = 26;
+
   char Buffer[5];
   sprintf(Buffer, "%04X", Address);
 
@@ -35,12 +35,12 @@ void DisplayAddress(U8G2* Display, uint16_t Address)
   Display->drawStr(AddressWidgetX, AddressWidgetY, Buffer);
 }
 
-const u8g2_uint_t
-  CommandWidgetX = 72,
-  CommandWidgetY = 26;
-
 void DisplayCommand(U8G2* Display, uint8_t Command)
 {
+  const u8g2_uint_t
+    CommandWidgetX = 72,
+    CommandWidgetY = 26;
+
   char Buffer[3];
   sprintf(Buffer, "%02X", Command);
 
@@ -48,12 +48,12 @@ void DisplayCommand(U8G2* Display, uint8_t Command)
   Display->drawStr(CommandWidgetX, CommandWidgetY, Buffer);
 }
 
-const u8g2_uint_t
-  ShortRepeatWidgetX = 109,
-  ShortRepeatWidgetY = 27;
-
 void DisplayHasShortRepeat(U8G2* Display, bool HasShortRepeat)
 {
+  const u8g2_uint_t
+    ShortRepeatWidgetX = 109,
+    ShortRepeatWidgetY = 27;
+
   if (HasShortRepeat)
   {
     Display->setFont(u8g2_font_osr18_tr);
@@ -61,12 +61,12 @@ void DisplayHasShortRepeat(U8G2* Display, bool HasShortRepeat)
   }
 }
 
-const u8g2_uint_t
-  RepeatWidgetX = 110,
-  RepeatWidgetY = 21;
-
 void DisplayIsRepeat(U8G2* Display, bool IsRepeat)
 {
+  const u8g2_uint_t
+    RepeatWidgetX = 110,
+    RepeatWidgetY = 21;
+
   if (IsRepeat)
   {
     const uint16_t ReplaySymbolCode = 0x2b6e;
@@ -75,13 +75,13 @@ void DisplayIsRepeat(U8G2* Display, bool IsRepeat)
   }
 }
 
-const u8g2_uint_t
-  FlipFlopWidgetX1 = 112,
-  FlipFlopWidgetX2 = 120,
-  FlipFlopWidgetY = 7;
-
 void DisplayFlipFlop(U8G2* Display)
 {
+  const u8g2_uint_t
+    FlipFlopWidgetX1 = 112,
+    FlipFlopWidgetX2 = 120,
+    FlipFlopWidgetY = 7;
+
   static uint8_t FlipState = 0;
 
   u8g2_uint_t x, y;
