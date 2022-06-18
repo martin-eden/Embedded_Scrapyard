@@ -2,27 +2,38 @@
 
 #include <Arduino.h>
 
-class me_DHT11
+namespace me_DHT11
 {
-  public:
-    float Humidity;
-    float Temperature;
-    uint8_t Status;
-    uint8_t Data[5];
+  enum class ReadStatus
+  {
+    Unknown,
+    Success,
+    Error
+  };
 
-    me_DHT11(uint8_t aDataPin);
+  class DHT11
+  {
+    public:
+      float Humidity;
+      float Temperature;
+      uint8_t Status;
+      ReadStatus LastReadStatus;
+      uint8_t Data[5];
 
-    bool Get();
+      DHT11(uint8_t aDataPin);
 
-  protected:
-    virtual bool Parse();
-    void EmitRequest();
+      void Request();
 
-  private:
-    uint8_t DataPin;
-    bool ReadData();
-    uint32_t GetLevelTime(uint8_t OriginalLevel, uint8_t LevelTimeout);
-    bool WaitWhileLevel(uint8_t OriginalLevel, uint8_t LevelTimeout);
-    uint8_t BitsToByte(uint8_t Bits[8]);
-    bool Verify();
-};
+    protected:
+      virtual bool Parse();
+      void EmitRequest();
+
+    private:
+      uint8_t DataPin;
+      bool ReadData();
+      uint32_t GetLevelTime(uint8_t OriginalLevel, uint8_t LevelTimeout);
+      bool WaitWhileLevel(uint8_t OriginalLevel, uint8_t LevelTimeout);
+      uint8_t BitsToByte(uint8_t Bits[8]);
+      bool Verify();
+  };
+}

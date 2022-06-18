@@ -1,5 +1,7 @@
 #include "me_DHT11.h"
 
+using namespace me_DHT11;
+
 const uint8_t
   Status_Init = 0,
   Status_WaitTimeout = 1,
@@ -8,24 +10,25 @@ const uint8_t
   Status_BadChecksum = 4,
   Status_UncertainBit = 5;
 
-me_DHT11::me_DHT11(uint8_t aDataPin)
+DHT11::DHT11(uint8_t aDataPin)
 {
   DataPin = aDataPin;
 }
 
-bool me_DHT11::Get()
+void DHT11::Request()
 {
+  LastReadStatus = ReadStatus::Error;
   Humidity = -1.0;
   Temperature = -1.0;
 
-  if (!ReadData()) return false;
-  if (!Verify()) return false;
-  if (!Parse()) return false;
+  if (!ReadData()) return;
+  if (!Verify()) return;
+  if (!Parse()) return;
 
-  return true;
+  LastReadStatus = ReadStatus::Success;
 }
 
-bool me_DHT11::ReadData()
+bool DHT11::ReadData()
 {
   uint8_t DataBits[40] = {1};
 
@@ -64,7 +67,7 @@ bool me_DHT11::ReadData()
   return true;
 }
 
-void me_DHT11::EmitRequest()
+void DHT11::EmitRequest()
 {
   pinMode(DataPin, OUTPUT);
   digitalWrite(DataPin, LOW);
@@ -74,7 +77,7 @@ void me_DHT11::EmitRequest()
   pinMode(DataPin, INPUT_PULLUP);
 }
 
-uint32_t me_DHT11::GetLevelTime(uint8_t OriginalLevel, uint8_t LevelTimeout)
+uint32_t DHT11::GetLevelTime(uint8_t OriginalLevel, uint8_t LevelTimeout)
 {
   uint8_t CurrentLevel;
   uint32_t TimePassedMcr;
@@ -97,12 +100,12 @@ uint32_t me_DHT11::GetLevelTime(uint8_t OriginalLevel, uint8_t LevelTimeout)
   return TimePassedMcr;
 }
 
-bool me_DHT11::WaitWhileLevel(uint8_t OriginalLevel, uint8_t LevelTimeout)
+bool DHT11::WaitWhileLevel(uint8_t OriginalLevel, uint8_t LevelTimeout)
 {
   return (GetLevelTime(OriginalLevel, LevelTimeout) != 0);
 }
 
-uint8_t me_DHT11::BitsToByte(uint8_t Bits[8])
+uint8_t DHT11::BitsToByte(uint8_t Bits[8])
 {
   uint8_t Result = 0;
   for (uint8_t i = 0; i < 8; i++)
@@ -110,7 +113,7 @@ uint8_t me_DHT11::BitsToByte(uint8_t Bits[8])
   return Result;
 }
 
-bool me_DHT11::Verify()
+bool DHT11::Verify()
 {
   if ((uint8_t) (Data[0] + Data[1] + Data[2] + Data[3]) == Data[4])
     Status = Status_PacketVerified;
@@ -120,7 +123,7 @@ bool me_DHT11::Verify()
   return (Status == Status_PacketVerified);
 }
 
-bool me_DHT11::Parse()
+bool DHT11::Parse()
 {
   Humidity = (float) ((Data[0] << 8) | Data[1]) / 0x100;
   // 2nd temperature byte: tenths of temperature in low nibble in BCD.
