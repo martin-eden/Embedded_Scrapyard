@@ -16,7 +16,7 @@ const uint8_t
   EchoPin = 4;
 
 const uint32_t
-  MeasurementDelayMs = 60;
+  MeasurementDelayMs = 100;
 
 U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R2);
 
