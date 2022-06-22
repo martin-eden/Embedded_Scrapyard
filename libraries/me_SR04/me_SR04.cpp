@@ -26,9 +26,10 @@ using namespace me_SignalTime;
 void me_SR04::SR04::Request()
 {
   const uint32_t
-    PulseDurationMcr = 10,
+    PulseDurationMcr = 250,
     SignalStartTimeoutMcr = 1000,
-    SignalMaxDurationMcr = 180000;
+    SignalMaxDurationMcr = 50000,
+    SignalMaxWaitTimeout = 250000;
 
   uint32_t SignalStartMcr;
   uint32_t SignalDurationMcr;
@@ -50,8 +51,8 @@ void me_SR04::SR04::Request()
   }
   else
   {
-    SignalDurationMcr = GetLevelTime(EchoPin, HIGH, SignalMaxDurationMcr);
-    if (SignalDurationMcr == 0)
+    SignalDurationMcr = GetLevelTime(EchoPin, HIGH, SignalMaxWaitTimeout);
+    if ((SignalDurationMcr == 0) || (SignalDurationMcr > SignalMaxDurationMcr))
     {
       RequestStatus = ReadStatus::NoSignalEnd;
     }
