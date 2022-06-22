@@ -2,18 +2,19 @@
 
 /*
   Status: stable
-  Version: 1.0
+  Version: 1.1
   Last mod.: 2022-06-20
 */
 
 #include <me_SR04.h>
+#include <me_SR04_StateGetter.h>
 
 const uint8_t
-  TriggerPin = 6,
-  EchoPin = 7;
+  TriggerPin = 4,
+  EchoPin = 4;
 
 const uint32_t
-  MeasurementDelayMs = 10;
+  MeasurementDelayMs = 60;
 
 me_SR04::SR04 Sonar(TriggerPin, EchoPin);
 
@@ -25,18 +26,10 @@ void setup()
 void loop()
 {
   Sonar.Request();
-  if (Sonar.RequestStatus == me_SR04::ReadStatus::Error)
+  me_SR04_StateGetter::State RequestStatus = me_SR04_StateGetter::GetState(&Sonar);
+  if (RequestStatus.HasDistance)
   {
-    // Serial.println("Timeout.");
-  }
-  else
-  {
-    // Serial.print(Sonar.EchoDelayMcr);
-    // Serial.print(" ");
-    // Serial.print(Sonar.EchoDurationMcr);
-    // Serial.println();
-    float distanceCm = Sonar.EchoDurationMcr * 1e-6 * 340.0 * 1e2 / 2;
-    Serial.println(distanceCm);
+    Serial.println(RequestStatus.DistanceCm);
   }
   delay(MeasurementDelayMs);
 }
