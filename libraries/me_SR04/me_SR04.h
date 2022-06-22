@@ -10,14 +10,14 @@ namespace me_SR04
   {
     Unknown,
     Success,
-    Error
+    NoSignalStart,
+    NoSignalEnd
   };
 
   class SR04
   {
     public:
       uint32_t EchoDelayMcr;
-      uint32_t EchoDurationMcr;
       ReadStatus RequestStatus;
 
       SR04(uint8_t aTriggerPin, uint8_t aEchoPin) : TriggerPin(aTriggerPin), EchoPin(aEchoPin) {};
