@@ -2,6 +2,12 @@
 
 #include <me_SR04.h>
 #include <me_Physics_Sound.h>
+#include <me_CapacitiveFilter.h>
+
+const float
+  DataFilterCapacitance = 2.5;
+
+CapacitiveFilter dataSmoother = CapacitiveFilter(DataFilterCapacitance);
 
 using namespace me_SR04_StateGetter;
 
@@ -13,7 +19,12 @@ State me_SR04_StateGetter::GetState(me_SR04::SR04* sensor)
   {
     result.IsSensorWorking = true;
     result.HasDistance = true;
-    result.DistanceCm = me_Physics_Sound::GetDistanceFromEchoCm(sensor->EchoDelayMcr);
+
+    float distance = me_Physics_Sound::GetDistanceFromEchoCm(sensor->EchoDelayMcr);
+    dataSmoother.addValue(distance);
+    distance = dataSmoother.getValue();
+
+    result.DistanceCm = distance;
   }
   else
   {
