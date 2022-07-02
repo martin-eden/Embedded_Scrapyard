@@ -26,7 +26,7 @@ void CapacitiveFilter::addValue(float value) {
 
   ++stepsDone;
   if (abs(accumulatedError) > maxAccumulatedError) {
-    baseValue += accumulatedError / stepsDone;
+    baseValue += (accumulatedError / stepsDone);
     accumulatedError = 0;
     stepsDone = 0;
   }
