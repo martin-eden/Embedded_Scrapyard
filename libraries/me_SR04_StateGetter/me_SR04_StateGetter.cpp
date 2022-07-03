@@ -17,16 +17,14 @@ State me_SR04_StateGetter::GetState(me_SR04::SR04* sensor)
   }
   else
   {
+    if (sensor->RequestStatus == me_SR04::ReadStatus::NoSignalStart)
+      result.IsSensorWorking = false;
+    else if (sensor->RequestStatus == me_SR04::ReadStatus::NoSignalEnd)
+      result.IsSensorWorking = true;
+    else
+      exit(1);
     result.HasDistance = false;
     result.DistanceCm = 0.0;
-    if (sensor->RequestStatus == me_SR04::ReadStatus::NoSignalStart)
-    {
-      result.IsSensorWorking = false;
-    }
-    else if (sensor->RequestStatus == me_SR04::ReadStatus::NoSignalEnd)
-    {
-      result.IsSensorWorking = true;
-    }
   }
 
   return result;
