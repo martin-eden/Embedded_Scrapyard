@@ -48,6 +48,9 @@ void setup()
 
 void loop()
 {
+  // Typical jitter is from 2.05% to 3.07% in my tests. Closer the
+  // distance, more % of jitter but less jitter delta in cm.
+
   Sonar.Request();
   me_SR04_StateGetter::State RequestStatus = me_SR04_StateGetter::GetState(&Sonar);
 
@@ -69,16 +72,15 @@ void loop()
 
     maxValue.Add(TimePoint(smoothedDistance, TimePosition));
 
+    float kt = 0.25;
     if (!minValue.ValueHasChanged())
     {
-      float kt = 0.3;
       float k = pow(smoothedDistance / minValue.Get().Value, kt);
       minValue = MinValue(TimePoint(minValue.Get().Value * k, TimePosition));
     }
 
     if (!maxValue.ValueHasChanged())
     {
-      float kt = 0.3;
       float k = pow(smoothedDistance / maxValue.Get().Value, kt);
       maxValue = MaxValue(TimePoint(maxValue.Get().Value * k, TimePosition));
     }
