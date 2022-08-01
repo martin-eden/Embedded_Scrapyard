@@ -1,7 +1,7 @@
 // Display sonar distance results on 128x32 OLED.
 
 /*
-  Status: in writing
+  Status: stable
   Version: 1.0
   Last mod.: 2022-06-21
 */
@@ -27,7 +27,7 @@ void StatePrinter::DisplayOuterFrame()
 void StatePrinter::DisplayGridLines()
 {
   const u8g2_uint_t
-    WidgetX = 123,
+    WidgetX = 116,
     WidgetY = 4,
     WidgetHeight = 25;
 
@@ -37,7 +37,7 @@ void StatePrinter::DisplayGridLines()
 void StatePrinter::DisplayDistance(float DistanceCm)
 {
   const u8g2_uint_t
-    WidgetX = 25,
+    WidgetX = 18,
     WidgetY = 23;
 
   char Buffer[16];
@@ -50,14 +50,15 @@ void StatePrinter::DisplayDistance(float DistanceCm)
 void StatePrinter::DisplayFlipFlop()
 {
   const u8g2_uint_t
-    WidgetX = 125,
+    WidgetX = 118,
     WidgetY = 13,
+    WidgetWidth = 8,
     WidgetHeight = 8;
 
   static bool flip = false;
   if (flip)
   {
-    Display->drawVLine(WidgetX, WidgetY, WidgetHeight);
+    Display->drawBox(WidgetX, WidgetY, WidgetWidth, WidgetHeight);
   }
 
   flip = !flip;
