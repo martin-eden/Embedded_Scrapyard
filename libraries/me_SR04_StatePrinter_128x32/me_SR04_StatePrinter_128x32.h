@@ -20,6 +20,7 @@ namespace me_SR04_StatePrinter_128x32
       void DisplayOuterFrame();
       void DisplayGridLines();
       void DisplayDistance(float DistanceCm);
+      void DisplayFineMark(float DistanceCm);
       void DisplayFlipFlop();
       void DisplayNotConnectedError();
       void DisplayNoDistanceError();

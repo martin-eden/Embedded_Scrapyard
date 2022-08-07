@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.0
-  Last mod.: 2022-06-21
+  Version: 1.1
+  Last mod.: 2022-08-07
 */
 
 #include "me_SR04_StatePrinter_128x32.h"
@@ -47,6 +47,36 @@ void StatePrinter::DisplayDistance(float DistanceCm)
   Display->drawStr(WidgetX, WidgetY, Buffer);
 }
 
+void StatePrinter::DisplayFineMark(float DistanceCm)
+{
+   const float
+      BaseUnitCm = 10.0;
+
+    float BaseCm = trunc(DistanceCm / BaseUnitCm) * BaseUnitCm;
+    float FineMarkPercent = (DistanceCm - BaseCm) / BaseUnitCm * 100.0;
+
+    const u8g2_uint_t
+      FineMarkWidgetX = 2,
+      FineMarkWidgetY = 2,
+      FineMarkWidgetWidth = 124,
+      FineMarkWidgetHeight = 32;
+
+    u8g2_uint_t FineMarkPositionX = FineMarkPercent / 100.0 * FineMarkWidgetWidth + FineMarkWidgetX;
+
+    Display->drawVLine(FineMarkPositionX, FineMarkWidgetY, FineMarkWidgetHeight);
+
+    /*
+    Serial.print(BaseCm);
+    Serial.print(" ");
+    Serial.print(FineMarkPercent);
+    Serial.print(" ");
+    Serial.print(FineMarkPositionX);
+    Serial.print(" ");
+
+    Serial.print("\n");
+    */
+ }
+
 void StatePrinter::DisplayFlipFlop()
 {
   const u8g2_uint_t
@@ -86,23 +116,19 @@ void StatePrinter::DisplayNoDistanceError()
 
 void StatePrinter::Print(me_SR04_StateGetter::State DataState)
 {
+  DisplayOuterFrame();
+
   if (DataState.HasDistance)
   {
-    DisplayOuterFrame();
-    DisplayGridLines();
+    // DisplayGridLines();
+    DisplayFineMark(DataState.DistanceCm);
     DisplayDistance(DataState.DistanceCm);
-    DisplayFlipFlop();
+    // DisplayFlipFlop();
   }
   else if (!DataState.IsSensorWorking)
-  {
-    DisplayOuterFrame();
     DisplayNotConnectedError();
-  }
   else if (!DataState.HasDistance)
-  {
-    DisplayOuterFrame();
     DisplayNoDistanceError();
-  }
   else
     exit(1);
 }
