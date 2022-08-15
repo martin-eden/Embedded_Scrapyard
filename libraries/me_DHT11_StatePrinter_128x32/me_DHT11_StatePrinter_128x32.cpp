@@ -56,7 +56,7 @@ void StatePrinter::DisplayHumidity(float Humidity)
     WidgetY = 23;
 
   char Buffer[8];
-  String(String(Humidity, 0) + "%") .toCharArray(Buffer, sizeof(Buffer));
+  String(String(Humidity, 0) + "%").toCharArray(Buffer, sizeof(Buffer));
 
   Display->setFont(u8g2_font_profont22_tf);
   Display->drawStr(WidgetX, WidgetY, Buffer);
