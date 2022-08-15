@@ -2,27 +2,19 @@
 
 /*
   Status: ok
-  Last mod.: 2017-06-22
+  Last mod.: 2022-08-13
 */
 
-/*
-  Based on horribly code by Crenn from http://thebestcasescenario.com
+#include <U8g2lib.h>
 
-  http://www.themakersworkbench.com/content/tutorial/reading-pc-fan-rpm-arduino
-
-  2017-06-22
-*/
-
-const int measure_delay_ms = 12000;
-const uint8_t triggers_per_rotation = 2;
+const uint32_t measure_delay_ms = 60000;
 
 const uint8_t sensor_pin = 2; // hard-wired for Uno, other values won't work
 const uint8_t interrupt_number = 0; // depends on <sensor_pin>
 
-const float measures_per_second = 1000 / (float)measure_delay_ms;
-const float measures_per_minute = 60 * measures_per_second;
+volatile uint32_t rpm_counter = 0;
 
-volatile uint16_t rpm_counter;
+U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R2);
 
 void pin_handler()
 {
@@ -32,21 +24,31 @@ void pin_handler()
 void setup()
 {
   pinMode(sensor_pin, INPUT);
-  attachInterrupt(interrupt_number, pin_handler, RISING);
-  Serial.begin(9600);
+  attachInterrupt(interrupt_number, pin_handler, FALLING);
+
+  Serial.begin(57600);
+
+  Display.begin();
+  Display.setContrast(10);
+  Display.setFont(u8g2_font_profont22_tf);
 }
 
 void loop()
 {
-  rpm_counter = 0;
-  delay(measure_delay_ms);
-  float rpm_approx = rpm_counter * measures_per_minute / triggers_per_rotation;
-
-  Serial.print(rpm_approx);
-  Serial.print(" rpm");
-
-  Serial.print(" (");
   Serial.print(rpm_counter);
-  Serial.print(")");
   Serial.print("\n");
+
+  Display.clearBuffer();
+
+  const u8g2_uint_t
+    WidgetX = 18,
+    WidgetY = 23;
+
+  char Buffer[8];
+  String(String(rpm_counter)).toCharArray(Buffer, sizeof(Buffer));
+  Display.drawStr(WidgetX, WidgetY, Buffer);
+
+  Display.sendBuffer();
+
+  delay(measure_delay_ms);
 }
