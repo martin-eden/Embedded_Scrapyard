@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.1
-  Last mod.: 2022-08-07
+  Version: 1.2
+  Last mod.: 2022-08-30
 */
 
 #include "me_SR04_StatePrinter_128x32.h"
@@ -47,35 +47,56 @@ void StatePrinter::DisplayDistance(float DistanceCm)
   Display->drawStr(WidgetX, WidgetY, Buffer);
 }
 
+float FloatMap(float Value, float SrcRangeMin, float SrcRangeMax, float DestRangeMin, float DestRangeMax)
+{
+  if (
+    (SrcRangeMin >= SrcRangeMax) ||
+    (DestRangeMin >= DestRangeMax)
+  )
+    return -1.0;
+
+  Value = max(Value, SrcRangeMin);
+  Value = min(Value, SrcRangeMax);
+
+  float SrcOffset = Value - SrcRangeMin;
+  float SrcSpan = SrcRangeMax - SrcRangeMin;
+  float SrcPos = SrcOffset / SrcSpan;
+  float DestPos = SrcPos;
+  float DestSpan = DestRangeMax - DestRangeMin;
+  float DestOffset = DestPos * DestSpan;
+  float Result = DestOffset + DestRangeMin;
+
+  return Result;
+}
+
 void StatePrinter::DisplayFineMark(float DistanceCm)
 {
-   const float
-      BaseUnitCm = 10.0;
+  const u8g2_uint_t
+    WidgetX = 2,
+    WidgetY = 2,
+    WidgetWidth = 124,
+    WidgetHeight = 28,
+    WidgetToothHeight = 4;
 
-    float BaseCm = trunc(DistanceCm / BaseUnitCm) * BaseUnitCm;
-    float FineMarkPercent = (DistanceCm - BaseCm) / BaseUnitCm * 100.0;
+  const float
+    BaseUnitCm = 5.0;
 
-    const u8g2_uint_t
-      FineMarkWidgetX = 2,
-      FineMarkWidgetY = 2,
-      FineMarkWidgetWidth = 124,
-      FineMarkWidgetHeight = 32;
+  float BaseCm = trunc(DistanceCm / BaseUnitCm) * BaseUnitCm;
 
-    u8g2_uint_t FineMarkPositionX = FineMarkPercent / 100.0 * FineMarkWidgetWidth + FineMarkWidgetX;
+  u8g2_uint_t X =
+    FloatMap(
+      DistanceCm,
+      BaseCm,
+      BaseCm + BaseUnitCm,
+      WidgetX,
+      WidgetX + WidgetWidth
+    );
 
-    Display->drawVLine(FineMarkPositionX, FineMarkWidgetY, FineMarkWidgetHeight);
+  // Display->drawVLine(X, WidgetY, WidgetHeight);
 
-    /*
-    Serial.print(BaseCm);
-    Serial.print(" ");
-    Serial.print(FineMarkPercent);
-    Serial.print(" ");
-    Serial.print(FineMarkPositionX);
-    Serial.print(" ");
-
-    Serial.print("\n");
-    */
- }
+  Display->drawVLine(X, WidgetY, WidgetToothHeight);
+  Display->drawVLine(X, WidgetY + WidgetHeight - WidgetToothHeight, WidgetToothHeight);
+}
 
 void StatePrinter::DisplayFlipFlop()
 {
