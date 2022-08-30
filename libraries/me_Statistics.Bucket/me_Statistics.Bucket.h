@@ -11,6 +11,9 @@ namespace me_Statistics_Bucket
       void Reset(float Span = 1.0);
       bool Add(float Value);
       float GetCurrentSpan();
+      float GetMaxSpan();
+      float GetMinValue();
+      float GetMaxValue();
 
     private:
       float Span;

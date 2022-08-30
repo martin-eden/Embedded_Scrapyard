@@ -33,3 +33,18 @@ float Bucket::GetCurrentSpan()
 {
   return (MaxValue - MinValue);
 }
+
+float Bucket::GetMaxSpan()
+{
+  return Span;
+}
+
+float Bucket::GetMinValue()
+{
+  return MinValue;
+}
+
+float Bucket::GetMaxValue()
+{
+  return MaxValue;
+}
