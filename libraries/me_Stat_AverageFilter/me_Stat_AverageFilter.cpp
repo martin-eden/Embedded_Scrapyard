@@ -10,10 +10,9 @@ void Filter::Reset()
 
 void Filter::Add(float Value)
 {
+  Average = (Average * NumValues / (NumValues + 1)) + (Value / (NumValues + 1));
   if (NumValues < MaxNumValues)
     ++NumValues;
-  Average -= Average / NumValues;
-  Average += Value / NumValues;
 }
 
 float Filter::Get()
