@@ -47,57 +47,6 @@ void StatePrinter::DisplayDistance(float DistanceCm)
   Display->drawStr(WidgetX, WidgetY, Buffer);
 }
 
-float FloatMap(float Value, float SrcRangeMin, float SrcRangeMax, float DestRangeMin, float DestRangeMax)
-{
-  if (
-    (SrcRangeMin >= SrcRangeMax) ||
-    (DestRangeMin >= DestRangeMax)
-  )
-    return -1.0;
-
-  Value = max(Value, SrcRangeMin);
-  Value = min(Value, SrcRangeMax);
-
-  float SrcOffset = Value - SrcRangeMin;
-  float SrcSpan = SrcRangeMax - SrcRangeMin;
-  float SrcPos = SrcOffset / SrcSpan;
-  float DestPos = SrcPos;
-  float DestSpan = DestRangeMax - DestRangeMin;
-  float DestOffset = DestPos * DestSpan;
-  float Result = DestOffset + DestRangeMin;
-
-  return Result;
-}
-
-void StatePrinter::DisplayFineMark(float DistanceCm)
-{
-  const u8g2_uint_t
-    WidgetX = 2,
-    WidgetY = 2,
-    WidgetWidth = 124,
-    WidgetHeight = 28,
-    WidgetToothHeight = 4;
-
-  const float
-    BaseUnitCm = 5.0;
-
-  float BaseCm = trunc(DistanceCm / BaseUnitCm) * BaseUnitCm;
-
-  u8g2_uint_t X =
-    FloatMap(
-      DistanceCm,
-      BaseCm,
-      BaseCm + BaseUnitCm,
-      WidgetX,
-      WidgetX + WidgetWidth
-    );
-
-  // Display->drawVLine(X, WidgetY, WidgetHeight);
-
-  Display->drawVLine(X, WidgetY, WidgetToothHeight);
-  Display->drawVLine(X, WidgetY + WidgetHeight - WidgetToothHeight, WidgetToothHeight);
-}
-
 void StatePrinter::DisplayFlipFlop()
 {
   const u8g2_uint_t
@@ -142,7 +91,6 @@ void StatePrinter::Print(me_SR04_StateGetter::State DataState)
   if (DataState.HasDistance)
   {
     // DisplayGridLines();
-    DisplayFineMark(DataState.DistanceCm);
     DisplayDistance(DataState.DistanceCm);
     // DisplayFlipFlop();
   }
