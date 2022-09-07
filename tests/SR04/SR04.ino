@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.5
-  Last mod.: 2022-08-28
+  Version: 1.6
+  Last mod.: 2022-09-07
 */
 
 #include <me_SR04.h>
@@ -41,7 +41,7 @@ me_Statistics_TimePoint::TimePoint DefaultMinValue(1000.0, 0);
 me_Statistics_TimePoint::TimePoint DefaultMaxValue(0.0, 0);
 
 me_Statistics_Bucket::Bucket Bucket(0.0);
-me_Stat_AverageFilter::Filter Averager(1000);
+me_Stat_AverageFilter::Filter Averager(10);
 
 void setup()
 {
