@@ -257,7 +257,7 @@ void loop()
             Direction = 0: kL = 1.0, kR = 1.0
 
           45 deg left:
-            Direction = -25: kL = 0.5, kR = 1.0
+            Direction = -25: kL = cos(), kR = 1.0
 
           Turn left:
             Direction = -50: kL = 0.0, kR = 1.0
@@ -267,16 +267,18 @@ void loop()
 
         */
 
+        float x, y;
+        x = (float) Direction / 100 * PI;
+        y = cos(x);
+
         if (Direction < 0)
         {
-          kL = map(Direction, -100, 0, -100, 100);
-          kL /= 100.0;
+          kL = y;
           kR = 1.0;
         }
         else
         {
-          kR = map(Direction, 0, 100, 100, -100);
-          kR /= 100.0;
+          kR = y;
           kL = 1.0;
         }
 
@@ -305,7 +307,42 @@ void loop()
 
           EatDelimiter();
 
+          Serial.print("CmdPower = ");
+          Serial.print(CmdPower);
+          Serial.println();
+
           CmdPower = constrain(CmdPower, -100, 100);
+
+          float z;
+
+          z = (float) abs(CmdPower) / 100 * PI / 2;
+          Serial.print("z = ");
+          Serial.print(z);
+          Serial.println();
+
+          z = sin(z);
+          Serial.print("z = ");
+          Serial.print(z);
+          Serial.println();
+
+          z *= 100;
+          Serial.print("z = ");
+          Serial.print(z);
+          Serial.println();
+
+
+          Serial.print("z = ");
+          Serial.print(z);
+          Serial.println();
+
+          if (CmdPower < 0)
+            z = -z;
+
+          CmdPower = z;
+
+          Serial.print("CmdPower = ");
+          Serial.print(CmdPower);
+          Serial.println();
 
           LeftMotor.SetDirectedPower(CmdPower);
           RightMotor.SetDirectedPower(CmdPower);
