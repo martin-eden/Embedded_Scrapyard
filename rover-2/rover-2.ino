@@ -1,14 +1,27 @@
+/*
+  Status: stable
+  Version: 1.0
+  Last mod.: 2022-09-20
+*/
+
 #include <SoftwareSerial.h>
 
 const uint8_t
-  RightMotorPower_pin = 3,
-  RightMotorForward_pin = 4,
-  RightMotorBackward_pin = 5,
-  LeftMotorPower_pin = 9,
-  LeftMotorForward_pin = 11,
-  LeftMotorBackward_pin = 10,
-  ConnectionRX_pin = 12,
-  ConnectionTX_pin = 13;
+  L298N_In1_pin = 5,
+  L298N_In2_pin = 6,
+  L298N_In3_pin = 9,
+  L298N_In4_pin = 10,
+  HC05_TXD_pin = 13,
+  HC05_RXD_pin = 12,
+
+  LeftMotorForward_pin = L298N_In4_pin,
+  LeftMotorBackward_pin = L298N_In3_pin,
+
+  RightMotorForward_pin = L298N_In1_pin,
+  RightMotorBackward_pin = L298N_In2_pin,
+
+  ConnectionRX_pin = HC05_TXD_pin,
+  ConnectionTX_pin = HC05_RXD_pin;
 
 const uint32_t
   SerialSpeed = 57600,
@@ -27,7 +40,6 @@ SoftwareSerial Connection(ConnectionRX_pin, ConnectionTX_pin);
 
 struct t_motor_pins
 {
-  int Power;
   int Forward;
   int Backward;
 };
@@ -35,13 +47,11 @@ struct t_motor_pins
 const t_motor_pins
   LeftMotorPins =
     {
-      Power: LeftMotorPower_pin,
       Forward: LeftMotorForward_pin,
       Backward: LeftMotorBackward_pin
     },
   RightMotorPins =
     {
-      Power: RightMotorPower_pin,
       Forward: RightMotorForward_pin,
       Backward: RightMotorBackward_pin
     };
@@ -54,20 +64,20 @@ class DCMotor
     void Stop();
 
     void SetDirectedPower(int8_t DirectedPower);
-    int8_t GetDirectedPower();
     void SetScaling(float scale);
     float GetScaling();
+    int8_t GetScaledPower();
 
   private:
     t_motor_pins pins;
-    uint8_t Power = 0;
-    bool IsBackward = false;
+    int8_t Power = 0;
+    bool IsBackward();
     float PowerScale;
 
     void Actualize();
     void SetPower();
-    uint8_t GetScaledPinPower();
     void SetDirection();
+    uint8_t GetPwmPower();
 };
 
 DCMotor LeftMotor(LeftMotorPins);
@@ -77,7 +87,6 @@ DCMotor::DCMotor(t_motor_pins motorPins)
 {
   this->pins = motorPins;
 
-  pinMode(pins.Power, OUTPUT);
   pinMode(pins.Forward, OUTPUT);
   pinMode(pins.Backward, OUTPUT);
 
@@ -88,18 +97,12 @@ DCMotor::DCMotor(t_motor_pins motorPins)
 void DCMotor::Stop()
 {
   Power = 0;
-  IsBackward = false;
-
   Actualize();
 }
 
 void DCMotor::SetScaling(float scale)
 {
-  PowerScale = scale;
-
-  PowerScale = constrain(PowerScale, -1.0, 1.0);
-
-  IsBackward = (PowerScale < 0);
+  PowerScale = constrain(scale, -1.0, 1.0);
 
   Actualize();
 }
@@ -107,63 +110,52 @@ void DCMotor::SetScaling(float scale)
 void DCMotor::SetDirectedPower(int8_t DirectedPower)
 {
   DirectedPower = constrain(DirectedPower, -100, 100);
-
-  Power = abs(DirectedPower);
-  IsBackward = (DirectedPower * PowerScale < 0);
+  Power = map(DirectedPower, -100, 100, -128, 127);
 
   Actualize();
 }
 
 void DCMotor::Actualize()
 {
-  SetPower();
-  SetDirection();
+  if (Power == 0)
+  {
+    digitalWrite(pins.Forward, LOW);
+    digitalWrite(pins.Backward, LOW);
+  }
+  else if (IsBackward())
+  {
+    digitalWrite(pins.Forward, LOW);
+    analogWrite(pins.Backward, GetPwmPower());
+  }
+  else
+  {
+    digitalWrite(pins.Backward, LOW);
+    analogWrite(pins.Forward, GetPwmPower());
+  }
 }
 
-void DCMotor::SetPower()
+bool DCMotor::IsBackward()
 {
-  analogWrite(pins.Power, GetScaledPinPower());
+  return (Power * PowerScale < 0);
 }
 
-uint8_t DCMotor::GetScaledPinPower()
+uint8_t DCMotor::GetPwmPower()
 {
-  uint8_t pinPower;
+  int8_t ScaledPower = GetScaledPower();
+  if (ScaledPower < 0)
+    return map(ScaledPower, -128, 0, 255, 0);
+  else
+    return map(ScaledPower, 0, 127, 0, 255);
+}
 
-  pinPower = Power;
-  pinPower = map(pinPower, 0, 100, 0, 255);
-  pinPower = pinPower * abs(GetScaling());
-
-  return pinPower;
+int8_t DCMotor::GetScaledPower()
+{
+  return Power * GetScaling();
 }
 
 float DCMotor::GetScaling()
 {
   return PowerScale;
-}
-
-void DCMotor::SetDirection()
-{
-  if (IsBackward)
-  {
-    digitalWrite(pins.Forward, LOW);
-    digitalWrite(pins.Backward, HIGH);
-  }
-  else
-  {
-    digitalWrite(pins.Forward, HIGH);
-    digitalWrite(pins.Backward, LOW);
-  }
-}
-
-int8_t DCMotor::GetDirectedPower()
-{
-  int8_t result;
-
-  result = Power;
-  if (IsBackward)
-    result = -result;
-
-  return result;
 }
 
 void EatDelimiter()
@@ -192,29 +184,23 @@ void setup()
 void PrintMotorsStatus()
 {
   Connection.print("*L");
-  Connection.print(AdjustPowerToGauge(LeftMotor.GetDirectedPower() * LeftMotor.GetScaling()));
+  Connection.print(AdjustPowerToGauge(LeftMotor.GetScaledPower()));
   Connection.print("*");
 
   Connection.print("*R");
-  Connection.print(AdjustPowerToGauge(RightMotor.GetDirectedPower() * RightMotor.GetScaling()));
+  Connection.print(AdjustPowerToGauge(RightMotor.GetScaledPower()));
   Connection.print("*");
 }
 
 uint16_t AdjustPowerToGauge(int8_t power)
 {
-  uint16_t result;
-
-  result = power + 100;
-  result = min(result, 200);
-
-  return result;
+  return map(power, -128, 127, 0, 200);
 }
 
 void loop()
 {
-  static bool IsOffState = true;
-  static float kL = 1.0;
-  static float kR = 1.0;
+  LeftMotor.Stop();
+  RightMotor.Stop();
 
   if (Connection.available())
   {
@@ -224,16 +210,6 @@ void loop()
 
     switch(Command)
     {
-      case CommandOn:
-        IsOffState = false;
-        break;
-
-      case CommandOff:
-        LeftMotor.Stop();
-        RightMotor.Stop();
-        IsOffState = true;
-        break;
-
       case CommandSetDirection:
       {
         /*
@@ -271,6 +247,8 @@ void loop()
         x = (float) Direction / 100 * PI;
         y = cos(x);
 
+        float kL, kR;
+
         if (Direction < 0)
         {
           kL = y;
@@ -292,64 +270,39 @@ void loop()
         LeftMotor.SetScaling(kL);
         RightMotor.SetScaling(kR);
 
+        PrintMotorsStatus();
+
         break;
       }
       case CommandSetPower:
-        if (!IsOffState)
-        {
-          /*
-            Command format:
+      {
+        /*
+          Command format:
 
-              <CommandSetPower> <[-100, 100]> ";"
-          */
+            <CommandSetPower> <[-100, 100]> ";"
+        */
 
-          int16_t CmdPower = Connection.parseInt();
+        int16_t CmdPower = Connection.parseInt();
 
-          EatDelimiter();
+        EatDelimiter();
 
-          Serial.print("CmdPower = ");
-          Serial.print(CmdPower);
-          Serial.println();
+        CmdPower = constrain(CmdPower, -100, 100);
 
-          CmdPower = constrain(CmdPower, -100, 100);
+        float z;
+        z = (float) CmdPower / 100;
+        z *= PI / 2;
+        z = sin(z);
+        z *= 100;
 
-          float z;
+        CmdPower = z;
 
-          z = (float) abs(CmdPower) / 100 * PI / 2;
-          Serial.print("z = ");
-          Serial.print(z);
-          Serial.println();
+        LeftMotor.SetDirectedPower(CmdPower);
+        RightMotor.SetDirectedPower(CmdPower);
 
-          z = sin(z);
-          Serial.print("z = ");
-          Serial.print(z);
-          Serial.println();
-
-          z *= 100;
-          Serial.print("z = ");
-          Serial.print(z);
-          Serial.println();
-
-
-          Serial.print("z = ");
-          Serial.print(z);
-          Serial.println();
-
-          if (CmdPower < 0)
-            z = -z;
-
-          CmdPower = z;
-
-          Serial.print("CmdPower = ");
-          Serial.print(CmdPower);
-          Serial.println();
-
-          LeftMotor.SetDirectedPower(CmdPower);
-          RightMotor.SetDirectedPower(CmdPower);
-        }
+        PrintMotorsStatus();
 
         break;
-
+      }
       default:
         Serial.print("Unknown command: \"");
         Serial.print(Command);
@@ -359,7 +312,4 @@ void loop()
   }
 
   delay(ProcessingTick_ms);
-
-  if (!IsOffState)
-    PrintMotorsStatus();
 }
