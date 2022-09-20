@@ -1,6 +1,6 @@
 #include <SoftwareSerial.h>
 
-SoftwareSerial softSerial(8, 9); // RX, TX
+SoftwareSerial softSerial(12, 13); // RX, TX
 
 void setup()
 {
