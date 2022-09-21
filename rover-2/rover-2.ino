@@ -1,10 +1,11 @@
 /*
   Status: stable
-  Version: 1.0
+  Version: 2.0
   Last mod.: 2022-09-20
 */
 
 #include <SoftwareSerial.h>
+#include <me_DcMotor.h>
 
 const uint8_t
   L298N_In1_pin = 5,
@@ -27,22 +28,17 @@ const uint32_t
   SerialSpeed = 57600,
   ConnectionSpeed = 57600,
   ConnectionTimeout_ms = 50,
-  ProcessingTick_ms = 250;
+  ProcessingTick_ms = 100,
+  PowerOffTimeout_ms = 500;
 
 const char
-  CommandOn = 'O',
-  CommandOff = 'F',
-  CommandSetDirection = 'D',
-  CommandSetPower = 'P',
-  CommandDelimiter = ';';
+  Command_SetDirection = 'D',
+  Command_SetPower = 'P',
+  Command_Delimiter = ';',
+  Command_PolarCoords_Radius = 'R',
+  Command_PolarCoords_Angle = 'A';
 
 SoftwareSerial Connection(ConnectionRX_pin, ConnectionTX_pin);
-
-struct t_motor_pins
-{
-  int Forward;
-  int Backward;
-};
 
 const t_motor_pins
   LeftMotorPins =
@@ -56,107 +52,8 @@ const t_motor_pins
       Backward: RightMotorBackward_pin
     };
 
-class DCMotor
-{
-  public:
-    DCMotor(t_motor_pins motorPins);
-
-    void Stop();
-
-    void SetDirectedPower(int8_t DirectedPower);
-    void SetScaling(float scale);
-    float GetScaling();
-    int8_t GetScaledPower();
-
-  private:
-    t_motor_pins pins;
-    int8_t Power = 0;
-    bool IsBackward();
-    float PowerScale;
-
-    void Actualize();
-    void SetPower();
-    void SetDirection();
-    uint8_t GetPwmPower();
-};
-
-DCMotor LeftMotor(LeftMotorPins);
-DCMotor RightMotor(RightMotorPins);
-
-DCMotor::DCMotor(t_motor_pins motorPins)
-{
-  this->pins = motorPins;
-
-  pinMode(pins.Forward, OUTPUT);
-  pinMode(pins.Backward, OUTPUT);
-
-  Stop();
-  SetScaling(1.0);
-}
-
-void DCMotor::Stop()
-{
-  Power = 0;
-  Actualize();
-}
-
-void DCMotor::SetScaling(float scale)
-{
-  PowerScale = constrain(scale, -1.0, 1.0);
-
-  Actualize();
-}
-
-void DCMotor::SetDirectedPower(int8_t DirectedPower)
-{
-  DirectedPower = constrain(DirectedPower, -100, 100);
-  Power = map(DirectedPower, -100, 100, -128, 127);
-
-  Actualize();
-}
-
-void DCMotor::Actualize()
-{
-  if (Power == 0)
-  {
-    digitalWrite(pins.Forward, LOW);
-    digitalWrite(pins.Backward, LOW);
-  }
-  else if (IsBackward())
-  {
-    digitalWrite(pins.Forward, LOW);
-    analogWrite(pins.Backward, GetPwmPower());
-  }
-  else
-  {
-    digitalWrite(pins.Backward, LOW);
-    analogWrite(pins.Forward, GetPwmPower());
-  }
-}
-
-bool DCMotor::IsBackward()
-{
-  return (Power * PowerScale < 0);
-}
-
-uint8_t DCMotor::GetPwmPower()
-{
-  int8_t ScaledPower = GetScaledPower();
-  if (ScaledPower < 0)
-    return map(ScaledPower, -128, 0, 255, 0);
-  else
-    return map(ScaledPower, 0, 127, 0, 255);
-}
-
-int8_t DCMotor::GetScaledPower()
-{
-  return Power * GetScaling();
-}
-
-float DCMotor::GetScaling()
-{
-  return PowerScale;
-}
+DcMotor LeftMotor(LeftMotorPins);
+DcMotor RightMotor(RightMotorPins);
 
 void EatDelimiter()
 {
@@ -166,7 +63,7 @@ void EatDelimiter()
     do
     {
       c = Connection.read();
-    } while (c != CommandDelimiter);
+    } while (c != Command_Delimiter);
   }
 }
 
@@ -197,112 +94,178 @@ uint16_t AdjustPowerToGauge(int8_t power)
   return map(power, -128, 127, 0, 200);
 }
 
+void SetDirection(int8_t Direction)
+{
+  Direction = constrain(Direction, -100, 100);
+
+  /*
+    Convert direction to motor coefficients.
+
+    Each coefficient is float in range [-1.0, 1.0].
+
+    No bias:
+      Direction = 0: kL = 1.0, kR = 1.0
+
+    45 deg left:
+      Direction = -25: kL = cos(), kR = 1.0
+
+    Turn left:
+      Direction = -50: kL = 0.0, kR = 1.0
+
+    Skid turn left:
+      Direction = -100: kL = -1.0, kR = 1.0
+  */
+
+  float x, y;
+  x = (float) Direction / 100 * PI;
+  y = cos(x);
+
+  float kL, kR;
+
+  if (Direction < 0)
+  {
+    kL = y;
+    kR = 1.0;
+  }
+  else
+  {
+    kR = y;
+    kL = 1.0;
+  }
+
+  LeftMotor.SetScaling(kL);
+  RightMotor.SetScaling(kR);
+}
+
+void SetPower(int8_t Power)
+{
+  Power = constrain(Power, -100, 100);
+
+  float z;
+  z = (float) Power / 100;
+  z *= PI / 2;
+  z = sin(z);
+  z *= 100;
+
+  Power = z;
+
+  LeftMotor.SetDirectedPower(Power);
+  RightMotor.SetDirectedPower(Power);
+}
+
 void loop()
 {
-  LeftMotor.Stop();
-  RightMotor.Stop();
+  static uint32_t LastCommandTime = 0;
+  uint32_t CurrentTime = millis();
 
-  if (Connection.available())
+  if (CurrentTime - LastCommandTime >= PowerOffTimeout_ms)
   {
-    char Command;
+    LeftMotor.Stop();
+    RightMotor.Stop();
+  }
 
-    Command = Connection.read();
+  while (Connection.available())
+  {
+    LastCommandTime = CurrentTime;
+
+    char Command = Connection.read();
 
     switch(Command)
     {
-      case CommandSetDirection:
+      case Command_SetDirection:
       {
         /*
           Command format:
 
-            <CommandSetDirection> <[-100, 100]> ";"
+            <Command_SetDirection> <[-100, 100]> ";"
         */
 
         int8_t Direction = Connection.parseInt();
-
         EatDelimiter();
 
-        Direction = constrain(Direction, -100, 100);
-
-        /*
-          Convert direction to motor coefficients.
-
-          Each coefficient is float in range [-1.0, 1.0].
-
-          No bias:
-            Direction = 0: kL = 1.0, kR = 1.0
-
-          45 deg left:
-            Direction = -25: kL = cos(), kR = 1.0
-
-          Turn left:
-            Direction = -50: kL = 0.0, kR = 1.0
-
-          Skid turn left:
-            Direction = -100: kL = -1.0, kR = 1.0
-
-        */
-
-        float x, y;
-        x = (float) Direction / 100 * PI;
-        y = cos(x);
-
-        float kL, kR;
-
-        if (Direction < 0)
-        {
-          kL = y;
-          kR = 1.0;
-        }
-        else
-        {
-          kR = y;
-          kL = 1.0;
-        }
-
-        Serial.print("kL = ");
-        Serial.print(kL);
-        Serial.print("; ");
-        Serial.print("kR = ");
-        Serial.print(kR);
-        Serial.println();
-
-        LeftMotor.SetScaling(kL);
-        RightMotor.SetScaling(kR);
+        SetDirection(Direction);
 
         PrintMotorsStatus();
 
         break;
       }
-      case CommandSetPower:
+
+      case Command_SetPower:
       {
         /*
           Command format:
 
-            <CommandSetPower> <[-100, 100]> ";"
+            <Command_SetPower> <[-100, 100]> ";"
         */
 
-        int16_t CmdPower = Connection.parseInt();
-
+        int16_t Power = Connection.parseInt();
         EatDelimiter();
 
-        CmdPower = constrain(CmdPower, -100, 100);
-
-        float z;
-        z = (float) CmdPower / 100;
-        z *= PI / 2;
-        z = sin(z);
-        z *= 100;
-
-        CmdPower = z;
-
-        LeftMotor.SetDirectedPower(CmdPower);
-        RightMotor.SetDirectedPower(CmdPower);
+        SetPower(Power);
 
         PrintMotorsStatus();
 
         break;
       }
+
+      case Command_PolarCoords_Radius:
+      {
+        /*
+          Command format:
+
+            <Command_PolarCoords_Radius> <[1, 100]> <Command_PolarCoords_Angle> <[1, 360]>
+        */
+        uint8_t Radius = Connection.parseInt();
+        Radius = constrain(Radius, 1, 100);
+
+        char NextToken = Connection.read();
+
+        if (NextToken != Command_PolarCoords_Angle)
+          break;
+
+        uint16_t Angle = Connection.parseInt();
+        Angle = constrain(Angle, 1, 360);
+
+        int16_t Power = map(Radius, 1, 100, 0, 100);
+
+        /*
+          Map <Angle> to <Direction>: [1, 360] => [-100, 100]:
+
+            Angle | Direction | Notes
+            ------+-----------+------
+             90   | 100       | Skid turn right
+             180  | 0         | Backward
+             270  | -100      | Skid turn left
+             360  | 0         | Forward
+        */
+        int16_t Direction;
+        if ((Angle >= 1) && (Angle <= 90))
+        {
+          Direction = map(Angle, 0, 90, 0, 100);
+        }
+        else if ((Angle >= 90) && (Angle <= 180))
+        {
+          Direction = map(Angle, 90, 180, -100, 0);
+          Power = -Power;
+        }
+        else if ((Angle >= 180) && (Angle <= 270))
+        {
+          Direction = map(Angle, 180, 270, 0, 100);
+          Power = -Power;
+        }
+        else if ((Angle >= 270) && (Angle <= 360))
+        {
+          Direction = map(Angle, 270, 360, -100, 0);
+        }
+
+        SetDirection(Direction);
+        SetPower(Power);
+
+        PrintMotorsStatus();
+
+        break;
+      }
+
       default:
         Serial.print("Unknown command: \"");
         Serial.print(Command);
