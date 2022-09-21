@@ -2,32 +2,28 @@
 
 #include <Arduino.h>
 
-struct t_motor_pins
+struct TMotorPins
 {
-  int Forward;
-  int Backward;
+  int ForwardPin;
+  int BackwardPin;
 };
 
 class DcMotor
 {
   public:
-    DcMotor(t_motor_pins motorPins);
+    DcMotor(TMotorPins Motor);
 
-    void Stop();
-
-    void SetDirectedPower(int8_t DirectedPower);
-    void SetScaling(float scale);
-    float GetScaling();
-    int8_t GetScaledPower();
+    void SetPower(uint8_t Power);
+    uint8_t GetPower();
+    void SetDirection(uint8_t Direction);
+    uint8_t GetDirection();
 
   private:
-    t_motor_pins pins;
-    int8_t Power = 0;
-    bool IsBackward();
-    float PowerScale;
+    TMotorPins Motor;
+
+    uint8_t Power;
+    uint8_t OfficialDirection;
+    bool IsBackward;
 
     void Actualize();
-    void SetPower();
-    void SetDirection();
-    uint8_t GetPwmPower();
 };

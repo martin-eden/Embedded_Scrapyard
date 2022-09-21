@@ -1,76 +1,60 @@
 #include "me_DcMotor.h"
 
-DcMotor::DcMotor(t_motor_pins motorPins)
+DcMotor::DcMotor(TMotorPins _Motor)
 {
-  this->pins = motorPins;
+  Motor = _Motor;
 
-  pinMode(pins.Forward, OUTPUT);
-  pinMode(pins.Backward, OUTPUT);
-
-  Stop();
-  SetScaling(1.0);
+  SetPower(0);
+  SetDirection(0);
 }
 
-void DcMotor::Stop()
+void DcMotor::SetPower(uint8_t aPower)
 {
-  Power = 0;
-  Actualize();
-}
-
-void DcMotor::SetScaling(float scale)
-{
-  PowerScale = constrain(scale, -1.0, 1.0);
+  Power = aPower;
 
   Actualize();
 }
 
-void DcMotor::SetDirectedPower(int8_t DirectedPower)
+uint8_t DcMotor::GetPower()
 {
-  DirectedPower = constrain(DirectedPower, -100, 100);
-  Power = map(DirectedPower, -100, 100, -128, 127);
+  return Power;
+}
+
+void DcMotor::SetDirection(uint8_t aDirection)
+{
+  // Official direction is integer [0, 255].
+  // Even numbers for forward, odd for backward.
+  OfficialDirection = aDirection;
+
+  // Internally we just need backward flag for custom logic.
+  IsBackward = (OfficialDirection % 2);
 
   Actualize();
+}
+
+uint8_t DcMotor::GetDirection()
+{
+  return OfficialDirection;
 }
 
 void DcMotor::Actualize()
 {
-  if (Power == 0)
+  uint8_t ForwardPower, BackwardPower;
+
+  if (IsBackward)
   {
-    digitalWrite(pins.Forward, LOW);
-    digitalWrite(pins.Backward, LOW);
-  }
-  else if (IsBackward())
-  {
-    digitalWrite(pins.Forward, LOW);
-    analogWrite(pins.Backward, GetPwmPower());
+    ForwardPower = 0;
+    BackwardPower = Power;
   }
   else
   {
-    digitalWrite(pins.Backward, LOW);
-    analogWrite(pins.Forward, GetPwmPower());
+    ForwardPower = Power;
+    BackwardPower = 0;
   }
-}
 
-bool DcMotor::IsBackward()
-{
-  return (Power * PowerScale < 0);
-}
+  pinMode(Motor.ForwardPin, OUTPUT);
+  pinMode(Motor.BackwardPin, OUTPUT);
 
-uint8_t DcMotor::GetPwmPower()
-{
-  int8_t ScaledPower = GetScaledPower();
-  if (ScaledPower < 0)
-    return map(ScaledPower, -128, 0, 255, 0);
-  else
-    return map(ScaledPower, 0, 127, 0, 255);
-}
-
-int8_t DcMotor::GetScaledPower()
-{
-  return Power * GetScaling();
-}
-
-float DcMotor::GetScaling()
-{
-  return PowerScale;
+  analogWrite(MotorPins.ForwardPin, ForwardPower);
+  analogWrite(MotorPins.BackwardPin, BackwardPower);
 }
