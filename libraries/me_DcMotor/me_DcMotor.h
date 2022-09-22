@@ -15,14 +15,13 @@ class DcMotor
 
     void SetPower(uint8_t Power);
     uint8_t GetPower();
-    void SetDirection(uint8_t Direction);
-    uint8_t GetDirection();
+    void SetIsBackward(bool IsBackward);
+    bool GetIsBackward();
 
   private:
     TMotorPins Motor;
 
     uint8_t Power;
-    uint8_t OfficialDirection;
     bool IsBackward;
 
     void Actualize();

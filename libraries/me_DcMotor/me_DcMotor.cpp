@@ -5,7 +5,7 @@ DcMotor::DcMotor(TMotorPins _Motor)
   Motor = _Motor;
 
   SetPower(0);
-  SetDirection(0);
+  SetIsBackward(false);
 }
 
 void DcMotor::SetPower(uint8_t aPower)
@@ -20,21 +20,16 @@ uint8_t DcMotor::GetPower()
   return Power;
 }
 
-void DcMotor::SetDirection(uint8_t aDirection)
+void DcMotor::SetIsBackward(bool aIsBackward)
 {
-  // Official direction is integer [0, 255].
-  // Even numbers for forward, odd for backward.
-  OfficialDirection = aDirection;
-
-  // Internally we just need backward flag for custom logic.
-  IsBackward = (OfficialDirection % 2);
+  IsBackward = aIsBackward;
 
   Actualize();
 }
 
-uint8_t DcMotor::GetDirection()
+bool DcMotor::GetIsBackward()
 {
-  return OfficialDirection;
+  return IsBackward;
 }
 
 void DcMotor::Actualize()
@@ -55,6 +50,6 @@ void DcMotor::Actualize()
   pinMode(Motor.ForwardPin, OUTPUT);
   pinMode(Motor.BackwardPin, OUTPUT);
 
-  analogWrite(MotorPins.ForwardPin, ForwardPower);
-  analogWrite(MotorPins.BackwardPin, BackwardPower);
+  analogWrite(Motor.ForwardPin, ForwardPower);
+  analogWrite(Motor.BackwardPin, BackwardPower);
 }
