@@ -47,16 +47,28 @@ float sign(float a)
 
 void TwoDcMotorsDirector::Actualize()
 {
-  float CosinedDirection = (float) cos(DEG_TO_RAD * DirectionDeg); // [0, 1]
-  float SinedDirection = (float) sin(DEG_TO_RAD * DirectionDeg); // [0, 1]
 
-  float Lateral = sq(CosinedDirection) * Power; // [0, Power]
-  float Longitudinal = sq(SinedDirection) * Power; // [0, Power]
+  /*
+                       Dir = 90
+                          |
+                     SkidTurnLeft
+                          |
+    Dir = 180 - Backward -+- Forward - Dir = 0
+                          |
+                     SkidTurnRight
+                          |
+                      Dir = 270
+  */
+  float SinedDirection = (float) sin(DEG_TO_RAD * DirectionDeg); // [0, 1]
+  float CosinedDirection = (float) cos(DEG_TO_RAD * DirectionDeg); // [0, 1]
+
+  float Longitudinal = sq(CosinedDirection) * Power; // [0, Power]
+  float Lateral = sq(SinedDirection) * Power; // [0, Power]
   // ^ Assert: Longitudinal + Lateral == Power
 
   float LeftMotorPower, RightMotorPower;
-  LeftMotorPower = Longitudinal * sign(SinedDirection) + Lateral * sign(CosinedDirection);
-  RightMotorPower =  Longitudinal * sign(SinedDirection) - Lateral * sign(CosinedDirection);
+  LeftMotorPower = Longitudinal * sign(CosinedDirection) - Lateral * sign(SinedDirection);
+  RightMotorPower = Longitudinal * sign(CosinedDirection) + Lateral * sign(SinedDirection);
 
   LeftMotor->SetIsBackward((LeftMotorPower < 0));
   LeftMotor->SetPower((uint8_t) abs(LeftMotorPower));
