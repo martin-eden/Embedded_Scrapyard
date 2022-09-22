@@ -1,11 +1,13 @@
 /*
   Status: stable
-  Version: 2.0
-  Last mod.: 2022-09-20
+  Version: 3.0
+  Last mod.: 2022-09-21
 */
 
 #include <SoftwareSerial.h>
+
 #include <me_DcMotor.h>
+#include <me_TwoDcMotorsDirector.h>
 
 const uint8_t
   L298N_In1_pin = 5,
@@ -32,125 +34,61 @@ const uint32_t
   PowerOffTimeout_ms = 500;
 
 const char
-  Command_SetDirection = 'D',
-  Command_SetPower = 'P',
-  Command_Delimiter = ';',
   Command_PolarCoords_Radius = 'R',
   Command_PolarCoords_Angle = 'A';
 
-SoftwareSerial Connection(ConnectionRX_pin, ConnectionTX_pin);
-
-const t_motor_pins
+const TMotorPins
   LeftMotorPins =
     {
-      Forward: LeftMotorForward_pin,
-      Backward: LeftMotorBackward_pin
+      ForwardPin: LeftMotorForward_pin,
+      BackwardPin: LeftMotorBackward_pin
     },
   RightMotorPins =
     {
-      Forward: RightMotorForward_pin,
-      Backward: RightMotorBackward_pin
+      ForwardPin: RightMotorForward_pin,
+      BackwardPin: RightMotorBackward_pin
     };
+
+SoftwareSerial Connection(ConnectionRX_pin, ConnectionTX_pin);
 
 DcMotor LeftMotor(LeftMotorPins);
 DcMotor RightMotor(RightMotorPins);
 
-void EatDelimiter()
-{
-  if (Connection.available())
-  {
-    char c;
-    do
-    {
-      c = Connection.read();
-    } while (c != Command_Delimiter);
-  }
-}
+TwoDcMotorsDirector MotorsDirector(&LeftMotor, &RightMotor);
 
 void setup()
 {
   Serial.begin(SerialSpeed);
-  Serial.println("Hello there!");
+
+  Serial.println("Serial: Hello there!");
 
   Connection.begin(ConnectionSpeed);
   Connection.setTimeout(ConnectionTimeout_ms);
 
-  Connection.println("Hey there!");
+  Connection.println("Bluetooth: Hey there!");
 }
 
 void PrintMotorsStatus()
 {
   Connection.print("*L");
-  Connection.print(AdjustPowerToGauge(LeftMotor.GetScaledPower()));
+  Connection.print(AdjustToPowerGauge(LeftMotor));
   Connection.print("*");
 
   Connection.print("*R");
-  Connection.print(AdjustPowerToGauge(RightMotor.GetScaledPower()));
+  Connection.print(AdjustToPowerGauge(RightMotor));
   Connection.print("*");
 }
 
-uint16_t AdjustPowerToGauge(int8_t power)
+int16_t AdjustToPowerGauge(DcMotor Motor)
 {
-  return map(power, -128, 127, 0, 200);
-}
+  int16_t Result;
 
-void SetDirection(int8_t Direction)
-{
-  Direction = constrain(Direction, -100, 100);
+  Result = Motor.GetPower();
+  Result = map(Result, 0, 255, 0, 100);
+  if (Motor.GetIsBackward())
+    Result = -Result;
 
-  /*
-    Convert direction to motor coefficients.
-
-    Each coefficient is float in range [-1.0, 1.0].
-
-    No bias:
-      Direction = 0: kL = 1.0, kR = 1.0
-
-    45 deg left:
-      Direction = -25: kL = cos(), kR = 1.0
-
-    Turn left:
-      Direction = -50: kL = 0.0, kR = 1.0
-
-    Skid turn left:
-      Direction = -100: kL = -1.0, kR = 1.0
-  */
-
-  float x, y;
-  x = (float) Direction / 100 * PI;
-  y = cos(x);
-
-  float kL, kR;
-
-  if (Direction < 0)
-  {
-    kL = y;
-    kR = 1.0;
-  }
-  else
-  {
-    kR = y;
-    kL = 1.0;
-  }
-
-  LeftMotor.SetScaling(kL);
-  RightMotor.SetScaling(kR);
-}
-
-void SetPower(int8_t Power)
-{
-  Power = constrain(Power, -100, 100);
-
-  float z;
-  z = (float) Power / 100;
-  z *= PI / 2;
-  z = sin(z);
-  z *= 100;
-
-  Power = z;
-
-  LeftMotor.SetDirectedPower(Power);
-  RightMotor.SetDirectedPower(Power);
+  return Result;
 }
 
 void loop()
@@ -160,8 +98,7 @@ void loop()
 
   if (CurrentTime - LastCommandTime >= PowerOffTimeout_ms)
   {
-    LeftMotor.Stop();
-    RightMotor.Stop();
+    MotorsDirector.SetPower(0);
   }
 
   while (Connection.available())
@@ -172,42 +109,6 @@ void loop()
 
     switch(Command)
     {
-      case Command_SetDirection:
-      {
-        /*
-          Command format:
-
-            <Command_SetDirection> <[-100, 100]> ";"
-        */
-
-        int8_t Direction = Connection.parseInt();
-        EatDelimiter();
-
-        SetDirection(Direction);
-
-        PrintMotorsStatus();
-
-        break;
-      }
-
-      case Command_SetPower:
-      {
-        /*
-          Command format:
-
-            <Command_SetPower> <[-100, 100]> ";"
-        */
-
-        int16_t Power = Connection.parseInt();
-        EatDelimiter();
-
-        SetPower(Power);
-
-        PrintMotorsStatus();
-
-        break;
-      }
-
       case Command_PolarCoords_Radius:
       {
         /*
@@ -226,40 +127,11 @@ void loop()
         uint16_t Angle = Connection.parseInt();
         Angle = constrain(Angle, 1, 360);
 
-        int16_t Power = map(Radius, 1, 100, 0, 100);
+        int16_t Direction = Angle % 360;
+        int16_t Power = map(Radius, 1, 100, 0, 255);
 
-        /*
-          Map <Angle> to <Direction>: [1, 360] => [-100, 100]:
-
-            Angle | Direction | Notes
-            ------+-----------+------
-             90   | 100       | Skid turn right
-             180  | 0         | Backward
-             270  | -100      | Skid turn left
-             360  | 0         | Forward
-        */
-        int16_t Direction;
-        if ((Angle >= 1) && (Angle <= 90))
-        {
-          Direction = map(Angle, 0, 90, 0, 100);
-        }
-        else if ((Angle >= 90) && (Angle <= 180))
-        {
-          Direction = map(Angle, 90, 180, -100, 0);
-          Power = -Power;
-        }
-        else if ((Angle >= 180) && (Angle <= 270))
-        {
-          Direction = map(Angle, 180, 270, 0, 100);
-          Power = -Power;
-        }
-        else if ((Angle >= 270) && (Angle <= 360))
-        {
-          Direction = map(Angle, 270, 360, -100, 0);
-        }
-
-        SetDirection(Direction);
-        SetPower(Power);
+        MotorsDirector.SetDirection(Direction);
+        MotorsDirector.SetPower(Power);
 
         PrintMotorsStatus();
 
@@ -267,10 +139,14 @@ void loop()
       }
 
       default:
-        Serial.print("Unknown command: \"");
+      {
+        Serial.print("?(");
         Serial.print(Command);
-        Serial.print("\"");
+        Serial.print(")");
         Serial.println();
+
+        break;
+      }
     }
   }
 
