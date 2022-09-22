@@ -86,7 +86,9 @@ int16_t AdjustToPowerGauge(DcMotor Motor)
   Result = Motor.GetPower();
   Result = map(Result, 0, 255, 0, 100);
   if (Motor.GetIsBackward())
-    Result = -Result;
+    Result = 100 - Result;
+  else
+    Result = Result + 100;
 
   return Result;
 }
@@ -94,17 +96,17 @@ int16_t AdjustToPowerGauge(DcMotor Motor)
 void loop()
 {
   static uint32_t LastCommandTime = 0;
-  uint32_t CurrentTime = millis();
+  static bool MotorsAreOff = true;
 
-  if (CurrentTime - LastCommandTime >= PowerOffTimeout_ms)
+  uint32_t CurrentTime = millis();
+  if ((CurrentTime - LastCommandTime >= PowerOffTimeout_ms) && !MotorsAreOff)
   {
     MotorsDirector.SetPower(0);
+    MotorsAreOff = true;
   }
 
   while (Connection.available())
   {
-    LastCommandTime = CurrentTime;
-
     char Command = Connection.read();
 
     switch(Command)
@@ -127,13 +129,17 @@ void loop()
         uint16_t Angle = Connection.parseInt();
         Angle = constrain(Angle, 1, 360);
 
-        int16_t Direction = Angle % 360;
+        int16_t Direction = 359 - (Angle % 360);
         int16_t Power = map(Radius, 1, 100, 0, 255);
 
         MotorsDirector.SetDirection(Direction);
         MotorsDirector.SetPower(Power);
 
+        MotorsAreOff = false;
+
         PrintMotorsStatus();
+
+        LastCommandTime = CurrentTime;
 
         break;
       }
