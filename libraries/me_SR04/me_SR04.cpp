@@ -2,19 +2,20 @@
 
 /*
   Status: stable
-  Version: 1.1
-  Last mod.: 2022-06-20
+  Version: 1.2
+  Last mod.: 2022-10-08
 */
 
 /*
-  This sensor registeres echo returned after emitting pulse signal.
+  This sensor registers echo returned after emitting pulse signal.
 
-  Unlike normal physics, to get distance we need to measure duration of
-  sinal on echo pin, not delay between end of pulse and start of echo.
+  Unlike normal physics, to get distance we need to measure not delay
+  between start of pulse and start of echo but the duration of signal
+  on echo pin.
 
-  After emitting strobe ~10us duration ~500us passes and echo pin goes
-  HIGH. In sensor circuit there is builtin echo pin HIGH duration
-  timeout ~= 200ms.
+  After emitting strobe, there is some delay (0.5, 2) ms depending of
+  flair of SR-04. Then echo pin goes HIGH. It stays high till start
+  of receiving of echo. Or until timeout which is like 200 ms.
 */
 
 #include "me_SR04.h"
@@ -26,10 +27,10 @@ using namespace me_SignalTime;
 void me_SR04::SR04::Request()
 {
   const uint32_t
-    PulseDurationMcr = 250,
-    SignalStartTimeoutMcr = 1000,
+    StrobeDurationMcr = 250,
+    SignalStartTimeoutMcr = 2500,
     SignalMaxDurationMcr = 50000,
-    SignalMaxWaitTimeout = 250000;
+    SignalEndTimeoutMcr = 250000;
 
   uint32_t SignalStartMcr;
   uint32_t SignalDurationMcr;
@@ -39,7 +40,7 @@ void me_SR04::SR04::Request()
   pinMode(TriggerPin, OUTPUT);
 
   digitalWrite(TriggerPin, HIGH);
-  delayMicroseconds(PulseDurationMcr);
+  delayMicroseconds(StrobeDurationMcr);
   digitalWrite(TriggerPin, LOW);
 
   pinMode(EchoPin, INPUT);
@@ -51,7 +52,7 @@ void me_SR04::SR04::Request()
   }
   else
   {
-    SignalDurationMcr = GetLevelTime(EchoPin, HIGH, SignalMaxWaitTimeout);
+    SignalDurationMcr = GetLevelTime(EchoPin, HIGH, SignalEndTimeoutMcr);
     if ((SignalDurationMcr == 0) || (SignalDurationMcr > SignalMaxDurationMcr))
     {
       RequestStatus = ReadStatus::NoSignalEnd;
