@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.2
-  Last mod.: 2022-10-08
+  Version: 1.3
+  Last mod.: 2022-10-09
 */
 
 /*
@@ -22,45 +22,61 @@
 #include <me_SignalTime.h>
 
 using namespace me_SR04;
-using namespace me_SignalTime;
 
-void me_SR04::SR04::Request()
+void SR04::Ping()
 {
-  const uint32_t
-    StrobeDurationMcr = 250,
-    SignalStartTimeoutMcr = 2500,
-    SignalMaxDurationMcr = 50000,
-    SignalEndTimeoutMcr = 250000;
-
-  uint32_t SignalStartMcr;
-  uint32_t SignalDurationMcr;
-
   RequestStatus = ReadStatus::Unknown;
 
-  pinMode(TriggerPin, OUTPUT);
+  Throw();
 
+  bool IsStarted, IsEnded;
+  uint32_t Duration;
+
+  Catch(&IsStarted, &IsEnded, &Duration);
+
+  if (!IsStarted)
+    RequestStatus = ReadStatus::NoSignalStart;
+  else if (!IsEnded)
+    RequestStatus = ReadStatus::NoSignalEnd;
+  else
+  {
+    EchoDelayMcr = Duration;
+    RequestStatus = ReadStatus::Success;
+  }
+}
+
+void SR04::Throw()
+{
+  const uint32_t
+    StrobeDurationMcr = 250;
+
+  pinMode(TriggerPin, OUTPUT);
   digitalWrite(TriggerPin, HIGH);
   delayMicroseconds(StrobeDurationMcr);
   digitalWrite(TriggerPin, LOW);
+}
+
+void SR04::Catch(bool *IsStarted, bool *IsEnded, uint32_t *Duration)
+{
+  *IsStarted = false;
+  *IsEnded = false;
+  *Duration = 0;
+
+  const uint32_t
+    StartTimeoutMcr = 2500,
+    DurationTimeoutMcr = 250000;
 
   pinMode(EchoPin, INPUT);
 
-  SignalStartMcr = GetLevelTime(EchoPin, LOW, SignalStartTimeoutMcr);
-  if (SignalStartMcr == 0)
+  uint32_t StartMcr = me_SignalTime::GetLevelTime(EchoPin, LOW, StartTimeoutMcr);
+  if (StartMcr != 0)
   {
-    RequestStatus = ReadStatus::NoSignalStart;
-  }
-  else
-  {
-    SignalDurationMcr = GetLevelTime(EchoPin, HIGH, SignalEndTimeoutMcr);
-    if ((SignalDurationMcr == 0) || (SignalDurationMcr > SignalMaxDurationMcr))
+    *IsStarted = true;
+    uint32_t DurationMcr = me_SignalTime::GetLevelTime(EchoPin, HIGH, DurationTimeoutMcr);
+    if (DurationMcr != 0)
     {
-      RequestStatus = ReadStatus::NoSignalEnd;
-    }
-    else
-    {
-      EchoDelayMcr = SignalDurationMcr;
-      RequestStatus = ReadStatus::Success;
+      *IsEnded = true;
+      *Duration = DurationMcr;
     }
   }
 }
