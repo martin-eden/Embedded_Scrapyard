@@ -1,13 +1,21 @@
+// Magnetic bucket implementation
+
+/*
+  Status: stable
+  Version: 0.8
+  Last mod.: 2022-10-09
+*/
+
 #include "me_Statistics.Bucket.h"
 
 using namespace me_Statistics_Bucket;
 
-Bucket::Bucket(float Span = 1.0)
+Bucket::Bucket(float Span)
 {
   Reset(Span);
 }
 
-void Bucket::Reset(float Span = 1.0)
+void Bucket::Reset(float Span)
 {
   this->Span = Span;
   MinValue = 1e6;
@@ -19,7 +27,7 @@ bool Bucket::Add(float Value)
   float NewMinValue = min(MinValue, Value);
   float NewMaxValue = max(MaxValue, Value);
 
-  bool Result = NewMaxValue - NewMinValue < Span;
+  bool Result = ((NewMaxValue - NewMinValue) < Span);
   if (Result)
   {
     MinValue = NewMinValue;
