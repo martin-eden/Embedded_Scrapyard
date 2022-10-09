@@ -120,7 +120,7 @@ void loop()
   // Typical jitter is from 2.05% to 3.07% in my tests. Closer the
   // distance, more % of jitter but less jitter delta in cm.
 
-  Sonar.Request();
+  Sonar.Ping();
   me_SR04_StateGetter::State RequestStatus = me_SR04_StateGetter::GetState(&Sonar);
 
   if (RequestStatus.HasDistance)
