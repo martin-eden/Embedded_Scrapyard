@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.6
-  Last mod.: 2022-09-07
+  Version: 1.7
+  Last mod.: 2022-09-10
 */
 
 #include <me_SR04.h>
@@ -34,7 +34,7 @@ const uint32_t
 U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R2);
 
 me_SR04::SR04 Sonar(TriggerPin, EchoPin);
-CapacitiveFilter dataSmoother(DataFilterCapacitance, DataFilterAutoFlushSteps);
+CapacitiveFilter Capacitor(DataFilterCapacitance, DataFilterAutoFlushSteps);
 me_SR04_StatePrinter_128x32::StatePrinter StatePrinter(&Display);
 
 me_Statistics_TimePoint::TimePoint DefaultMinValue(1000.0, 0);
@@ -45,46 +45,111 @@ me_Stat_AverageFilter::Filter Averager(10);
 
 void setup()
 {
-  Serial.begin(57600);
-  delay(3000);
-
   Display.begin();
   Display.setContrast(10);
+
+  Serial.begin(57600);
+  delay(3000);
+}
+
+void loop()
+{
+  Sonar.Ping();
+  me_SR04_StateGetter::State RequestStatus = me_SR04_StateGetter::GetState(&Sonar);
+
+  if (RequestStatus.HasDistance)
+  {
+    using namespace me_Statistics_TimePoint;
+
+    static int32_t TimePosition = 0;
+
+    float sensorDistance = RequestStatus.DistanceCm;
+
+    Capacitor.SetCapacitance(sensorDistance * CapacitancePerDistance);
+    Capacitor.Add(sensorDistance);
+
+    Averager.Add(sensorDistance);
+
+    if (!Bucket.Add(sensorDistance))
+    {
+      float newJitter = EstimateJitter(sensorDistance);
+      // Serial.print("new Jitter: ");
+      // Serial.println(newJitter);
+
+      Bucket.SetMaxSpan(newJitter);
+      Bucket.Add(sensorDistance);
+
+      Capacitor.Flush();
+      Capacitor.Add(sensorDistance);
+
+      Averager.Reset();
+      Averager.Add(sensorDistance);
+
+      // Serial.println("Bucket recreated.");
+    }
+
+    ++TimePosition;
+
+    RequestStatus.DistanceCm = Capacitor.Get();
+
+    PrintStatus(sensorDistance);
+  }
+
+  Display.clearBuffer();
+  DisplayFineMark(&Display, &Bucket, Averager.Get());
+  StatePrinter.Print(RequestStatus);
+  Display.sendBuffer();
+
+  delay(MeasurementDelayMs);
 }
 
 float EstimateJitter(float Distance)
 {
-  float result;
+  // Typical jitter is from 2.05% to 3.07% in my tests. Closer the
+  // distance, more % of jitter but less jitter delta in cm.
 
   const float
-    MinJitter = 1.1,
-    JitterPerDistance = 0.014;
+    MinJitter = 2.1,
+    JitterPerDistance = 0.03;
 
-  result = max(MinJitter, Distance * JitterPerDistance);
-
-  return result;
-}
-
-float FloatMap(float Value, float SrcRangeMin, float SrcRangeMax, float DestRangeMin, float DestRangeMax)
-{
-  if (
-    (SrcRangeMin >= SrcRangeMax) ||
-    (DestRangeMin >= DestRangeMax)
-  )
-    return -1.0;
-
-  Value = max(Value, SrcRangeMin);
-  Value = min(Value, SrcRangeMax);
-
-  float SrcOffset = Value - SrcRangeMin;
-  float SrcSpan = SrcRangeMax - SrcRangeMin;
-  float SrcPos = SrcOffset / SrcSpan;
-  float DestPos = SrcPos;
-  float DestSpan = DestRangeMax - DestRangeMin;
-  float DestOffset = DestPos * DestSpan;
-  float Result = DestOffset + DestRangeMin;
+  float Result = max(MinJitter, Distance * JitterPerDistance);
 
   return Result;
+}
+
+void PrintStatus(float sensorDistance)
+{
+
+  Serial.print("(");
+  Serial.print(sensorDistance);
+  Serial.print(")");
+
+  Serial.print(" ");
+  Serial.print("(");
+  Serial.print(Averager.Get());
+  Serial.print(")");
+
+  Serial.print(" ");
+
+  Serial.print("(");
+  Serial.print(Capacitor.Get());
+  Serial.print(")");
+
+  Serial.print(" ");
+
+  Serial.print("(");
+  Serial.print(Bucket.GetMinValue());
+  Serial.print(" ");
+  Serial.print(Bucket.GetMaxValue());
+  Serial.print(" ");
+  Serial.print("(");
+  Serial.print(Bucket.GetCurSpan());
+  Serial.print(" ");
+  Serial.print(Bucket.GetMaxSpan());
+  Serial.print(")");
+  Serial.print(")");
+
+  Serial.println();
 }
 
 void DisplayFineMark(
@@ -115,73 +180,24 @@ void DisplayFineMark(
   Display->drawVLine(X, WidgetY + WidgetHeight - WidgetToothHeight, WidgetToothHeight);
 }
 
-void loop()
+float FloatMap(float Value, float SrcRangeMin, float SrcRangeMax, float DestRangeMin, float DestRangeMax)
 {
-  // Typical jitter is from 2.05% to 3.07% in my tests. Closer the
-  // distance, more % of jitter but less jitter delta in cm.
+  if (
+    (SrcRangeMin >= SrcRangeMax) ||
+    (DestRangeMin >= DestRangeMax)
+  )
+    return -1.0;
 
-  Sonar.Ping();
-  me_SR04_StateGetter::State RequestStatus = me_SR04_StateGetter::GetState(&Sonar);
+  Value = max(Value, SrcRangeMin);
+  Value = min(Value, SrcRangeMax);
 
-  if (RequestStatus.HasDistance)
-  {
-    using namespace me_Statistics_TimePoint;
+  float SrcOffset = Value - SrcRangeMin;
+  float SrcSpan = SrcRangeMax - SrcRangeMin;
+  float SrcPos = SrcOffset / SrcSpan;
+  float DestPos = SrcPos;
+  float DestSpan = DestRangeMax - DestRangeMin;
+  float DestOffset = DestPos * DestSpan;
+  float Result = DestOffset + DestRangeMin;
 
-    static int32_t TimePosition = 0;
-
-    float sensorDistance = RequestStatus.DistanceCm;
-
-    dataSmoother.SetCapacitance(sensorDistance * CapacitancePerDistance);
-    dataSmoother.Add(sensorDistance);
-
-    Averager.Add(sensorDistance);
-
-    if (!Bucket.Add(sensorDistance))
-    {
-      float Jitter = EstimateJitter(sensorDistance);
-      Serial.print("Jitter = ");
-      Serial.println(Jitter);
-
-      Bucket.Reset(Jitter);
-      Bucket.Add(sensorDistance);
-
-      dataSmoother.Flush();
-      dataSmoother.Add(sensorDistance);
-
-      Averager.Reset();
-      Averager.Add(sensorDistance);
-
-      Serial.println("Bucket recreated.");
-    }
-
-    ++TimePosition;
-
-    RequestStatus.DistanceCm = Averager.Get();
-
-    Serial.print(sensorDistance);
-
-    Serial.print(" ");
-    Serial.print(dataSmoother.Get());
-
-    Serial.print(" ");
-    Serial.print(Averager.Get());
-
-    Serial.print(" ");
-    Serial.print(Bucket.GetMaxSpan());
-
-    Serial.print(" ");
-    Serial.print(Bucket.GetMinValue());
-
-    Serial.print(" ");
-    Serial.print(Bucket.GetMaxValue());
-
-    Serial.println();
-  }
-
-  Display.clearBuffer();
-  DisplayFineMark(&Display, &Bucket, RequestStatus.DistanceCm);
-  StatePrinter.Print(RequestStatus);
-  Display.sendBuffer();
-
-  delay(MeasurementDelayMs);
+  return Result;
 }
