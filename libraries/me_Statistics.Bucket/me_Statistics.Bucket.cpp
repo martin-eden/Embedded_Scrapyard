@@ -2,24 +2,25 @@
 
 /*
   Status: stable
-  Version: 0.8
-  Last mod.: 2022-10-09
+  Version: 1.0
+  Last mod.: 2022-10-10
 */
 
 #include "me_Statistics.Bucket.h"
+#include <float.h>
 
 using namespace me_Statistics_Bucket;
 
 Bucket::Bucket(float Span)
 {
-  Reset(Span);
+  SetMaxSpan(Span);
 }
 
-void Bucket::Reset(float Span)
+void Bucket::SetMaxSpan(float Span)
 {
-  this->Span = Span;
-  MinValue = 1e6;
-  MaxValue = -MinValue;
+  this->MaxSpan = Span;
+  this->MinValue = FLT_MAX;
+  this->MaxValue = -FLT_MAX;
 }
 
 bool Bucket::Add(float Value)
@@ -27,7 +28,9 @@ bool Bucket::Add(float Value)
   float NewMinValue = min(MinValue, Value);
   float NewMaxValue = max(MaxValue, Value);
 
-  bool Result = ((NewMaxValue - NewMinValue) < Span);
+  float NewSpan = CalculateSpan(NewMinValue, NewMaxValue);
+
+  bool Result = (NewSpan < GetMaxSpan());
   if (Result)
   {
     MinValue = NewMinValue;
@@ -37,22 +40,27 @@ bool Bucket::Add(float Value)
   return Result;
 }
 
-float Bucket::GetCurrentSpan()
+float Bucket::GetCurSpan()
 {
-  return (MaxValue - MinValue);
+  return CalculateSpan(MinValue, MaxValue);
 }
 
 float Bucket::GetMaxSpan()
 {
-  return Span;
+  return this->MaxSpan;
 }
 
 float Bucket::GetMinValue()
 {
-  return MinValue;
+  return this->MinValue;
 }
 
 float Bucket::GetMaxValue()
 {
-  return MaxValue;
+  return this->MaxValue;
+}
+
+float Bucket::CalculateSpan(float MinValue, float MaxValue)
+{
+  return (MaxValue - MinValue);
 }

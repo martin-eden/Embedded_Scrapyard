@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.0
-  Last mod.: 2022-10-09
+  Version: 1.1
+  Last mod.: 2022-10-10
 */
 
 /*
@@ -33,10 +33,10 @@
 
   Methods:
 
-    Reset(Span) - Set new maximum span and reset margins.
-    Add(Value) - Add value if it fits into span.
+    SetSpan(Span) - Set new maximum span and reset margins.
+    Add(Value) - bool - Add value if it fits into span.
 
-    GetCurrentSpan() - float - Get distance between low and high margins.
+    GetCurSpan() - float - Get distance between low and high margins.
     GetMaxSpan() - float - Get maximum span.
     GetMinValue() - float - Get current low bucket margin.
     GetMaxValue() - float - Get current high bucket margin.
@@ -56,17 +56,21 @@ namespace me_Statistics_Bucket
   class Bucket
   {
     public:
-      Bucket(float Span);
-      void Reset(float Span);
+      Bucket(float MaxSpan);
+
+      void SetMaxSpan(float Span);
       bool Add(float Value);
-      float GetCurrentSpan();
+
+      float GetCurSpan();
       float GetMaxSpan();
       float GetMinValue();
       float GetMaxValue();
 
     private:
-      float Span;
+      float MaxSpan;
       float MinValue;
       float MaxValue;
+
+      float CalculateSpan(float MinValue, float MaxValue);
   };
 }
