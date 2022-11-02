@@ -1,3 +1,11 @@
+// Higher-level wrapper for <me_SR04> ultrasonic sensor.
+
+/*
+  Status: stable
+  Version: 1.0
+  Last mod.: 2022-11-01
+*/
+
 #include "me_SR04_StateGetter.h"
 
 #include <me_SR04.h>
