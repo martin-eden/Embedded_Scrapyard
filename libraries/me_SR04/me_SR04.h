@@ -2,28 +2,49 @@
 
 /*
   Status: stable
-  Version: 1.0
-  Last mod.: 2022-10-09
+  Version: 1.1
+  Last mod.: 2022-11-01
 */
 
 /*
-  Pins:
-    "Trig" - TriggerPin - output pin to emit ping
-    "Echo" - EchoPin - input pin to receive echo
+  Wiring
 
-  Hints:
-    * You can wire "Trig" and "Echo" to one pin.
+    Sensor pin name | Program pin name
+    ----------------+-----------------
+    Trig            | TriggerPin
+    Echo            | EchoPin
 
-  Init:
-    TriggerPin, EchoPin
+    Trig and Echo can be connected to one physical pin.
 
-  Usage:
-    Ping()
+  Init
 
-  Output:
-    EchoDelayMcr - uint32_t
-    RequestStatus - ReadStatus:
-      (Unknown, Success, NoSignalStart, NoSignalEnd)
+    SR04(uint8_t aTriggerPin, uint8_t aEchoPin)
+
+  Usage
+
+    void Ping()
+
+      Send signal and wait for return echo.
+
+      Has built-in timeout if no echo is received.
+
+      Updates <RequestStatus> and <EchoDelayMcr>.
+
+    ReadStatus RequestStatus
+
+      If <RequestStatus> is <Success> then use <EchoDelayMcr>.
+
+      Possible values are
+
+        Unknown
+        Success
+        NoSignalStart
+        NoSignalEnd
+
+    uint32_t EchoDelayMcr
+
+      Delay in microseconds between pulse and echo. Use it to calculate
+      distance.
 */
 
 #pragma once
@@ -48,6 +69,7 @@ namespace me_SR04
 
       SR04(uint8_t aTriggerPin, uint8_t aEchoPin) :
         TriggerPin(aTriggerPin), EchoPin(aEchoPin) {};
+
       void Ping();
 
     private:

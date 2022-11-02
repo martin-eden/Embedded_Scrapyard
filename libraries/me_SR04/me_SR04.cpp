@@ -3,7 +3,7 @@
 /*
   Status: stable
   Version: 1.3
-  Last mod.: 2022-10-09
+  Last mod.: 2022-11-01
 */
 
 /*
@@ -13,9 +13,10 @@
   between start of pulse and start of echo but the duration of signal
   on echo pin.
 
-  After emitting strobe, there is some delay (0.5, 2) ms depending of
-  flair of SR-04. Then echo pin goes HIGH. It stays high till start
-  of receiving of echo. Or until timeout which is like 200 ms.
+  After emitting strobe, there is some delay between(0.5, 2) ms
+  (depending of flair of SR-04). And then echo pin goes HIGH. It stays
+  high till start of receiving of echo. Or until hardware timeout which
+  is like 200 ms. We are measuring duration of that HIGH state.
 */
 
 #include "me_SR04.h"
