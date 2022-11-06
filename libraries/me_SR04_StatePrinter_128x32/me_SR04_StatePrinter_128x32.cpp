@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.2
-  Last mod.: 2022-08-30
+  Version: 1.3
+  Last mod.: 2022-11-06
 */
 
 #include "me_SR04_StatePrinter_128x32.h"
@@ -40,8 +40,12 @@ void StatePrinter::DisplayDistance(float DistanceCm)
     WidgetX = 18,
     WidgetY = 23;
 
-  char Buffer[16];
-  String(String(DistanceCm, 1) + " cm").toCharArray(Buffer, sizeof(Buffer));
+  const uint8_t BufferSize = 16;
+  char Buffer[BufferSize];
+
+  uint16_t DistanceInt = DistanceCm;
+  uint8_t DistanceFrac = uint32_t(DistanceCm * 10) % 10;
+  snprintf(Buffer, BufferSize, "%d.%d cm", DistanceInt, DistanceFrac);
 
   Display->setFont(u8g2_font_profont22_tf);
   Display->drawStr(WidgetX, WidgetY, Buffer);
