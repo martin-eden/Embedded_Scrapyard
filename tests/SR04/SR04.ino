@@ -2,19 +2,21 @@
 
 /*
   Status: stable
-  Version: 1.7
-  Last mod.: 2022-09-10
+  Version: 1.8
+  Last mod.: 2022-11-06
 */
+
+#include <U8g2lib.h>
 
 #include <me_SR04.h>
 #include <me_SR04_StateGetter.h>
-#include <me_SR04_StatePrinter_128x32.h>
+
 #include <me_CapacitiveFilter.h>
 #include <me_Statistics_TimePoint.h>
 #include <me_Statistics.Bucket.h>
 #include <me_Stat_AverageFilter.h>
 
-#include <U8g2lib.h>
+#include <me_SR04_StatePrinter_128x64.h>
 
 const uint8_t
   TriggerPin = 4,
@@ -31,11 +33,11 @@ const uint32_t
   DataFilterAutoFlushSteps = 900,
   AverageFilterNumNodes = 0xFFFFFFFF;
 
-U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C Display(U8G2_R2);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C Display(U8G2_R0);
 
 me_SR04::SR04 Sonar(TriggerPin, EchoPin);
 CapacitiveFilter Capacitor(DataFilterCapacitance, DataFilterAutoFlushSteps);
-me_SR04_StatePrinter_128x32::StatePrinter StatePrinter(&Display);
+me_SR04_StatePrinter_128x64::StatePrinter StatePrinter(&Display);
 
 me_Statistics_TimePoint::TimePoint DefaultMinValue(1000.0, 0);
 me_Statistics_TimePoint::TimePoint DefaultMaxValue(0.0, 0);
@@ -49,7 +51,6 @@ void setup()
   Display.setContrast(10);
 
   Serial.begin(57600);
-  delay(3000);
 }
 
 void loop()
@@ -96,8 +97,8 @@ void loop()
   }
 
   Display.clearBuffer();
-  DisplayFineMark(&Display, &Bucket, Averager.Get());
-  StatePrinter.Print(RequestStatus);
+  // DisplayFineMark(&Display, &Bucket, Averager.Get());
+  StatePrinter.Display(RequestStatus);
   Display.sendBuffer();
 
   delay(MeasurementDelayMs);
@@ -159,25 +160,21 @@ void DisplayFineMark(
 )
 {
   const u8g2_uint_t
-    WidgetX = 2,
-    WidgetY = 2,
-    WidgetWidth = 124,
-    WidgetHeight = 28,
-    WidgetToothHeight = 4;
+    X = 2,
+    Y = 6,
+    Width = 124,
+    Height = 12;
 
-  u8g2_uint_t X =
+  u8g2_uint_t MappedX =
     FloatMap(
       DistanceCm,
       Bucket->GetMinValue(),
       Bucket->GetMaxValue(),
-      WidgetX,
-      WidgetX + WidgetWidth
+      X,
+      X + Width
     );
 
-  // Display->drawVLine(X, WidgetY, WidgetHeight);
-
-  Display->drawVLine(X, WidgetY, WidgetToothHeight);
-  Display->drawVLine(X, WidgetY + WidgetHeight - WidgetToothHeight, WidgetToothHeight);
+  Display->drawVLine(MappedX, Y, Height);
 }
 
 float FloatMap(float Value, float SrcRangeMin, float SrcRangeMax, float DestRangeMin, float DestRangeMax)
