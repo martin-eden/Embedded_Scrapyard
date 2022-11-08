@@ -46,7 +46,7 @@ void StatePrinter::DisplayDistance(float DistanceCm)
   uint16_t NumericLineY = TextY + LineOffsetY;
 
   Screen->setFont(u8g2_font_profont22_tf);
-  Screen->drawStr(TextX, TextY, Buffer);
+  Screen->drawStr(MapX(TextX), MapY(TextY), Buffer);
   Screen->drawHLine(MapX(NumericLineX), MapY(NumericLineY), NumericLineWidth);
 }
 
