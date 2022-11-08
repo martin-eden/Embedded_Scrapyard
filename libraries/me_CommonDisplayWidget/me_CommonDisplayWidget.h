@@ -29,11 +29,11 @@ namespace me_CommonDisplayWidget
         Height = aHeight;
       };
 
-      uint16_t MapX(uint16_t X) { return BaseX + X; };
-      uint16_t MapY(uint16_t Y) { return BaseY + Y; };
+      uint16_t MapX(uint16_t X) { return (BaseX + X); };
+      uint16_t MapY(uint16_t Y) { return (BaseY + Y); };
 
-      uint16_t GetCenterX() { return (BaseX + Width) / 2; };
-      uint16_t GetCenterY() { return (BaseY + Height) / 2; };
+      uint16_t GetCenterX() { return (Width / 2); };
+      uint16_t GetCenterY() { return (Height / 2); };
 
       uint16_t GetX() { return BaseX; };
       uint16_t GetY() { return BaseY; };
