@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 0.8
-  Last mod.: 2022-11-06
+  Version: 0.9
+  Last mod.: 2022-11-07
 */
 
 #include "me_SR04_StatePrinter_128x64.h"
@@ -26,17 +26,28 @@ void StatePrinter::DisplayDistance(float DistanceCm)
 
   uint16_t DistanceInt = DistanceCm;
   uint8_t DistanceFrac = uint32_t(DistanceCm * 10) % 10;
-  snprintf(Buffer, BufferSize, "%d.%d cm", DistanceInt, DistanceFrac);
+  snprintf(Buffer, BufferSize, "%d.%d", DistanceInt, DistanceFrac);
+
+  uint16_t NumericLineWidth = Screen->getStrWidth(Buffer);
+
+  strcat(Buffer, " cm");
 
   uint16_t TextWidth = Screen->getStrWidth(Buffer);
   uint16_t TextHeight = Screen->getAscent() + Screen->getDescent();
 
+  uint16_t TextX = GetCenterX() - (TextWidth / 2);
+  uint16_t TextY = GetCenterY() + (TextHeight / 2);
+
+  const uint16_t LineOffsetY = 4;
+  const uint16_t LineOverdrawX = 2;
+
+  NumericLineWidth += LineOverdrawX * 2;
+  uint16_t NumericLineX = TextX - LineOverdrawX;
+  uint16_t NumericLineY = TextY + LineOffsetY;
+
   Screen->setFont(u8g2_font_profont22_tf);
-  Screen->drawStr(
-    GetCenterX() - (TextWidth / 2),
-    GetCenterY() + (TextHeight / 2),
-    Buffer
-  );
+  Screen->drawStr(TextX, TextY, Buffer);
+  Screen->drawHLine(MapX(NumericLineX), MapY(NumericLineY), NumericLineWidth);
 }
 
 void StatePrinter::DisplayNotConnectedError()
