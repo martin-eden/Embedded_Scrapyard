@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.8
-  Last mod.: 2022-11-06
+  Version: 1.9
+  Last mod.: 2022-11-07
 */
 
 #include <U8g2lib.h>
@@ -19,8 +19,8 @@
 #include <me_SR04_StatePrinter_128x64.h>
 
 const uint8_t
-  TriggerPin = 4,
-  EchoPin = 4;
+  TriggerPin = 12,
+  EchoPin = 13;
 
 const uint32_t
   MeasurementDelayMs = 70;
