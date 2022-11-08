@@ -2,7 +2,7 @@
 
 /*
   Status: stable
-  Version: 0.9
+  Version: 1.0
   Last mod.: 2022-11-07
 */
 
@@ -52,22 +52,36 @@ void StatePrinter::DisplayDistance(float DistanceCm)
 
 void StatePrinter::DisplayNotConnectedError()
 {
-  const u8g2_uint_t
-    X = 6,
-    Y = 38;
+  const uint8_t BufferSize = 16;
+  char Buffer[BufferSize];
+
+  strcpy(Buffer, "not conn");
+
+  uint16_t TextWidth = Screen->getStrWidth(Buffer);
+  uint16_t TextHeight = Screen->getAscent() + Screen->getDescent();
+
+  uint16_t TextX = GetCenterX() - (TextWidth / 2);
+  uint16_t TextY = GetCenterY() + (TextHeight / 2);
 
   Screen->setFont(u8g2_font_profont22_tf);
-  Screen->drawStr(MapX(X), MapY(Y), "not conn");
+  Screen->drawStr(MapX(TextX), MapY(TextY), Buffer);
 }
 
 void StatePrinter::DisplayNoDistanceError()
 {
-  const u8g2_uint_t
-    X = 6,
-    Y = 38;
+  const uint8_t BufferSize = 16;
+  char Buffer[BufferSize];
+
+  strcpy(Buffer, "no dist");
+
+  uint16_t TextWidth = Screen->getStrWidth(Buffer);
+  uint16_t TextHeight = Screen->getAscent() + Screen->getDescent();
+
+  uint16_t TextX = GetCenterX() - (TextWidth / 2);
+  uint16_t TextY = GetCenterY() + (TextHeight / 2);
 
   Screen->setFont(u8g2_font_profont22_tf);
-  Screen->drawStr(MapX(X), MapY(Y), "no dist");
+  Screen->drawStr(MapX(TextX), MapY(TextY), Buffer);
 }
 
 void StatePrinter::Display(me_SR04_StateGetter::State DataState)
