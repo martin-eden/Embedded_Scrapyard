@@ -2,25 +2,19 @@
 
 /*
   Status: stable
-  Version: 1.1
-  Last mod.: 2022-11-01
+  Version: 1.2
+  Last mod.: 2022-11-13
 */
 
 /*
-  Wiring
-
-    Sensor pin name | Program pin name
-    ----------------+-----------------
-    Trig            | TriggerPin
-    Echo            | EchoPin
-
-    Trig and Echo can be connected to one physical pin.
-
-  Init
-
-    SR04(uint8_t aTriggerPin, uint8_t aEchoPin)
-
   Usage
+
+    Sensor.Ping()
+    if (Sensor.RequestStatus == Success)
+      Delay = Sensor.EchoDelayMcr
+      Distance = ConvertToDistance(Delay)
+
+  Fields overview
 
     void Ping()
 
@@ -30,9 +24,7 @@
 
       Updates <RequestStatus> and <EchoDelayMcr>.
 
-    ReadStatus RequestStatus
-
-      If <RequestStatus> is <Success> then use <EchoDelayMcr>.
+    Status RequestStatus
 
       Possible values are
 
@@ -43,8 +35,9 @@
 
     uint32_t EchoDelayMcr
 
-      Delay in microseconds between pulse and echo. Use it to calculate
-      distance.
+      Delay in microseconds between pulse and echo.
+
+      Use it to calculate distance.
 */
 
 #pragma once
@@ -53,7 +46,7 @@
 
 namespace me_SR04
 {
-  enum class ReadStatus
+  enum class Status
   {
     Unknown,
     Success,
@@ -64,8 +57,8 @@ namespace me_SR04
   class SR04
   {
     public:
+      Status RequestStatus;
       uint32_t EchoDelayMcr;
-      ReadStatus RequestStatus;
 
       SR04(uint8_t aTriggerPin, uint8_t aEchoPin) :
         TriggerPin(aTriggerPin), EchoPin(aEchoPin) {};

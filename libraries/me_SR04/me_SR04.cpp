@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.3
-  Last mod.: 2022-11-01
+  Version: 1.4
+  Last mod.: 2022-11-13
 */
 
 /*
@@ -17,6 +17,10 @@
   (depending of flair of SR-04). And then echo pin goes HIGH. It stays
   high till start of receiving of echo. Or until hardware timeout which
   is like 200 ms. We are measuring duration of that HIGH state.
+
+  Hardware timeout of 200 ms is like 34 m. Practically this sensor
+  receives echo from distances less than 4 m. So we are using stricter
+  timeout to filter noise echoes.
 */
 
 #include "me_SR04.h"
@@ -26,24 +30,22 @@ using namespace me_SR04;
 
 void SR04::Ping()
 {
-  RequestStatus = ReadStatus::Unknown;
-
-  Throw();
+  RequestStatus = Status::Unknown;
+  EchoDelayMcr = 0;
 
   bool IsStarted, IsEnded;
   uint32_t Duration;
 
-  Catch(&IsStarted, &IsEnded, &Duration);
+  Throw();
 
-  if (!IsStarted)
-    RequestStatus = ReadStatus::NoSignalStart;
+  Catch(&IsStarted, &IsEnded, &EchoDelayMcr);
+
+  if (IsStarted && IsEnded)
+    RequestStatus = Status::Success;
+  else if (!IsStarted)
+    RequestStatus = Status::NoSignalStart;
   else if (!IsEnded)
-    RequestStatus = ReadStatus::NoSignalEnd;
-  else
-  {
-    EchoDelayMcr = Duration;
-    RequestStatus = ReadStatus::Success;
-  }
+    RequestStatus = Status::NoSignalEnd;
 }
 
 void SR04::Throw()
@@ -65,7 +67,7 @@ void SR04::Catch(bool *IsStarted, bool *IsEnded, uint32_t *Duration)
 
   const uint32_t
     StartTimeoutMcr = 2500,
-    DurationTimeoutMcr = 250000;
+    DurationTimeoutMcr = 25000;
 
   pinMode(EchoPin, INPUT);
 

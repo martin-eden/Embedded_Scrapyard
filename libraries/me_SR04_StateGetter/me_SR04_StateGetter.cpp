@@ -17,7 +17,7 @@ State me_SR04_StateGetter::GetState(me_SR04::SR04* sensor)
 {
   State result;
 
-  if (sensor->RequestStatus == me_SR04::ReadStatus::Success)
+  if (sensor->RequestStatus == me_SR04::Status::Success)
   {
     result.IsSensorWorking = true;
     result.HasDistance = true;
@@ -25,9 +25,9 @@ State me_SR04_StateGetter::GetState(me_SR04::SR04* sensor)
   }
   else
   {
-    if (sensor->RequestStatus == me_SR04::ReadStatus::NoSignalStart)
+    if (sensor->RequestStatus == me_SR04::Status::NoSignalStart)
       result.IsSensorWorking = false;
-    else if (sensor->RequestStatus == me_SR04::ReadStatus::NoSignalEnd)
+    else if (sensor->RequestStatus == me_SR04::Status::NoSignalEnd)
       result.IsSensorWorking = true;
     else
       exit(1);
