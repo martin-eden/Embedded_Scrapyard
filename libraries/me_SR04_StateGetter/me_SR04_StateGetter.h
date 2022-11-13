@@ -1,9 +1,9 @@
-// Higher-level wrapper for <me_SR04> ultrasonic sensor.
+// Wrapper for <me_SR04> ultrasonic sensor.
 
 /*
   Status: stable
   Version: 1.0
-  Last mod.: 2022-11-01
+  Last mod.: 2022-11-13
 */
 
 /*
@@ -14,27 +14,24 @@
       Convert state of <me_SR04> sensor to more human-manageable
       format.
 
-      To get distance you should first call <me_SR04>.Ping() to
-      set sensor state.
-
-      Returns <State> record.
+      To get state you should call <me_SR04>.Ping().
 
     struct State
 
-      bool IsSensorWorking
+      bool IsConnected
 
         TRUE when sensor is connected.
 
-        Technically it means that we saw EchoPin go HIGH.
+        Technically it means that we saw EchoPin goes HIGH.
 
       bool HasDistance
 
         TRUE when we have some meaningful distance.
 
-        Technically it means that we saw end of EchoPin HIGH state
-        before hardware timeout.
+        Technically it means that we saw EchoPin goes LOW
+        before timeout.
 
-        Only has meaning when <IsSensorWorking>.
+        Only has meaning when <IsConnected>.
 
       float DistanceCm
 
@@ -54,7 +51,7 @@
 namespace me_SR04_StateGetter
 {
   struct State {
-    bool IsSensorWorking;
+    bool IsConnected;
     bool HasDistance;
     float DistanceCm;
   };

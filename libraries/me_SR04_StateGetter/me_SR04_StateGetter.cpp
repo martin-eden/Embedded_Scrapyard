@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.0
-  Last mod.: 2022-11-01
+  Version: 1.1
+  Last mod.: 2022-11-13
 */
 
 #include "me_SR04_StateGetter.h"
@@ -17,22 +17,24 @@ State me_SR04_StateGetter::GetState(me_SR04::SR04* sensor)
 {
   State result;
 
-  if (sensor->RequestStatus == me_SR04::Status::Success)
+  result.IsConnected = false;
+  result.HasDistance = false;
+  result.DistanceCm = 0.0;
+
+  using namespace me_SR04;
+
+  if (sensor->RequestStatus == Status::Success)
   {
-    result.IsSensorWorking = true;
+    result.IsConnected = true;
     result.HasDistance = true;
     result.DistanceCm = me_Physics_Sound::GetDistanceFromEchoCm(sensor->EchoDelayMcr);
   }
-  else
+  else if (sensor->RequestStatus == Status::NoSignalEnd)
   {
-    if (sensor->RequestStatus == me_SR04::Status::NoSignalStart)
-      result.IsSensorWorking = false;
-    else if (sensor->RequestStatus == me_SR04::Status::NoSignalEnd)
-      result.IsSensorWorking = true;
-    else
-      exit(1);
-    result.HasDistance = false;
-    result.DistanceCm = 0.0;
+    result.IsConnected = true;
+  }
+  else if (sensor->RequestStatus == Status::NoSignalStart)
+  {
   }
 
   return result;

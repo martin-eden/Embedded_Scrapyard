@@ -98,7 +98,7 @@ void StatePrinter::Print(me_SR04_StateGetter::State DataState)
     DisplayDistance(DataState.DistanceCm);
     // DisplayFlipFlop();
   }
-  else if (!DataState.IsSensorWorking)
+  else if (!DataState.IsConnected)
     DisplayNotConnectedError();
   else if (!DataState.HasDistance)
     DisplayNoDistanceError();
