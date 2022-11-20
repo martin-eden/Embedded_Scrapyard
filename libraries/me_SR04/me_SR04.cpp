@@ -34,10 +34,8 @@ void SR04::Ping()
   EchoDelayMcr = 0;
 
   bool IsStarted, IsEnded;
-  uint32_t Duration;
 
   Throw();
-
   Catch(&IsStarted, &IsEnded, &EchoDelayMcr);
 
   if (IsStarted && IsEnded)
