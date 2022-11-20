@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.1
-  Last mod.: 2022-11-13
+  Version: 1.2
+  Last mod.: 2022-11-20
 */
 
 #include "me_SR04_StateGetter.h"
@@ -13,29 +13,28 @@
 
 using namespace me_SR04_StateGetter;
 
-State me_SR04_StateGetter::GetState(me_SR04::SR04* sensor)
+State me_SR04_StateGetter::GetState(me_SR04::SR04* Sensor)
 {
-  State result;
+  State Result;
 
-  result.IsConnected = false;
-  result.HasDistance = false;
-  result.DistanceCm = 0.0;
-
-  using namespace me_SR04;
-
-  if (sensor->RequestStatus == Status::Success)
+  if (Sensor->RequestStatus == me_SR04::Status::Success)
   {
-    result.IsConnected = true;
-    result.HasDistance = true;
-    result.DistanceCm = me_Physics_Sound::GetDistanceFromEchoCm(sensor->EchoDelayMcr);
+    Result.IsConnected = true;
+    Result.HasDistance = true;
+    Result.DistanceCm = me_Physics_Sound::GetDistanceFromEchoCm(Sensor->EchoDelayMcr);
   }
-  else if (sensor->RequestStatus == Status::NoSignalEnd)
+  else if (Sensor->RequestStatus == me_SR04::Status::NoSignalStart)
   {
-    result.IsConnected = true;
+    Result.IsConnected = false;
+    Result.HasDistance = false;
+    Result.DistanceCm = 0.0;
   }
-  else if (sensor->RequestStatus == Status::NoSignalStart)
+  else if (Sensor->RequestStatus == me_SR04::Status::NoSignalEnd)
   {
+    Result.IsConnected = true;
+    Result.HasDistance = false;
+    Result.DistanceCm = 0.0;
   }
 
-  return result;
+  return Result;
 }
