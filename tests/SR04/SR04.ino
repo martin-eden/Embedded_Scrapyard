@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.9
-  Last mod.: 2022-11-07
+  Version: 1.10
+  Last mod.: 2022-11-20
 */
 
 #include <U8g2lib.h>
@@ -87,18 +87,23 @@ void loop()
       Averager.Add(sensorDistance);
 
       // Serial.println("Bucket recreated.");
+
+      RequestStatus.DistanceCm = Capacitor.Get();
+
+      PrintStatus(sensorDistance);
     }
 
     ++TimePosition;
-
-    RequestStatus.DistanceCm = Capacitor.Get();
-
-    PrintStatus(sensorDistance);
   }
 
   Display.clearBuffer();
-  // DisplayFineMark(&Display, &Bucket, Averager.Get());
+
+  if (RequestStatus.HasDistance)
+  {
+    // DisplayFineMark(&Display, &Bucket, Averager.Get());
+  }
   StatePrinter.Display(RequestStatus);
+
   Display.sendBuffer();
 
   delay(MeasurementDelayMs);
