@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.1
-  Last mod.: 2022-11-12
+  Version: 1.2
+  Last mod.: 2022-11-20
 */
 
 #include "me_SR04_StatePrinter_128x64.h"
@@ -108,12 +108,10 @@ void StatePrinter::DisplayNoDistanceError()
 
 void StatePrinter::Display(me_SR04_StateGetter::State DataState)
 {
-  if (DataState.HasDistance)
-    DisplayDistance(DataState.DistanceCm);
-  else if (!DataState.IsConnected)
+  if (!DataState.IsConnected)
     DisplayNotConnectedError();
   else if (!DataState.HasDistance)
     DisplayNoDistanceError();
-  else
-    exit(1);
+  else if (DataState.HasDistance)
+    DisplayDistance(DataState.DistanceCm);
 }
