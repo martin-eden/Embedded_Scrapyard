@@ -19,8 +19,8 @@
 #include <me_SR04_StatePrinter_128x64.h>
 
 const uint8_t
-  TriggerPin = 12,
-  EchoPin = 13;
+  TriggerPin = 11,
+  EchoPin = 12;
 
 const uint32_t
   MeasurementDelayMs = 70;
