@@ -45,6 +45,8 @@ void StatePrinter::DisplayDistance(float DistanceCm)
 
   snprintf(Buffer, BufferSize, "%d.%d", DistanceInt, DistanceFrac);
 
+  Screen->setFont(u8g2_font_profont22_tf);
+
   UnderscoreWidth = Screen->getStrWidth(Buffer);
 
   strcat(Buffer, " cm");
@@ -64,7 +66,6 @@ void StatePrinter::DisplayDistance(float DistanceCm)
   UnderscoreX = MapX(UnderscoreX);
   UnderscoreY = MapY(UnderscoreY);
 
-  Screen->setFont(u8g2_font_profont22_tf);
   Screen->drawStr(TextX, TextY, Buffer);
   Screen->drawBox(UnderscoreX, UnderscoreY, UnderscoreWidth, UnderscoreHeight);
 }
@@ -76,13 +77,14 @@ void StatePrinter::DisplayNotConnectedError()
 
   strcpy(Buffer, "not conn");
 
+  Screen->setFont(u8g2_font_profont22_tf);
+
   uint16_t TextWidth = Screen->getStrWidth(Buffer);
   uint16_t TextHeight = Screen->getAscent() + Screen->getDescent();
 
   uint16_t TextX = GetCenterX() - (TextWidth / 2);
   uint16_t TextY = GetCenterY() + (TextHeight / 2);
 
-  Screen->setFont(u8g2_font_profont22_tf);
   Screen->drawStr(MapX(TextX), MapY(TextY), Buffer);
 }
 
@@ -93,13 +95,14 @@ void StatePrinter::DisplayNoDistanceError()
 
   strcpy(Buffer, "no dist");
 
+  Screen->setFont(u8g2_font_profont22_tf);
+
   uint16_t TextWidth = Screen->getStrWidth(Buffer);
   uint16_t TextHeight = Screen->getAscent() + Screen->getDescent();
 
   uint16_t TextX = GetCenterX() - (TextWidth / 2);
   uint16_t TextY = GetCenterY() + (TextHeight / 2);
 
-  Screen->setFont(u8g2_font_profont22_tf);
   Screen->drawStr(MapX(TextX), MapY(TextY), Buffer);
 }
 
