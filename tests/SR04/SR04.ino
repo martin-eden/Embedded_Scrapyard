@@ -23,7 +23,7 @@ const uint8_t
   EchoPin = 12;
 
 const uint32_t
-  MeasurementDelayMs = 70;
+  MeasurementDelayMs = 930;
 
 const float
   DataFilterCapacitance = 4.0,
