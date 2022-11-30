@@ -1,9 +1,8 @@
-// Common widget display class. Screen rectangle.
+// Screen rectangle. Common widget display class.
 
 /*
-  Status: stable
-  Version: 1.0
-  Last mod.: 2022-11-06
+  Version: 2
+  Last mod.: 2022-12-03
 */
 
 #pragma once
@@ -39,7 +38,6 @@ namespace me_CommonDisplayWidget
       uint16_t GetY() { return BaseY; };
       uint16_t GetWidth() { return Width; };
       uint16_t GetHeight() { return Height; };
-
 
     protected:
       uint16_t BaseX;

@@ -1,0 +1,26 @@
+Usage
+
+  me_SR04::Status RequestStatus;
+  uint32_t DelayMcr;
+  Sensor.Ping(&RequestStatus, &DelayMcr);
+  if (RequestStatus == me_SR04::Status::Success)
+    Distance = <ConvertToDistance>(DelayMcr);
+
+Fields overview
+
+  void Ping(Status *status, uint32_t *echoDelayMcr);
+
+    Send signal and wait for return echo.
+
+    Updates arguments.
+
+    Has built-in timeout if no echo is received.
+
+  Status RequestStatus
+
+    Possible values are
+
+      Unknown
+      Success
+      NoSignalStart
+      NoSignalEnd

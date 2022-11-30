@@ -1,205 +1,81 @@
-// Ultrasound distance meter HC-SR04 test.
+// Graphical ruler, 128x64 mono. Uses <me_SR04.h>
 
 /*
-  Status: stable
-  Version: 1.10
-  Last mod.: 2022-11-20
+  Version: 4
+  Last mod.: 2022-12-03
 */
 
 #include <U8g2lib.h>
 
 #include <me_SR04.h>
-#include <me_SR04_StateGetter.h>
+#include <me_SR04_Distance.h>
+#include <me_SR04_StatePrinter_128x64.h>
 
 #include <me_CapacitiveFilter.h>
 #include <me_Statistics_TimePoint.h>
 #include <me_Statistics.Bucket.h>
 #include <me_Stat_AverageFilter.h>
 
-#include <me_SR04_StatePrinter_128x64.h>
+#include <me_Math_Scaling.h>
 
 const uint8_t
   TriggerPin = 11,
   EchoPin = 12;
 
-const uint32_t
-  MeasurementDelayMs = 930;
-
-const float
-  DataFilterCapacitance = 4.0,
-  CapacitancePerDistance = 0.6;
+const uint8_t
+  MeasurementsPerCycle = 48;
 
 const uint32_t
-  DataFilterAutoFlushSteps = 900,
-  AverageFilterNumNodes = 0xFFFFFFFF;
+  CycleDurationMs = 800;
+
+const uint32_t
+  MeasurementsDelayMs = CycleDurationMs / MeasurementsPerCycle;
+
+me_SR04::Sonar _Sonar(TriggerPin, EchoPin);
+me_SR04_Distance::SensorDistance _SensorDistance(&_Sonar);
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C Display(U8G2_R0);
-
-me_SR04::SR04 Sonar(TriggerPin, EchoPin);
-CapacitiveFilter Capacitor(DataFilterCapacitance, DataFilterAutoFlushSteps);
-me_SR04_StatePrinter_128x64::StatePrinter StatePrinter(&Display);
-
-me_Statistics_TimePoint::TimePoint DefaultMinValue(1000.0, 0);
-me_Statistics_TimePoint::TimePoint DefaultMaxValue(0.0, 0);
-
-me_Statistics_Bucket::Bucket Bucket(0.0);
-me_Stat_AverageFilter::Filter Averager(10);
+me_SR04_StatePrinter_128x64::StatePrinter _StatePrinter(&Display);
 
 void setup()
 {
   Display.begin();
   Display.setContrast(10);
 
-  Serial.begin(57600);
+  // Serial.begin(57600);
 }
 
 void loop()
 {
-  Sonar.Ping();
-  me_SR04_StateGetter::State RequestStatus = me_SR04_StateGetter::GetState(&Sonar);
+  float FrameMinDistance = 1e6;
+  float FrameMaxDistance = -1.0;
 
-  if (RequestStatus.HasDistance)
+  uint8_t NumNotConnectedErrors = 0;
+  uint8_t NumSuccessfullMeasurements = 0;
+
+  for (uint8_t i = 0; i < MeasurementsPerCycle; delay(MeasurementsDelayMs), ++i)
   {
-    using namespace me_Statistics_TimePoint;
+    _SensorDistance.Measure();
 
-    static int32_t TimePosition = 0;
+    if (_SensorDistance.NotConnected())
+      ++NumNotConnectedErrors;
 
-    float sensorDistance = RequestStatus.DistanceCm;
+    if (_SensorDistance.HasDistance())
+      ++NumSuccessfullMeasurements;
 
-    Capacitor.SetCapacitance(sensorDistance * CapacitancePerDistance);
-    Capacitor.Add(sensorDistance);
-
-    Averager.Add(sensorDistance);
-
-    if (!Bucket.Add(sensorDistance))
+    if (_SensorDistance.HasDistance())
     {
-      float newJitter = EstimateJitter(sensorDistance);
-      // Serial.print("new Jitter: ");
-      // Serial.println(newJitter);
+      float sensorDistance = _SensorDistance.DistanceCm();
 
-      Bucket.SetMaxSpan(newJitter);
-      Bucket.Add(sensorDistance);
-
-      Capacitor.Flush();
-      Capacitor.Add(sensorDistance);
-
-      Averager.Reset();
-      Averager.Add(sensorDistance);
-
-      // Serial.println("Bucket recreated.");
-
-      RequestStatus.DistanceCm = Capacitor.Get();
-
-      PrintStatus(sensorDistance);
+      FrameMinDistance = min(FrameMinDistance, sensorDistance);
+      FrameMaxDistance = max(FrameMaxDistance, sensorDistance);
     }
-
-    ++TimePosition;
   }
+
+  bool IsConnected = (NumNotConnectedErrors < MeasurementsPerCycle);
+  bool HasDistance = (NumSuccessfullMeasurements > 0);
 
   Display.clearBuffer();
-
-  if (RequestStatus.HasDistance)
-  {
-    // DisplayFineMark(&Display, &Bucket, Averager.Get());
-  }
-  StatePrinter.Display(RequestStatus);
-
+  _StatePrinter.Display(IsConnected, HasDistance, FrameMinDistance);
   Display.sendBuffer();
-
-  delay(MeasurementDelayMs);
-}
-
-float EstimateJitter(float Distance)
-{
-  // Typical jitter is from 2.05% to 3.07% in my tests. Closer the
-  // distance, more % of jitter but less jitter delta in cm.
-
-  const float
-    MinJitter = 2.1,
-    JitterPerDistance = 0.03;
-
-  float Result = max(MinJitter, Distance * JitterPerDistance);
-
-  return Result;
-}
-
-void PrintStatus(float sensorDistance)
-{
-
-  Serial.print("(");
-  Serial.print(sensorDistance);
-  Serial.print(")");
-
-  Serial.print(" ");
-  Serial.print("(");
-  Serial.print(Averager.Get());
-  Serial.print(")");
-
-  Serial.print(" ");
-
-  Serial.print("(");
-  Serial.print(Capacitor.Get());
-  Serial.print(")");
-
-  Serial.print(" ");
-
-  Serial.print("(");
-  Serial.print(Bucket.GetMinValue());
-  Serial.print(" ");
-  Serial.print(Bucket.GetMaxValue());
-  Serial.print(" ");
-  Serial.print("(");
-  Serial.print(Bucket.GetCurSpan());
-  Serial.print(" ");
-  Serial.print(Bucket.GetMaxSpan());
-  Serial.print(")");
-  Serial.print(")");
-
-  Serial.println();
-}
-
-void DisplayFineMark(
-  U8G2* Display,
-  me_Statistics_Bucket::Bucket* Bucket,
-  float DistanceCm
-)
-{
-  const u8g2_uint_t
-    X = 2,
-    Y = 6,
-    Width = 124,
-    Height = 12;
-
-  u8g2_uint_t MappedX =
-    FloatMap(
-      DistanceCm,
-      Bucket->GetMinValue(),
-      Bucket->GetMaxValue(),
-      X,
-      X + Width
-    );
-
-  Display->drawVLine(MappedX, Y, Height);
-}
-
-float FloatMap(float Value, float SrcRangeMin, float SrcRangeMax, float DestRangeMin, float DestRangeMax)
-{
-  if (
-    (SrcRangeMin >= SrcRangeMax) ||
-    (DestRangeMin >= DestRangeMax)
-  )
-    return -1.0;
-
-  Value = max(Value, SrcRangeMin);
-  Value = min(Value, SrcRangeMax);
-
-  float SrcOffset = Value - SrcRangeMin;
-  float SrcSpan = SrcRangeMax - SrcRangeMin;
-  float SrcPos = SrcOffset / SrcSpan;
-  float DestPos = SrcPos;
-  float DestSpan = DestRangeMax - DestRangeMin;
-  float DestOffset = DestPos * DestSpan;
-  float Result = DestOffset + DestRangeMin;
-
-  return Result;
 }

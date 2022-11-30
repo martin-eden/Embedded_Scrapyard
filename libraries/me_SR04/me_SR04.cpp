@@ -1,9 +1,30 @@
-// Ultrasonic distance sensor HC-SR04
+// Ultrasonic distance sensor HC-SR04.
 
 /*
-  Status: stable
-  Version: 1.4
-  Last mod.: 2022-11-13
+  Last mod.: 2022-12-01
+*/
+
+/*
+  Fields
+
+    bool NoSignalStart();
+      Technically it means that we didn't see <EchoPin> goes HIGH.
+
+    bool NoSignalEnd();
+      Technically it means that we saw <EchoPin> goes LOW before timeout.
+
+    void Ping(uint32_t *echoDelayMcr);
+      Actually ping. Takes time.
+
+    bool IsStarted;
+    bool IsEnded;
+
+    void Throw();
+    void Catch();
+
+  Uses
+
+    <me_SignalTime.h>
 */
 
 /*
@@ -24,60 +45,75 @@
 */
 
 #include "me_SR04.h"
+
 #include <me_SignalTime.h>
 
 using namespace me_SR04;
 
-void SR04::Ping()
+uint8_t Sonar::GetTriggerPin()
 {
-  RequestStatus = Status::Unknown;
-  EchoDelayMcr = 0;
-
-  bool IsStarted, IsEnded;
-
-  Throw();
-  Catch(&IsStarted, &IsEnded, &EchoDelayMcr);
-
-  if (IsStarted && IsEnded)
-    RequestStatus = Status::Success;
-  else if (!IsStarted)
-    RequestStatus = Status::NoSignalStart;
-  else if (!IsEnded)
-    RequestStatus = Status::NoSignalEnd;
+  return TriggerPin;
 }
 
-void SR04::Throw()
+uint8_t Sonar::GetEchoPin()
 {
+  return EchoPin;
+}
+
+void Sonar::Ping()
+{
+  Throw();
+  Catch();
+}
+
+bool Sonar::NoSignalStart()
+{
+  return !IsStarted;
+}
+
+bool Sonar::NoSignalEnd()
+{
+  return !IsEnded;
+}
+
+uint32_t Sonar::EchoDelayMcr()
+{
+  return _EchoDelayMcr;
+}
+
+void Sonar::Throw()
+{
+  pinMode(TriggerPin, OUTPUT);
+
   const uint32_t
     StrobeDurationMcr = 250;
 
-  pinMode(TriggerPin, OUTPUT);
   digitalWrite(TriggerPin, HIGH);
   delayMicroseconds(StrobeDurationMcr);
   digitalWrite(TriggerPin, LOW);
 }
 
-void SR04::Catch(bool *IsStarted, bool *IsEnded, uint32_t *Duration)
+void Sonar::Catch()
 {
-  *IsStarted = false;
-  *IsEnded = false;
-  *Duration = 0;
+  pinMode(EchoPin, INPUT);
+
+  IsStarted = false;
+  IsEnded = false;
+  _EchoDelayMcr = 0;
 
   const uint32_t
     StartTimeoutMcr = 2500,
     DurationTimeoutMcr = 25000;
 
-  pinMode(EchoPin, INPUT);
-
   uint32_t StartMcr = me_SignalTime::GetLevelTime(EchoPin, LOW, StartTimeoutMcr);
   if (StartMcr != 0)
   {
-    *IsStarted = true;
+    IsStarted = true;
     uint32_t DurationMcr = me_SignalTime::GetLevelTime(EchoPin, HIGH, DurationTimeoutMcr);
     if (DurationMcr != 0)
     {
-      *IsEnded = true;
-      *Duration = DurationMcr;
+      IsEnded = true;
+      _EchoDelayMcr = DurationMcr;
     }
   }
 }

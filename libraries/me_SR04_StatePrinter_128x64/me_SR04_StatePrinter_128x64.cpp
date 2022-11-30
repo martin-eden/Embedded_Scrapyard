@@ -1,23 +1,16 @@
 // Ultrasonic distance display for 128x64 monochrome OLED.
 
 /*
-  Status: stable
-  Version: 1.2
-  Last mod.: 2022-11-20
+  Version: 2
+  Last mod.: 2022-12-03
 */
 
 #include "me_SR04_StatePrinter_128x64.h"
 
-#include <me_SR04_StateGetter.h>
+#include <me_SR04_Distance.h>
+#include <me_SR04.h>
 
 using namespace me_SR04_StatePrinter_128x64;
-
-StatePrinter::StatePrinter(U8G2* aScreen)
-{
-  Init(0, 0, 128, 64);
-
-  Screen = aScreen;
-}
 
 void StatePrinter::DisplayDistance(float DistanceCm)
 {
@@ -106,12 +99,19 @@ void StatePrinter::DisplayNoDistanceError()
   Screen->drawStr(MapX(TextX), MapY(TextY), Buffer);
 }
 
-void StatePrinter::Display(me_SR04_StateGetter::State DataState)
+void StatePrinter::Display(bool isConnected, bool hasDistance, float distanceCm)
 {
-  if (!DataState.IsConnected)
+  if (!isConnected)
+  {
     DisplayNotConnectedError();
-  else if (!DataState.HasDistance)
+    return;
+  }
+
+  if (!hasDistance)
+  {
     DisplayNoDistanceError();
-  else if (DataState.HasDistance)
-    DisplayDistance(DataState.DistanceCm);
+    return;
+  }
+
+  DisplayDistance(distanceCm);
 }
