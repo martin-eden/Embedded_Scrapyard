@@ -1,8 +1,8 @@
 // Ultrasonic distance display for 128x64 monochrome OLED.
 
 /*
-  Version: 2
-  Last mod.: 2022-12-03
+  Version: 3
+  Last mod.: 2023-01-09
 */
 
 #include "me_SR04_StatePrinter_128x64.h"
@@ -29,20 +29,16 @@ void StatePrinter::DisplayDistance(float DistanceCm)
   const uint16_t UnderscoreOverdrawX = 2;
 
   uint16_t DistanceInt;
-  uint8_t DistanceFrac;
 
   char Buffer[BufferSize];
 
   DistanceInt = DistanceCm;
-  DistanceFrac = uint32_t(DistanceCm * 10) % 10;
 
-  snprintf(Buffer, BufferSize, "%d.%d", DistanceInt, DistanceFrac);
+  snprintf(Buffer, BufferSize, "%d", DistanceInt);
 
-  Screen->setFont(u8g2_font_profont22_tf);
+  Screen->setFont(u8g2_font_profont29_tf);
 
   UnderscoreWidth = Screen->getStrWidth(Buffer);
-
-  strcat(Buffer, " cm");
 
   TextWidth = Screen->getStrWidth(Buffer);
   TextHeight = Screen->getAscent() + Screen->getDescent();
