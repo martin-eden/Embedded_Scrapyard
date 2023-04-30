@@ -35,6 +35,11 @@ void TwoDcMotorsDirector::SetPower(uint8_t aPower)
   Actualize();
 }
 
+uint8_t TwoDcMotorsDirector::GetPower()
+{
+  return Power;
+}
+
 float sign(float a)
 {
   if (a < 0)

@@ -1,13 +1,15 @@
 /*
-  Status: stable
-  Version: 3.0
-  Last mod.: 2022-09-21
+  Status: works, but jerky behavior
+  Version: 3.1
+  Last mod.: 2023-04-30
 */
 
 #include <SoftwareSerial.h>
 
 #include <me_DcMotor.h>
 #include <me_TwoDcMotorsDirector.h>
+#include <me_SR04.h>
+#include <me_SR04_Distance.h>
 
 const uint8_t
   L298N_In1_pin = 5,
@@ -16,6 +18,8 @@ const uint8_t
   L298N_In4_pin = 10,
   HC05_TXD_pin = 13,
   HC05_RXD_pin = 12,
+  SR04_Trig_pin = 4,
+  SR04_Echo_pin = 4,
 
   LeftMotorForward_pin = L298N_In4_pin,
   LeftMotorBackward_pin = L298N_In3_pin,
@@ -55,6 +59,9 @@ DcMotor LeftMotor(LeftMotorPins);
 DcMotor RightMotor(RightMotorPins);
 
 TwoDcMotorsDirector MotorsDirector(&LeftMotor, &RightMotor);
+
+me_SR04::Sonar sonar(SR04_Trig_pin, SR04_Echo_pin);
+me_SR04_Distance::SensorDistance sensorDistance(&sonar);
 
 void setup()
 {
@@ -131,6 +138,20 @@ void loop()
 
         int16_t Direction = 359 - (Angle % 360);
         int16_t Power = map(Radius, 1, 100, 0, 255);
+
+        sensorDistance.Measure();
+        if (sensorDistance.HasDistance())
+        {
+          float result_Distance = sensorDistance.DistanceCm();
+          // Serial.println(result_Distance);
+          // Serial.println(MotorsDirector.GetPower());
+          if (result_Distance < 90.0)
+          {
+            float distanceSlowdown = result_Distance / 90.0;
+            Power = Power * distanceSlowdown;
+            Power = max(Power, 70);
+          }
+        }
 
         MotorsDirector.SetDirection(Direction);
         MotorsDirector.SetPower(Power);
