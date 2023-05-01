@@ -68,11 +68,11 @@ void get_data() {
 }
 
 void process_data() {
-  capacitiveFilter_temp.addValue(temperature);
-  temperature = capacitiveFilter_temp.getValue();
+  capacitiveFilter_temp.Add(temperature);
+  temperature = capacitiveFilter_temp.Get();
 
-  capacitiveFilter_hum.addValue(humidity);
-  humidity = capacitiveFilter_hum.getValue();
+  capacitiveFilter_hum.Add(humidity);
+  humidity = capacitiveFilter_hum.Get();
 }
 
 void display_data() {
