@@ -21,7 +21,7 @@ void StatePrinter::DisplayOuterFrame()
 {
   const u8g2_uint_t
     WidgetX = 0,
-    WidgetY = 0,
+    WidgetY = 16,
     WidgetWidth = 128,
     WidgetHeight = 32;
 
@@ -33,7 +33,7 @@ void StatePrinter::DisplayGridLines()
   const u8g2_uint_t
     WidgetX1 = 80,
     WidgetX2 = 123,
-    WidgetY = 4,
+    WidgetY = 20,
     WidgetHeight = 25;
 
   Display->drawVLine(WidgetX1, WidgetY, WidgetHeight);
@@ -44,7 +44,7 @@ void StatePrinter::DisplayTemperature(float Temperature)
 {
   const u8g2_uint_t
     WidgetX = 5,
-    WidgetY = 23;
+    WidgetY = 39;
 
   char Buffer[8];
   String(String(Temperature, 1) + "\260C").toCharArray(Buffer, sizeof(Buffer));
@@ -57,7 +57,7 @@ void StatePrinter::DisplayHumidity(float Humidity)
 {
   const u8g2_uint_t
     WidgetX = 85,
-    WidgetY = 23;
+    WidgetY = 39;
 
   char Buffer[8];
   String(String(Humidity, 0) + "%").toCharArray(Buffer, sizeof(Buffer));
@@ -70,7 +70,7 @@ void StatePrinter::DisplayFlipFlop()
 {
   const u8g2_uint_t
     WidgetX = 125,
-    WidgetY = 13,
+    WidgetY = 29,
     WidgetHeight = 8;
 
   static bool flip = false;
@@ -86,7 +86,7 @@ void StatePrinter::DisplayReadError()
 {
   const u8g2_uint_t
     WidgetX = 6,
-    WidgetY = 22;
+    WidgetY = 38;
 
   Display->setFont(u8g2_font_profont22_tf);
   Display->drawStr(WidgetX, WidgetY, "read error");
