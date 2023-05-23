@@ -12,8 +12,20 @@ void setup()
 
 void loop()
 {
-  for (uint32_t i = 0; true; ++i)
+  for (uint32_t i = 0; true;)
   {
+    PORTC = 0;
+    PORTC = 1;
+    PORTC = 0;
+    PORTC = 1;
+    PORTC = 0;
+    PORTC = 1;
+    PORTC = 0;
+    PORTC = 1;
+    PORTC = 0;
+    PORTC = 1;
+    PORTC = 0;
+    PORTC = 1;
     PORTC = 0;
     PORTC = 1;
     PORTC = 0;
