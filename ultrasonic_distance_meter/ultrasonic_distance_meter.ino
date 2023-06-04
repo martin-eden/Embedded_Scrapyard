@@ -2,7 +2,7 @@
 
 /*
   Version: 7
-  Last mod.: 2023-02-12
+  Last mod.: 2023-06-04
 */
 
 /*
@@ -20,9 +20,18 @@
     You can wire Trig and Echo to one pin.
 */
 
+// Wiring:
 const uint8_t
   TriggerPin = 11,
   EchoPin = 12;
+
+// Screen settings:
+const uint8_t
+  ScreenContrast = 90;
+
+// Functionality settings:
+const uint8_t MeasurementsPerCycle = 16;
+const uint32_t MeasurementsDelayMs = 10;
 
 #include <U8g2lib.h>
 
@@ -46,7 +55,7 @@ me_SR04_StatePrinter_128x64::StatePrinter _StatePrinter(&screen);
 void setup()
 {
   screen.begin();
-  screen.setContrast(10);
+  screen.setContrast(ScreenContrast);
 
   screen.clearBuffer();
   screen.drawFrame(0, 0, 128, 64);
@@ -55,9 +64,6 @@ void setup()
 
 void loop()
 {
-  const uint8_t MeasurementsPerCycle = 16;
-  const uint32_t MeasurementsDelayMs = 10;
-
   float minDistance = 1e6;
   float maxDistance = -1.0;
 
