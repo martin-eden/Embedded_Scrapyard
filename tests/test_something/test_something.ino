@@ -1,12 +1,31 @@
-void setup() {
-  Serial.begin(9600);
+template <typename type> int8_t sign(type value)
+{
+  return type((value > 0) - (value < 0));
 }
 
-void loop() {
-  Serial.print(TCNT1H);
-  Serial.print(" ");
-  Serial.print(TCNT1L);
-  Serial.print(" ");
-  Serial.print(TCNT1L);
+void doSomething()
+{
+  int8_t Power = -100;
+  uint8_t MotorPower;
+
+  MotorPower = map(abs(Power), 0, 100, 0, 255);
+
+  Serial.print("Power: ");
+  Serial.print(Power);
   Serial.println();
+
+  Serial.print("MotorPower: ");
+  Serial.print(MotorPower);
+  Serial.println();
+}
+
+void setup()
+{
+  Serial.begin(57600);
+
+  doSomething();
+}
+
+void loop()
+{
 }
