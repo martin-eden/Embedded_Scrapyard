@@ -2,8 +2,8 @@
 
 /*
   Status: works
-  Version: 1
-  Last mod.: 2023-05-23
+  Version: 2
+  Last mod.: 2023-06-04
 */
 
 /*
@@ -36,9 +36,9 @@ const uint8_t
 const uint32_t
   SerialSpeed = 57600,
   ConnectionSpeed = 57600,
-  ConnectionTimeout_ms = 50,
-  ProcessingTick_ms = 100,
-  PowerOffTimeout_ms = 500;
+  ConnectionTimeout_ms = 20,
+  ProcessingTick_ms = 25,
+  PowerOffTimeout_ms = 700;
 
 const char
   Command_PolarCoords_Radius = 'R',
@@ -75,23 +75,15 @@ void setup()
   Connection.println("Bluetooth: Hey there!");
 }
 
-void PrintMotorsStatus()
+void SendStatus()
 {
   Connection.print("*L");
   Connection.print(AdjustToPowerGauge(LeftMotor));
   Connection.print("*");
 
-  Serial.print("*L");
-  Serial.print(AdjustToPowerGauge(LeftMotor));
-  Serial.print("*");
-
   Connection.print("*R");
   Connection.print(AdjustToPowerGauge(RightMotor));
   Connection.print("*");
-
-  Serial.print("*L");
-  Serial.print(AdjustToPowerGauge(LeftMotor));
-  Serial.print("*");
 }
 
 int16_t AdjustToPowerGauge(DcMotor Motor)
@@ -99,26 +91,42 @@ int16_t AdjustToPowerGauge(DcMotor Motor)
   int16_t Result;
 
   Result = Motor.GetPower();
-  Result = map(Result, 0, 255, 0, 100);
-  if (Motor.GetIsBackward())
-    Result = 100 - Result;
-  else
-    Result = Result + 100;
+  Result = map(Result, -100, 100, 0, 200);
 
   return Result;
 }
 
+static int16_t Direction = 0;
+static int16_t Power = 0;
+
+static uint32_t LastCommandTime = 0;
+static bool MotorsAreOff = true;
+
+void PrintDebugInfo()
+{
+  // Serial.print("Direction: ");
+  // Serial.print(Direction);
+  // Serial.println();
+
+  // Serial.print("Power: ");
+  // Serial.print(Power);
+  // Serial.println();
+}
+
 void loop()
 {
-  static uint32_t LastCommandTime = 0;
-  static bool MotorsAreOff = true;
+  SendStatus();
+  PrintDebugInfo();
 
   uint32_t CurrentTime = millis();
-  if ((CurrentTime - LastCommandTime >= PowerOffTimeout_ms) && !MotorsAreOff)
-  {
-    MotorsDirector.SetPower(0);
-    MotorsAreOff = true;
-  }
+
+  MotorsAreOff = (CurrentTime - LastCommandTime >= PowerOffTimeout_ms);
+
+  if (MotorsAreOff)
+    Power = 0;
+
+  MotorsDirector.SetDirection(Direction);
+  MotorsDirector.SetPower(Power);
 
   while (Connection.available())
   {
@@ -144,15 +152,8 @@ void loop()
         uint16_t Angle = Connection.parseInt();
         Angle = constrain(Angle, 1, 360);
 
-        int16_t Direction = 359 - (Angle % 360);
-        int16_t Power = map(Radius, 1, 100, 0, 255);
-
-        MotorsDirector.SetDirection(Direction);
-        MotorsDirector.SetPower(Power);
-
-        MotorsAreOff = false;
-
-        PrintMotorsStatus();
+        Direction = 359 - (Angle % 360);
+        Power = map(Radius, 1, 100, 0, 255);
 
         LastCommandTime = CurrentTime;
 
