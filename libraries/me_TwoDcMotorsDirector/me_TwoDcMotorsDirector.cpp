@@ -1,4 +1,13 @@
+// Mapping diraction angle and power to actual PWMs for two DC motors.
+
+/*
+  Version: 2
+  Last mod.: 2023-06-03
+*/
+
 #include "me_TwoDcMotorsDirector.h"
+
+#include <me_Math_Scaling.h>
 
 TwoDcMotorsDirector::TwoDcMotorsDirector(DcMotor *aLeftMotor, DcMotor *aRightMotor)
 {
@@ -64,20 +73,20 @@ void TwoDcMotorsDirector::Actualize()
                           |
                       Dir = 270
   */
-  float SinedDirection = (float) sin(DEG_TO_RAD * DirectionDeg); // [0, 1]
-  float CosinedDirection = (float) cos(DEG_TO_RAD * DirectionDeg); // [0, 1]
+  float DirectionSin = (float) sin(radians(DirectionDeg)); // [0, 1]
+  float DirectionCos = (float) cos(radians(DirectionDeg)); // [0, 1]
 
-  float Longitudinal = sq(CosinedDirection) * Power; // [0, Power]
-  float Lateral = sq(SinedDirection) * Power; // [0, Power]
+  float Longitudinal = sq(DirectionCos) * Power; // [0, Power]
+  float Lateral = sq(DirectionSin) * Power; // [0, Power]
   // ^ Assert: Longitudinal + Lateral == Power
 
   float LeftMotorPower, RightMotorPower;
-  LeftMotorPower = Longitudinal * sign(CosinedDirection) - Lateral * sign(SinedDirection);
-  RightMotorPower = Longitudinal * sign(CosinedDirection) + Lateral * sign(SinedDirection);
+  LeftMotorPower = Longitudinal * sign(DirectionCos) - Lateral * sign(DirectionSin);
+  RightMotorPower = Longitudinal * sign(DirectionCos) + Lateral * sign(DirectionSin);
 
-  LeftMotor->SetIsBackward((LeftMotorPower < 0));
-  LeftMotor->SetPower((uint8_t) abs(LeftMotorPower));
+  LeftMotorPower = me_Math_Scaling::FloatMap(LeftMotorPower, -255, 255, -100, 100);
+  RightMotorPower = me_Math_Scaling::FloatMap(RightMotorPower, -255, 255, -100, 100);
 
-  RightMotor->SetIsBackward((RightMotorPower < 0));
-  RightMotor->SetPower((uint8_t) abs(RightMotorPower));
+  LeftMotor->SetPower(LeftMotorPower);
+  RightMotor->SetPower(RightMotorPower);
 }

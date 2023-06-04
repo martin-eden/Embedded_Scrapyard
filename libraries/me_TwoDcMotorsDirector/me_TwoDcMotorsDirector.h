@@ -1,3 +1,10 @@
+// Direction-power handler for two DC motors.
+
+/*
+  Version: 1
+  Last mod.: 2023-06-03
+*/
+
 #pragma once
 
 #include <Arduino.h>
