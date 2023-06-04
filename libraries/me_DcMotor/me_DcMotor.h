@@ -1,3 +1,10 @@
+// Interface to DC motor.
+
+/*
+  Version: 2
+  Last mod.: 2023-06-04
+*/
+
 #pragma once
 
 #include <Arduino.h>
@@ -13,16 +20,14 @@ class DcMotor
   public:
     DcMotor(TMotorPins Motor);
 
-    void SetPower(uint8_t Power);
-    uint8_t GetPower();
-    void SetIsBackward(bool IsBackward);
-    bool GetIsBackward();
+    // Power is interanlly limited to [-100, 100].
+    void SetPower(int8_t Power);
+    int8_t GetPower();
 
   private:
     TMotorPins Motor;
 
-    uint8_t Power;
-    bool IsBackward;
+    int8_t Power;
 
     void Actualize();
 };
