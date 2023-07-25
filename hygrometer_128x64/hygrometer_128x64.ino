@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1.0
-  Last mod.: 2023-04-30
+  Version: 2
+  Last mod.: 2023-07-25
 */
 
 /*
@@ -46,6 +46,7 @@ const uint8_t
   Hygrometer_pin = 2;
 
 const uint32_t
+  BootDelay_ms = 300,
   MeasurementDelay_ms = 6000;
 
 U8G2_SH1106_128X64_NONAME_F_4W_HW_SPI Display(U8G2_R0, Display_cs_pin, Display_dc_pin, Display_reset_pin);
@@ -56,7 +57,7 @@ me_DHT11_StatePrinter_128x64::StatePrinter StatePrinter(&Display);
 void setup()
 {
   Display.begin();
-  Serial.begin(57600);
+  delay(BootDelay_ms);
 }
 
 void loop()
@@ -69,7 +70,6 @@ void loop()
   Display.clearBuffer();
   StatePrinter.Print(DataState);
   Display.sendBuffer();
-  Serial.println(DataState.Humidity);
 
   delay(MeasurementDelay_ms);
 }
