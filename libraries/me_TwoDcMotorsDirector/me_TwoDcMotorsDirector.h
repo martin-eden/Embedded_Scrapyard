@@ -1,8 +1,8 @@
 // Direction-power handler for two DC motors.
 
 /*
-  Version: 1
-  Last mod.: 2023-06-03
+  Version: 2
+  Last mod.: 2023-08-13
 */
 
 #pragma once
@@ -19,6 +19,7 @@ class TwoDcMotorsDirector
     int16_t GetDirection();
     void SetPower(uint8_t Power); // power [0, 255]
     uint8_t GetPower();
+    void Update(); // call it every tick to gradually set power
 
   private:
     DcMotor *LeftMotor, *RightMotor;
@@ -29,3 +30,7 @@ class TwoDcMotorsDirector
 
     void Actualize();
 };
+
+/*
+  2023-06-03
+*/

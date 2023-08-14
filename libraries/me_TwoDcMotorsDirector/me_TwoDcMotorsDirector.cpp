@@ -1,8 +1,8 @@
 // Mapping diraction angle and power to actual PWMs for two DC motors.
 
 /*
-  Version: 2
-  Last mod.: 2023-06-03
+  Version: 3
+  Last mod.: 2023-08-13
 */
 
 #include "me_TwoDcMotorsDirector.h"
@@ -49,6 +49,14 @@ uint8_t TwoDcMotorsDirector::GetPower()
   return Power;
 }
 
+void TwoDcMotorsDirector::Update()
+{
+  LeftMotor->Update();
+  RightMotor->Update();
+}
+
+// -= private =-
+
 float sign(float a)
 {
   if (a < 0)
@@ -87,6 +95,11 @@ void TwoDcMotorsDirector::Actualize()
   LeftMotorPower = me_Math_Scaling::FloatMap(LeftMotorPower, -255, 255, -100, 100);
   RightMotorPower = me_Math_Scaling::FloatMap(RightMotorPower, -255, 255, -100, 100);
 
-  LeftMotor->SetPower(LeftMotorPower);
-  RightMotor->SetPower(RightMotorPower);
+  LeftMotor->SetDesiredSpeed(LeftMotorPower);
+  RightMotor->SetDesiredSpeed(RightMotorPower);
 }
+
+/*
+  2023-06-03
+  2023-08-13
+*/
