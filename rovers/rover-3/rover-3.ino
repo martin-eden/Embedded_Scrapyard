@@ -2,8 +2,8 @@
 
 /*
   Status: works
-  Version: 2
-  Last mod.: 2023-06-04
+  Version: 4
+  Last mod.: 2023-08-13
 */
 
 /*
@@ -38,7 +38,7 @@ const uint32_t
   ConnectionSpeed = 57600,
   ConnectionTimeout_ms = 20,
   ProcessingTick_ms = 25,
-  PowerOffTimeout_ms = 700;
+  PowerOffTimeout_ms = 350;
 
 const char
   Command_PolarCoords_Radius = 'R',
@@ -90,43 +90,37 @@ int16_t AdjustToPowerGauge(DcMotor Motor)
 {
   int16_t Result;
 
-  Result = Motor.GetPower();
+  Result = Motor.GetActualSpeed();
   Result = map(Result, -100, 100, 0, 200);
 
   return Result;
 }
 
-static int16_t Direction = 0;
-static int16_t Power = 0;
-
 static uint32_t LastCommandTime = 0;
-static bool MotorsAreOff = true;
 
 void PrintDebugInfo()
 {
-  // Serial.print("Direction: ");
-  // Serial.print(Direction);
-  // Serial.println();
+  Serial.print("Direction: ");
+  Serial.print(MotorsDirector.GetDirection());
+  Serial.println();
 
-  // Serial.print("Power: ");
-  // Serial.print(Power);
-  // Serial.println();
+  Serial.print("Power: ");
+  Serial.print(MotorsDirector.GetPower());
+  Serial.println();
 }
 
 void loop()
 {
-  SendStatus();
-  PrintDebugInfo();
-
   uint32_t CurrentTime = millis();
 
-  MotorsAreOff = (CurrentTime - LastCommandTime >= PowerOffTimeout_ms);
+  SendStatus();
 
-  if (MotorsAreOff)
-    Power = 0;
+  // PrintDebugInfo();
 
-  MotorsDirector.SetDirection(Direction);
-  MotorsDirector.SetPower(Power);
+  uint32_t TimeSinceLastCommand_ms = CurrentTime - LastCommandTime;
+
+  if (TimeSinceLastCommand_ms > PowerOffTimeout_ms)
+    MotorsDirector.SetPower(0);
 
   while (Connection.available())
   {
@@ -152,8 +146,11 @@ void loop()
         uint16_t Angle = Connection.parseInt();
         Angle = constrain(Angle, 1, 360);
 
-        Direction = 359 - (Angle % 360);
-        Power = map(Radius, 1, 100, 0, 255);
+        int16_t Direction = 359 - (Angle % 360);
+        uint8_t Power = map(Radius, 1, 100, 0, 255);
+
+        MotorsDirector.SetDirection(Direction);
+        MotorsDirector.SetPower(Power);
 
         LastCommandTime = CurrentTime;
 
@@ -172,5 +169,12 @@ void loop()
     }
   }
 
+  MotorsDirector.Update();
+
   delay(ProcessingTick_ms);
 }
+
+/*
+  2023-06-04
+  2023-08-13
+*/
