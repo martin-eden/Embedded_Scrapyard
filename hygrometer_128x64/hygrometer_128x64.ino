@@ -38,9 +38,9 @@
 #include <me_DHT11_StateGetter.h>
 #include <me_DHT11_StatePrinter_128x64.h>
 
-#define Display_cs_pin 8
-#define Display_dc_pin 9
 #define Display_reset_pin 10
+#define Display_dc_pin 9
+#define Display_cs_pin 8
 
 const uint8_t
   Hygrometer_pin = 2;
