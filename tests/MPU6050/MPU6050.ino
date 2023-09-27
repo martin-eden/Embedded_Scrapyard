@@ -16,7 +16,7 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("Gyro/acc MPU6050 test.");
-  GyroAcc.Configure();
+  GyroAcc.Initialize();
 }
 
 void loop()
@@ -40,6 +40,11 @@ void loop()
   Serial.print(GyroAccReadings.Rotation.y);
   Serial.print(" ");
   Serial.print(GyroAccReadings.Rotation.z);
+  Serial.print(")");
+  Serial.print(" ");
+  Serial.print("Temperature");
+  Serial.print("(");
+  Serial.print(GyroAccReadings.Temperature);
   Serial.print(")");
   Serial.print("\n");
 

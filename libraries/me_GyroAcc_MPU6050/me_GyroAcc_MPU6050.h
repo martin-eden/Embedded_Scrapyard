@@ -33,13 +33,14 @@ namespace MPU6050
   {
     t_Acceleration Acceleration;
     t_Rotation Rotation;
+    float Temperature;
   };
 
   class t_GyroAcc
   {
     public:
       t_GyroAcc();
-      void Configure();
+      void Initialize();
       t_GyroAccReadings GetReadings();
 
     private:

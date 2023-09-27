@@ -19,7 +19,7 @@ t_GyroAcc::t_GyroAcc()
 {
 }
 
-void t_GyroAcc::Configure()
+void t_GyroAcc::Initialize()
 {
  if (!GyroAcc.begin())
   {
@@ -47,6 +47,8 @@ t_GyroAccReadings t_GyroAcc::GetReadings()
   Result.Rotation.x = g.gyro.x;
   Result.Rotation.y = g.gyro.y;
   Result.Rotation.z = g.gyro.z;
+
+  Result.Temperature = temp.temperature;
 
   return Result;
 }
