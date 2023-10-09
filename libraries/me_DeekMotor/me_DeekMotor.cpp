@@ -64,7 +64,7 @@ int8_t DeekMotor::GetDesiredSpeed()
 
 void DeekMotor::Update()
 {
-  const uint8_t MaxSpeedIncrement = 1;
+  const uint8_t MaxSpeedIncrement = 2;
 
   ActualSpeed = Smooth(ActualSpeed, DesiredSpeed, MaxSpeedIncrement);
 
