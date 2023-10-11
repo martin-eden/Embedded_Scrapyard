@@ -2,40 +2,62 @@
 
 /*
   Status: writing
-  Version: 1
-  Last mod.: 2023-10-08
+  Version: 2
+  Last mod.: 2023-10-11
 */
 
 /*
-  Board: WeMos D1 ESP WROOM WiFi UNO
-  Processor: ESP 8266
-  Motor board: Deek
+  This is code for Arduino Uno with stacked Deek motor shield.
 */
 
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
+/*
+  I've got troubles using <ESP8266TimerInterrupt.h> and Deek motor
+  shield stacked top on board. When I start using timer interrupt,
+  D2 goes high and D2 is Motor A PWM pin.
+
+  As a workaround, NEW Arduino Uno BOARD added just for Deek motor
+  shield. It is connected to some master board over UART.
+*/
+
+/*
+  1: Motor shield
+
+    Board: Arduino Uno
+    Processor: ATmega328P
+    Motor board: Deek (stacked)
+
+  2: Overseer
+
+    Board: WeMos D1 ESP WROOM WiFi UNO
+    Processor: ESP 8266
+    Accelerometer: MPU6050 (I2C)
+*/
+
+/*
+  Motor board command format.
+
+  Command is left motor PWM value, right motor PWM value and duration
+  (in ms) for such state.
+
+  "L 50 R -50 D 1000" == "L50R50D1000"
+*/
+
+#include <Stream.h>
 
 #include <me_DeekMotor.h>
 // #include <me_TwoDcMotorsDirector.h>
 
 const uint8_t
-  Deek_DirA_Pin = D12,
-  Deek_PwmA_Pin = D3,
-  Deek_BrakeA_Pin = D8,
+  Deek_DirA_Pin = 12,
+  Deek_PwmA_Pin = 3,
+  Deek_BrakeA_Pin = 9,
 
-  Deek_DirB_Pin = D13,
-  Deek_PwmB_Pin = D11,
-  Deek_BrakeB_Pin = D9;
-
-const char
-  * NetworkName = "",
-  * Password = "";
-
-const uint16_t
-  UdpPort = 31415;
+  Deek_DirB_Pin = 13,
+  Deek_PwmB_Pin = 11,
+  Deek_BrakeB_Pin = 8;
 
 const uint32_t
-  SerialSpeed = 115200;
+  SerialSpeed = 9600;
 
 const uint32_t
   TickTime_Ms = 50;
@@ -56,76 +78,56 @@ const TDeekMotorPins
 
 DeekMotor LeftMotor(LeftMotorPins);
 DeekMotor RightMotor(RightMotorPins);
-WiFiUDP Udp;
+
+struct TMotorboardCommand
+{
+  int8_t LeftMotor;
+  int8_t RightMotor;
+  int16_t Duration_Ms;
+};
+
+enum TTokenType
+{
+  Token_Word,
+  Token_Number
+};
+
+enum TCommandType
+{
+  Command_LeftMotor,
+  Command_RightMotor,
+  Command_Duration
+};
+
+const char
+  CommandName_LeftMotor = 'L',
+  CommandName_RightMotor = 'R',
+  CommandName_Duration = 'D';
+
+void StopMotors()
+{
+  LeftMotor.SetSpeed(0);
+  RightMotor.SetSpeed(0);
+}
 
 void DoMotorsTest()
 {
-  for (int16_t angle_deg = 0; angle_deg < 360; angle_deg = angle_deg + 4)
+  uint8_t acceleration = 2;
+  for (int16_t angle_deg = 0; angle_deg < 360; angle_deg = angle_deg + acceleration)
   {
-    int8_t DesiredSpeed;
+    int8_t Speed;
 
     float MagnifiedSine = sin(DEG_TO_RAD * angle_deg) * 100;
 
-    DesiredSpeed = MagnifiedSine;
+    Speed = MagnifiedSine;
 
-    LeftMotor.SetDesiredSpeed(DesiredSpeed);
-    RightMotor.SetDesiredSpeed(DesiredSpeed);
+    LeftMotor.SetSpeed(Speed);
+    RightMotor.SetSpeed(Speed);
 
-    for (uint8_t i = 0; i < 4; ++i)
-    {
-      delay(2);
-      LeftMotor.Update();
-      RightMotor.Update();
-    }
+    delay(20);
   }
 
-  LeftMotor.SetDesiredSpeed(0);
-  RightMotor.SetDesiredSpeed(0);
-  for (uint8_t i = 0; i < 16; ++i)
-  {
-    delay(2);
-    LeftMotor.Update();
-    RightMotor.Update();
-  }
-}
-
-void SetupWiFi()
-{
-  WiFi.begin(NetworkName, Password);
-
-  int8_t ConnectionStatus = WiFi.waitForConnectResult();
-  if (ConnectionStatus == WL_CONNECTED)
-  {
-    Serial.println("Connected!");
-    Serial.println();
-
-    Serial.printf("Hostname: %s\n", WiFi.hostname().c_str());
-
-    Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
-
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
-
-    Serial.print("DNS: ");
-    WiFi.dnsIP().printTo(Serial);
-    Serial.println();
-
-    Serial.printf("Station: %s\n", WiFi.SSID().c_str());
-    Serial.printf("Password: %s\n", WiFi.psk().c_str());
-    Serial.printf("Station MAC: %s\n", WiFi.BSSIDstr().c_str());
-    Serial.printf("RSSI: %d dBm\n", WiFi.RSSI());
-  }
-}
-
-void SetupUdp()
-{
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    Udp.begin(UdpPort);
-    Serial.print("Started UDP on port ");
-    Serial.print(UdpPort);
-    Serial.println(".");
-  }
+  StopMotors();
 }
 
 void PrintSetupGreeting()
@@ -143,50 +145,276 @@ void PrintLoopGreeting()
   Serial.println("-------------------");
 }
 
+bool PeekNextToken(TTokenType *NextToken)
+{
+  bool IsOk = false;
+
+  char IncomingChar;
+
+  while (Serial.available() && !IsOk)
+  {
+    IncomingChar = Serial.peek();
+
+    if (
+      (IncomingChar >= 'A') ||
+      (IncomingChar <= 'z')
+    ) {
+      *NextToken = Token_Word;
+      IsOk = true;
+    }
+    else if (
+      (IncomingChar == '-') ||
+      ((IncomingChar >= '0') && (IncomingChar <= '9'))
+    ) {
+      *NextToken = Token_Number;
+      IsOk = true;
+    }
+    else
+    {
+      Serial.read();
+    }
+  }
+
+  return IsOk;
+}
+
+bool GetCommandType(TCommandType *CommandType)
+{
+  bool IsOk = false;
+
+  if (!Serial.available())
+  {
+    return IsOk;
+  }
+
+  char IncomingChar;
+  IncomingChar = Serial.read();
+
+  if (IncomingChar == CommandName_LeftMotor)
+  {
+    *CommandType = Command_LeftMotor;
+    IsOk = true;
+  }
+  else if (IncomingChar == CommandName_RightMotor)
+  {
+    *CommandType = Command_RightMotor;
+    IsOk = true;
+  }
+  else if (IncomingChar == CommandName_Duration)
+  {
+    *CommandType = Command_Duration;
+    IsOk = true;
+  }
+
+  return IsOk;
+}
+
+bool GetMotorValue(int8_t *MotorValue)
+{
+  bool IsOk = false;
+
+  if (!Serial.available())
+  {
+    return IsOk;
+  }
+
+  LookaheadMode lookaheadMode = SKIP_WHITESPACE;
+  int32_t ParseIntValue = Serial.parseInt(lookaheadMode);
+
+  if ((ParseIntValue >= -100) && (ParseIntValue <= 100))
+  {
+    *MotorValue = ParseIntValue;
+    IsOk = true;
+  }
+
+  return IsOk;
+}
+
+bool GetDurationValue(uint16_t *DurationValue)
+{
+  bool IsOk = false;
+
+  if (!Serial.available())
+  {
+    return IsOk;
+  }
+
+  LookaheadMode lookaheadMode = SKIP_WHITESPACE;
+  int32_t ParseIntValue = Serial.parseInt(lookaheadMode);
+
+  if ((ParseIntValue >= 0) && (ParseIntValue <= 5000))
+  {
+    *DurationValue = ParseIntValue;
+    IsOk = true;
+  }
+
+  return IsOk;
+}
+
+bool ParseCommand(TMotorboardCommand *Result)
+{
+  bool IsOk = false;
+
+  TCommandType CommandType;
+  int8_t MotorValue;
+  uint16_t DurationValue;
+
+  TTokenType TokenType;
+
+  IsOk = PeekNextToken(&TokenType);
+
+  if (!IsOk)
+  {
+    return IsOk;
+  }
+
+  if (TokenType == Token_Word)
+  {
+    IsOk = GetCommandType(&CommandType);
+    if (!IsOk)
+    {
+      return IsOk;
+    }
+
+    if (CommandType == Command_LeftMotor)
+    {
+      IsOk = GetMotorValue(&MotorValue);
+      if (!IsOk)
+      {
+        return IsOk;
+      }
+
+      Result->LeftMotor = MotorValue;
+    }
+    else if (CommandType == Command_RightMotor)
+    {
+      IsOk = GetMotorValue(&MotorValue);
+      if (!IsOk)
+      {
+        return IsOk;
+      }
+
+      Result->RightMotor = MotorValue;
+    }
+    else if (CommandType == Command_Duration)
+    {
+      IsOk = GetDurationValue(&DurationValue);
+      if (!IsOk)
+      {
+        return IsOk;
+      }
+
+      Result->Duration_Ms = DurationValue;
+    }
+    else
+    {
+      IsOk = false;
+    }
+  }
+
+  return IsOk;
+}
+
+void ExecuteCommand(TMotorboardCommand Command)
+{
+  LeftMotor.SetSpeed(Command.LeftMotor);
+  RightMotor.SetSpeed(Command.RightMotor);
+
+  delay(Command.Duration_Ms);
+
+  Serial.print("delay ");
+  Serial.print(Command.Duration_Ms);
+  Serial.println();
+}
+
+void DisplayCommand(TMotorboardCommand Command)
+{
+  Serial.print("(");
+  Serial.print("Left: ");
+  Serial.print(Command.LeftMotor);
+  Serial.print(")");
+  Serial.print(" ");
+  Serial.print("(");
+  Serial.print("Right: ");
+  Serial.print(Command.RightMotor);
+  Serial.print(")");
+  Serial.print(" ");
+  Serial.print("(");
+  Serial.print("Duration: ");
+  Serial.print(Command.Duration_Ms);
+  Serial.print(")");
+
+  Serial.println();
+}
+
 void ProcessCommand()
 {
-  char PacketData[508];
-  char ReplyPacket[] = "Got your data.";
+  static uint32_t LastSucessfullTime = 0;
+  const uint32_t AutoStopTimeout_Ms = 2000;
+  static bool MotorsAreStopped = false;
 
-  uint32_t PacketLength = Udp.parsePacket();
-  if (PacketLength > 0)
+  TMotorboardCommand Command;
+  bool IsOk;
+
+  IsOk = ParseCommand(&Command);
+  if (IsOk)
   {
-    // receive incoming UDP packets
-    Serial.printf("Received %d bytes from %s, port %d\n", PacketLength, Udp.remoteIP().toString().c_str(), Udp.remotePort());
-
-    uint32_t PacketLength2 = Udp.read(PacketData, sizeof(PacketData));
-    PacketData[PacketLength2] = 0;
-
-    Serial.printf("UDP packet contents: %s\n", PacketData);
-
-    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-    Udp.write("Got your data.");
-    Udp.write('\n');
-    Udp.write(PacketLength2);
-    Udp.endPacket();
-
-    DoMotorsTest();
+    DisplayCommand(Command);
+    ExecuteCommand(Command);
+    LastSucessfullTime = millis();
+    MotorsAreStopped = false;
   }
+  else
+  {
+    if (!MotorsAreStopped)
+    {
+      Serial.println(millis() - LastSucessfullTime);
+    }
+
+    if (!MotorsAreStopped && (millis() - LastSucessfullTime) >= AutoStopTimeout_Ms)
+    {
+      StopMotors();
+      Serial.println("Motors are stopped.");
+      MotorsAreStopped = true;
+    }
+  }
+}
+
+void SetupSerial()
+{
+  const uint16_t SerialParseIntTimeout_Ms = 100;
+
+  Serial.begin(SerialSpeed);
+  Serial.setTimeout(SerialParseIntTimeout_Ms);
 }
 
 void setup()
 {
-  Serial.begin(SerialSpeed);
+  SetupSerial();
 
   PrintSetupGreeting();
-  SetupWiFi();
-  SetupUdp();
+
   DoMotorsTest();
 }
 
 void loop()
 {
   // PrintLoopGreeting();
+
+  uint32_t StartTime = millis();
+
   ProcessCommand();
-  delay(TickTime_Ms);
+
+  uint32_t CurrentTime = millis();
+  uint32_t TimePassed = CurrentTime - StartTime;
+  if (TimePassed < TickTime_Ms)
+  {
+    delay(TickTime_Ms - TimePassed);
+  }
 }
 
 /*
   2023-10-07
   2023-10-08
+  2023-10-11
 */
