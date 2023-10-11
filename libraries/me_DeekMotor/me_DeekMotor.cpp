@@ -7,29 +7,6 @@
 
 #include "me_DeekMotor.h"
 
-// -= handy =-
-
-template <typename type> int8_t sign(type value)
-{
-  return type((value > 0) - (value < 0));
-}
-
-int8_t Smooth(int8_t CurrentValue, int8_t DesiredValue, uint8_t MaxValueChange)
-{
-  int16_t ValueDelta = (DesiredValue - CurrentValue);
-
-  if (abs(ValueDelta) > MaxValueChange)
-  {
-    ValueDelta = MaxValueChange * sign(ValueDelta);
-  }
-
-  int8_t Result = (int16_t) (CurrentValue + ValueDelta);
-
-  return Result;
-}
-
-// -= public =-
-
 DeekMotor::DeekMotor(TDeekMotorPins aMotorPins)
 {
   MotorPins = aMotorPins;
@@ -42,38 +19,23 @@ DeekMotor::DeekMotor(TDeekMotorPins aMotorPins)
   digitalWrite(MotorPins.Pwm_Pin, LOW);
   digitalWrite(MotorPins.Brake_Pin, LOW);
 
-  DesiredSpeed = 0;
-  ActualSpeed = 0;
+  Speed = 0;
 
-  SetDesiredSpeed(DesiredSpeed);
+  SetSpeed(Speed);
 }
 
-void DeekMotor::SetDesiredSpeed(int8_t aDesiredSpeed)
+void DeekMotor::SetSpeed(int8_t aSpeed)
 {
-  DesiredSpeed = aDesiredSpeed;
+  Speed = aSpeed;
 
-  DesiredSpeed = constrain(DesiredSpeed, -100, 100);
-
-  Update();
-}
-
-int8_t DeekMotor::GetDesiredSpeed()
-{
-  return DesiredSpeed;
-}
-
-void DeekMotor::Update()
-{
-  const uint8_t MaxSpeedIncrement = 2;
-
-  ActualSpeed = Smooth(ActualSpeed, DesiredSpeed, MaxSpeedIncrement);
+  Speed = constrain(Speed, -100, 100);
 
   Actualize();
 }
 
-int8_t DeekMotor::GetActualSpeed()
+int8_t DeekMotor::GetSpeed()
 {
-  return ActualSpeed;
+  return Speed;
 }
 
 // -= private =-
@@ -82,19 +44,16 @@ void DeekMotor::Actualize()
 /*
   Set motor speed to <ActualSpeed>.
 
-  On hardware level we map 1D speed vector to two pin values:
-  forward pin and backward pin. Full forward (100) maps to (255, 0),
-  full backward (-100) maps to (0, 255).
+  Depending on sign of speed, we set direcion pin.
+  Depending on magniture of speed, we set PWM pin.
 */
 {
-  uint8_t MotorPower;
+  uint8_t Direction;
+  uint8_t Pwm;
 
-  MotorPower = map(abs(ActualSpeed), 0, 100, 0, 255);
+  Direction = (Speed < 0) ? HIGH : LOW;
 
-  uint8_t Direction, Pwm;
-
-  Direction = (ActualSpeed < 0) ? HIGH : LOW;
-  Pwm = MotorPower;
+  Pwm = map(abs(Speed), 0, 100, 0, 255);
 
   digitalWrite(MotorPins.Direction_Pin, Direction);
   analogWrite(MotorPins.Pwm_Pin, Pwm);

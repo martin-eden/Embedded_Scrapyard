@@ -26,19 +26,13 @@ class DeekMotor
   public:
     DeekMotor(TDeekMotorPins aMotorPins);
 
-    void SetDesiredSpeed(int8_t aDesiredSpeed);
-    int8_t GetDesiredSpeed();
-
-    // Call it every tick to gradually reach desired speed.
-    void Update();
-
-    int8_t GetActualSpeed();
+    void SetSpeed(int8_t aDesiredSpeed);
+    int8_t GetSpeed();
 
   protected:
     TDeekMotorPins MotorPins;
 
-    int8_t DesiredSpeed;
-    int8_t ActualSpeed;
+    int8_t Speed;
 
   private:
     void Actualize();
