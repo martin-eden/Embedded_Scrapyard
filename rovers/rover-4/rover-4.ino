@@ -1,7 +1,7 @@
 // Firmware for my Rover v4.
 
 /*
-  Status: writing
+  Status: stable
   Version: 2
   Last mod.: 2023-10-11
 */
@@ -36,10 +36,13 @@
 /*
   Motor board command format.
 
-  Command is left motor PWM value, right motor PWM value and duration
-  (in ms) for such state.
+  Command is two tokens. Command type and command value.
 
-  "L 50 R -50 D 1000" == "L50R50D1000"
+  "L" [-100, 100] -- Left motor. Set specified power and direction.
+  "R" [-100, 100] -- Right motor. Set specified power and direction.
+  "D" [0, 5000] -- Delay for given value in milliseconds.
+
+  Whitespaces are stripped, so "L 50 R -50 D 1000" == "L50R50D1000".
 */
 
 #include <Stream.h>
@@ -79,24 +82,27 @@ const TDeekMotorPins
 DeekMotor LeftMotor(LeftMotorPins);
 DeekMotor RightMotor(RightMotorPins);
 
+enum TCommandType
+{
+  Command_LeftMotor,
+  Command_RightMotor,
+  Command_Duration
+};
+
 struct TMotorboardCommand
 {
-  int8_t LeftMotor;
-  int8_t RightMotor;
-  int16_t Duration_Ms;
+  TCommandType Type;
+  union
+  {
+    int8_t MotorSpeed;
+    int16_t Duration_Ms;
+  };
 };
 
 enum TTokenType
 {
   Token_Word,
   Token_Number
-};
-
-enum TCommandType
-{
-  Command_LeftMotor,
-  Command_RightMotor,
-  Command_Duration
 };
 
 const char
@@ -284,7 +290,8 @@ bool ParseCommand(TMotorboardCommand *Result)
         return IsOk;
       }
 
-      Result->LeftMotor = MotorValue;
+      Result->Type = Command_LeftMotor;
+      Result->MotorSpeed = MotorValue;
     }
     else if (CommandType == Command_RightMotor)
     {
@@ -294,7 +301,8 @@ bool ParseCommand(TMotorboardCommand *Result)
         return IsOk;
       }
 
-      Result->RightMotor = MotorValue;
+      Result->Type = Command_RightMotor;
+      Result->MotorSpeed = MotorValue;
     }
     else if (CommandType == Command_Duration)
     {
@@ -304,6 +312,7 @@ bool ParseCommand(TMotorboardCommand *Result)
         return IsOk;
       }
 
+      Result->Type = Command_Duration;
       Result->Duration_Ms = DurationValue;
     }
     else
@@ -317,32 +326,51 @@ bool ParseCommand(TMotorboardCommand *Result)
 
 void ExecuteCommand(TMotorboardCommand Command)
 {
-  LeftMotor.SetSpeed(Command.LeftMotor);
-  RightMotor.SetSpeed(Command.RightMotor);
+  switch (Command.Type)
+  {
+    case Command_LeftMotor:
+      LeftMotor.SetSpeed(Command.MotorSpeed);
+      break;
 
-  delay(Command.Duration_Ms);
+    case Command_RightMotor:
+      RightMotor.SetSpeed(Command.MotorSpeed);
+      break;
 
-  Serial.print("delay ");
-  Serial.print(Command.Duration_Ms);
-  Serial.println();
+    case Command_Duration:
+      delay(Command.Duration_Ms);
+      break;
+  }
 }
 
 void DisplayCommand(TMotorboardCommand Command)
 {
-  Serial.print("(");
-  Serial.print("Left: ");
-  Serial.print(Command.LeftMotor);
-  Serial.print(")");
-  Serial.print(" ");
-  Serial.print("(");
-  Serial.print("Right: ");
-  Serial.print(Command.RightMotor);
-  Serial.print(")");
-  Serial.print(" ");
-  Serial.print("(");
-  Serial.print("Duration: ");
-  Serial.print(Command.Duration_Ms);
-  Serial.print(")");
+  if (
+    (Command.Type == Command_LeftMotor) ||
+    (Command.Type == Command_RightMotor)
+  ) {
+    Serial.print("(");
+    if (Command.Type == Command_LeftMotor)
+    {
+      Serial.print("Left: ");
+    }
+    else if (Command.Type == Command_RightMotor)
+    {
+      Serial.print("Right: ");
+    }
+    Serial.print(Command.MotorSpeed);
+    Serial.print(")");
+  }
+  else if (Command.Type == Command_Duration)
+  {
+    Serial.print("(");
+    Serial.print("Duration: ");
+    Serial.print(Command.Duration_Ms);
+    Serial.print(")");
+  }
+  else
+  {
+    Serial.print("Unrecognized command.");
+  }
 
   Serial.println();
 }
@@ -350,7 +378,7 @@ void DisplayCommand(TMotorboardCommand Command)
 void ProcessCommand()
 {
   static uint32_t LastSucessfullTime = 0;
-  const uint32_t AutoStopTimeout_Ms = 2000;
+  const uint32_t AutoStopTimeout_Ms = 20;
   static bool MotorsAreStopped = false;
 
   TMotorboardCommand Command;
@@ -368,13 +396,13 @@ void ProcessCommand()
   {
     if (!MotorsAreStopped)
     {
-      Serial.println(millis() - LastSucessfullTime);
+      // Serial.println(millis() - LastSucessfullTime);
     }
 
     if (!MotorsAreStopped && (millis() - LastSucessfullTime) >= AutoStopTimeout_Ms)
     {
       StopMotors();
-      Serial.println("Motors are stopped.");
+      // Serial.println("Motors are stopped.");
       MotorsAreStopped = true;
     }
   }
