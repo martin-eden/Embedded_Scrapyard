@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 2
-  Last mod.: 2023-10-11
+  Version: 3
+  Last mod.: 2023-10-14
 */
 
 /*
@@ -20,17 +20,11 @@
 */
 
 /*
-  1: Motor shield
+  1: Motor controller
 
     Board: Arduino Uno
     Processor: ATmega328P
     Motor board: Deek (stacked)
-
-  2: Overseer
-
-    Board: WeMos D1 ESP WROOM WiFi UNO
-    Processor: ESP 8266
-    Accelerometer: MPU6050 (I2C)
 */
 
 /*
@@ -45,10 +39,12 @@
   Whitespaces are stripped, so "L 50 R -50 D 1000" == "L50R50D1000".
 */
 
-#include <Stream.h>
+/*
+  Motors are stopped when no command received in some interval of time.
+*/
 
 #include <me_DeekMotor.h>
-// #include <me_TwoDcMotorsDirector.h>
+#include <me_Parser_MotorBoard.h>
 
 const uint8_t
   Deek_DirA_Pin = 12,
@@ -61,6 +57,21 @@ const uint8_t
 
 const uint32_t
   SerialSpeed = 9600;
+
+const static char
+  CommandReferenceText[] PROGMEM =
+    "Motor board command format.\n"
+    "\n"
+    "Command is two tokens. Command type and command value.\n"
+    "\n"
+    "\"L\" [-100, 100] -- Left motor. Set specified power and direction.\n"
+    "\"R\" [-100, 100] -- Right motor. Set specified power and direction.\n"
+    "\"D\" [0, 5000] -- Delay for given value in milliseconds.\n"
+    "\n"
+    "Whitespaces are stripped, so \"L 50 R -50 D 1000\" == \"L50R50D1000\".\n"
+    "\n"
+    "Motors are stopped when no command received in some interval of time.\n"
+    ;
 
 const uint32_t
   TickTime_Ms = 50;
@@ -82,250 +93,43 @@ const TDeekMotorPins
 DeekMotor LeftMotor(LeftMotorPins);
 DeekMotor RightMotor(RightMotorPins);
 
-enum TCommandType
+using namespace MotorboardCommands; // mostly for TMotorboardCommand
+
+void SetupSerial()
 {
-  Command_LeftMotor,
-  Command_RightMotor,
-  Command_Duration
-};
+  const uint16_t SerialParseIntTimeout_Ms = 100;
 
-struct TMotorboardCommand
-{
-  TCommandType Type;
-  union
-  {
-    int8_t MotorSpeed;
-    int16_t Duration_Ms;
-  };
-};
-
-enum TTokenType
-{
-  Token_Word,
-  Token_Number
-};
-
-const char
-  CommandName_LeftMotor = 'L',
-  CommandName_RightMotor = 'R',
-  CommandName_Duration = 'D';
-
-void StopMotors()
-{
-  LeftMotor.SetSpeed(0);
-  RightMotor.SetSpeed(0);
-}
-
-void DoMotorsTest()
-{
-  uint8_t acceleration = 2;
-  for (int16_t angle_deg = 0; angle_deg < 360; angle_deg = angle_deg + acceleration)
-  {
-    int8_t Speed;
-
-    float MagnifiedSine = sin(DEG_TO_RAD * angle_deg) * 100;
-
-    Speed = MagnifiedSine;
-
-    LeftMotor.SetSpeed(Speed);
-    RightMotor.SetSpeed(Speed);
-
-    delay(20);
-  }
-
-  StopMotors();
+  Serial.begin(SerialSpeed);
+  Serial.setTimeout(SerialParseIntTimeout_Ms);
 }
 
 void PrintSetupGreeting()
 {
   Serial.println();
-  Serial.println("---------------------");
-  Serial.println("Rover-4: Hello there!");
-  Serial.println("---------------------");
+  Serial.println("-----------------------------------");
+  Serial.println(" Rover-4 motor board: Hello there! ");
+  Serial.println("-----------------------------------");
+}
+
+void PrintHelp()
+{
+  char c;
+  for (size_t i = 0; i < strlen_P(CommandReferenceText); ++i)
+  {
+    c = pgm_read_byte_near(CommandReferenceText + i);
+    Serial.print(c);
+  }
 }
 
 void PrintLoopGreeting()
 {
-  Serial.println("-------------------");
-  Serial.println("Rover-4: Loop here!");
-  Serial.println("-------------------");
-}
-
-bool PeekNextToken(TTokenType *NextToken)
-{
-  bool IsOk = false;
-
-  char IncomingChar;
-
-  while (Serial.available() && !IsOk)
-  {
-    IncomingChar = Serial.peek();
-
-    if (
-      (IncomingChar >= 'A') ||
-      (IncomingChar <= 'z')
-    ) {
-      *NextToken = Token_Word;
-      IsOk = true;
-    }
-    else if (
-      (IncomingChar == '-') ||
-      ((IncomingChar >= '0') && (IncomingChar <= '9'))
-    ) {
-      *NextToken = Token_Number;
-      IsOk = true;
-    }
-    else
-    {
-      Serial.read();
-    }
-  }
-
-  return IsOk;
-}
-
-bool GetCommandType(TCommandType *CommandType)
-{
-  bool IsOk = false;
-
-  if (!Serial.available())
-  {
-    return IsOk;
-  }
-
-  char IncomingChar;
-  IncomingChar = Serial.read();
-
-  if (IncomingChar == CommandName_LeftMotor)
-  {
-    *CommandType = Command_LeftMotor;
-    IsOk = true;
-  }
-  else if (IncomingChar == CommandName_RightMotor)
-  {
-    *CommandType = Command_RightMotor;
-    IsOk = true;
-  }
-  else if (IncomingChar == CommandName_Duration)
-  {
-    *CommandType = Command_Duration;
-    IsOk = true;
-  }
-
-  return IsOk;
-}
-
-bool GetMotorValue(int8_t *MotorValue)
-{
-  bool IsOk = false;
-
-  if (!Serial.available())
-  {
-    return IsOk;
-  }
-
-  LookaheadMode lookaheadMode = SKIP_WHITESPACE;
-  int32_t ParseIntValue = Serial.parseInt(lookaheadMode);
-
-  if ((ParseIntValue >= -100) && (ParseIntValue <= 100))
-  {
-    *MotorValue = ParseIntValue;
-    IsOk = true;
-  }
-
-  return IsOk;
-}
-
-bool GetDurationValue(uint16_t *DurationValue)
-{
-  bool IsOk = false;
-
-  if (!Serial.available())
-  {
-    return IsOk;
-  }
-
-  LookaheadMode lookaheadMode = SKIP_WHITESPACE;
-  int32_t ParseIntValue = Serial.parseInt(lookaheadMode);
-
-  if ((ParseIntValue >= 0) && (ParseIntValue <= 5000))
-  {
-    *DurationValue = ParseIntValue;
-    IsOk = true;
-  }
-
-  return IsOk;
-}
-
-bool ParseCommand(TMotorboardCommand *Result)
-{
-  bool IsOk = false;
-
-  TCommandType CommandType;
-  int8_t MotorValue;
-  uint16_t DurationValue;
-
-  TTokenType TokenType;
-
-  IsOk = PeekNextToken(&TokenType);
-
-  if (!IsOk)
-  {
-    return IsOk;
-  }
-
-  if (TokenType == Token_Word)
-  {
-    IsOk = GetCommandType(&CommandType);
-    if (!IsOk)
-    {
-      return IsOk;
-    }
-
-    if (CommandType == Command_LeftMotor)
-    {
-      IsOk = GetMotorValue(&MotorValue);
-      if (!IsOk)
-      {
-        return IsOk;
-      }
-
-      Result->Type = Command_LeftMotor;
-      Result->MotorSpeed = MotorValue;
-    }
-    else if (CommandType == Command_RightMotor)
-    {
-      IsOk = GetMotorValue(&MotorValue);
-      if (!IsOk)
-      {
-        return IsOk;
-      }
-
-      Result->Type = Command_RightMotor;
-      Result->MotorSpeed = MotorValue;
-    }
-    else if (CommandType == Command_Duration)
-    {
-      IsOk = GetDurationValue(&DurationValue);
-      if (!IsOk)
-      {
-        return IsOk;
-      }
-
-      Result->Type = Command_Duration;
-      Result->Duration_Ms = DurationValue;
-    }
-    else
-    {
-      IsOk = false;
-    }
-  }
-
-  return IsOk;
+  Serial.println("Rover-4 motor board:  Loop here!");
 }
 
 void ExecuteCommand(TMotorboardCommand Command)
 {
+  // DisplayCommand(Command);
+
   switch (Command.Type)
   {
     case Command_LeftMotor:
@@ -342,78 +146,83 @@ void ExecuteCommand(TMotorboardCommand Command)
   }
 }
 
-void DisplayCommand(TMotorboardCommand Command)
+void StopMotors()
 {
-  if (
-    (Command.Type == Command_LeftMotor) ||
-    (Command.Type == Command_RightMotor)
-  ) {
-    Serial.print("(");
-    if (Command.Type == Command_LeftMotor)
-    {
-      Serial.print("Left: ");
-    }
-    else if (Command.Type == Command_RightMotor)
-    {
-      Serial.print("Right: ");
-    }
-    Serial.print(Command.MotorSpeed);
-    Serial.print(")");
-  }
-  else if (Command.Type == Command_Duration)
+  ExecuteCommand({Command_LeftMotor, 0});
+  ExecuteCommand({Command_RightMotor, 0});
+  ExecuteCommand({Command_Duration, 100});
+
+  // Serial.println("Motors are stopped.");
+}
+
+void DoMotorsTest()
+{
+  uint8_t acceleration = 2;
+  for (int16_t angle_deg = 0; angle_deg < 360; angle_deg = angle_deg + acceleration)
   {
-    Serial.print("(");
-    Serial.print("Duration: ");
-    Serial.print(Command.Duration_Ms);
-    Serial.print(")");
-  }
-  else
-  {
-    Serial.print("Unrecognized command.");
+    int8_t Speed;
+
+    float MagnifiedSine = sin(DEG_TO_RAD * angle_deg) * 100;
+
+    Speed = MagnifiedSine;
+
+    ///*
+    // Alt 1: Controlling motors via commands.
+    ExecuteCommand({Command_LeftMotor, Speed});
+    ExecuteCommand({Command_RightMotor, Speed});
+    ExecuteCommand({Command_Duration, 20});
+    //*/
+
+    /*
+    // Alt 2: Direct access to motors.
+    LeftMotor.SetSpeed(Speed);
+    RightMotor.SetSpeed(Speed);
+    delay(20);
+    */
   }
 
-  Serial.println();
+  StopMotors();
 }
 
 void ProcessCommand()
 {
-  static uint32_t LastSucessfullTime = 0;
-  const uint32_t AutoStopTimeout_Ms = 20;
+  static uint32_t LastSucessfullTime_Ms = 0;
+  const uint32_t AutoStopTimeout_Ms = 2000;
   static bool MotorsAreStopped = false;
+  uint32_t TimePassed_Ms;
 
   TMotorboardCommand Command;
   bool IsOk;
 
   IsOk = ParseCommand(&Command);
+
   if (IsOk)
   {
-    DisplayCommand(Command);
+    // Serial.println("Got command.");
+    // DisplayCommand(Command);
+
     ExecuteCommand(Command);
-    LastSucessfullTime = millis();
+
+    LastSucessfullTime_Ms = millis();
+
     MotorsAreStopped = false;
   }
-  else
+
+  TimePassed_Ms = millis() - LastSucessfullTime_Ms;
+
+  if ((TimePassed_Ms < AutoStopTimeout_Ms) && MotorsAreStopped)
   {
-    if (!MotorsAreStopped)
-    {
-      // Serial.println(millis() - LastSucessfullTime);
-    }
-
-    if (!MotorsAreStopped && (millis() - LastSucessfullTime) >= AutoStopTimeout_Ms)
-    {
-      StopMotors();
-      // Serial.println("Motors are stopped.");
-      MotorsAreStopped = true;
-    }
+    MotorsAreStopped = false;
   }
-}
 
-void SetupSerial()
-{
-  const uint16_t SerialParseIntTimeout_Ms = 100;
+  if ((TimePassed_Ms >= AutoStopTimeout_Ms) && !MotorsAreStopped)
+  {
+    // Serial.println("Auto-stopping motors.");
 
-  Serial.begin(SerialSpeed);
-  Serial.setTimeout(SerialParseIntTimeout_Ms);
+    StopMotors();
+
+    MotorsAreStopped = true;
+  }
 }
 
 void setup()
@@ -421,6 +230,7 @@ void setup()
   SetupSerial();
 
   PrintSetupGreeting();
+  PrintHelp();
 
   DoMotorsTest();
 }
@@ -429,20 +239,14 @@ void loop()
 {
   // PrintLoopGreeting();
 
-  uint32_t StartTime = millis();
-
   ProcessCommand();
 
-  uint32_t CurrentTime = millis();
-  uint32_t TimePassed = CurrentTime - StartTime;
-  if (TimePassed < TickTime_Ms)
-  {
-    delay(TickTime_Ms - TimePassed);
-  }
+  delay(TickTime_Ms);
 }
 
 /*
   2023-10-07
   2023-10-08
   2023-10-11
+  2023-10-14
 */
