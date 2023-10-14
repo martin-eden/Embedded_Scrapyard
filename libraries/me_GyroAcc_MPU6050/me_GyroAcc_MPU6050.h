@@ -5,9 +5,6 @@
   Last mod.: 2023-09-22
 */
 
-/*
-*/
-
 #pragma once
 
 #include <Arduino.h>
@@ -31,19 +28,24 @@ namespace MPU6050
 
   struct t_GyroAccReadings
   {
-    t_Acceleration Acceleration;
-    t_Rotation Rotation;
-    float Temperature;
+    t_Acceleration Acceleration_Mps;
+    t_Rotation Rotation_Dps;
+    float Temperature_C;
   };
 
   class t_GyroAcc
   {
     public:
-      t_GyroAcc();
-      void Initialize();
+      bool Initialize();
+
       t_GyroAccReadings GetReadings();
 
     private:
       Adafruit_MPU6050 GyroAcc;
   };
 }
+
+/*
+  2023-09-22
+  2023-10-12
+*/

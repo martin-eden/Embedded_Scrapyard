@@ -1,11 +1,9 @@
 // Representation model for gyroscope/accelerometer MPU6050
 
 /*
+  Status: works
   Version: 1
-  Last mod.: 2023-09-22
-*/
-
-/*
+  Last mod.: 2023-10-12
 */
 
 #include "me_GyroAcc_MPU6050.h"
@@ -15,40 +13,41 @@
 
 using namespace MPU6050;
 
-t_GyroAcc::t_GyroAcc()
+bool t_GyroAcc::Initialize()
 {
-}
-
-void t_GyroAcc::Initialize()
-{
- if (!GyroAcc.begin())
+  if (!GyroAcc.begin())
   {
-    Serial.println("Failed to open MPU6050 gyro/acc.");
-    return;
+    return false;
   }
 
-  GyroAcc.setAccelerometerRange(MPU6050_RANGE_8_G);
+  GyroAcc.setAccelerometerRange(MPU6050_RANGE_4_G);
   GyroAcc.setGyroRange(MPU6050_RANGE_500_DEG);
-  GyroAcc.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  Serial.println("Gyro/acc MPU6050 successfully configured.");
+  GyroAcc.setFilterBandwidth(MPU6050_BAND_94_HZ);
+
+  return true;
 }
 
 t_GyroAccReadings t_GyroAcc::GetReadings()
 {
-  sensors_event_t a, g, temp;
-  GyroAcc.getEvent(&a, &g, &temp);
-
+  sensors_event_t Acceleration, Rotation, Temperature;
   t_GyroAccReadings Result;
 
-  Result.Acceleration.x = a.acceleration.x;
-  Result.Acceleration.y = a.acceleration.y;
-  Result.Acceleration.z = a.acceleration.z;
+  GyroAcc.getEvent(&Acceleration, &Rotation, &Temperature);
 
-  Result.Rotation.x = g.gyro.x;
-  Result.Rotation.y = g.gyro.y;
-  Result.Rotation.z = g.gyro.z;
+  Result.Acceleration_Mps.x = Acceleration.acceleration.x;
+  Result.Acceleration_Mps.y = Acceleration.acceleration.y;
+  Result.Acceleration_Mps.z = Acceleration.acceleration.z;
 
-  Result.Temperature = temp.temperature;
+  Result.Rotation_Dps.x = Rotation.gyro.x;
+  Result.Rotation_Dps.y = Rotation.gyro.y;
+  Result.Rotation_Dps.z = Rotation.gyro.z;
+
+  Result.Temperature_C = Temperature.temperature;
 
   return Result;
 }
+
+/*
+  2023-09-22
+  2023-10-12
+*/
