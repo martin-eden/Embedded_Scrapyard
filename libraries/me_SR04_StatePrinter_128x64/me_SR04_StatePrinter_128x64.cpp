@@ -2,7 +2,7 @@
 
 /*
   Version: 3
-  Last mod.: 2023-01-09
+  Last mod.: 2023-10-12
 */
 
 #include "me_SR04_StatePrinter_128x64.h"
@@ -39,6 +39,8 @@ void StatePrinter::DisplayDistance(float DistanceCm)
   Screen->setFont(u8g2_font_profont29_tf);
 
   UnderscoreWidth = Screen->getStrWidth(Buffer);
+
+  strcat(Buffer, " cm");
 
   TextWidth = Screen->getStrWidth(Buffer);
   TextHeight = Screen->getAscent() + Screen->getDescent();
@@ -111,3 +113,7 @@ void StatePrinter::Display(bool isConnected, bool hasDistance, float distanceCm)
 
   DisplayDistance(distanceCm);
 }
+
+/*
+  2023-01-09
+*/
