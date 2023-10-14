@@ -155,35 +155,6 @@ void StopMotors()
   // Serial.println("Motors are stopped.");
 }
 
-void DoMotorsTest()
-{
-  uint8_t acceleration = 2;
-  for (int16_t angle_deg = 0; angle_deg < 360; angle_deg = angle_deg + acceleration)
-  {
-    int8_t Speed;
-
-    float MagnifiedSine = sin(DEG_TO_RAD * angle_deg) * 100;
-
-    Speed = MagnifiedSine;
-
-    ///*
-    // Alt 1: Controlling motors via commands.
-    ExecuteCommand({Command_LeftMotor, Speed});
-    ExecuteCommand({Command_RightMotor, Speed});
-    ExecuteCommand({Command_Duration, 20});
-    //*/
-
-    /*
-    // Alt 2: Direct access to motors.
-    LeftMotor.SetSpeed(Speed);
-    RightMotor.SetSpeed(Speed);
-    delay(20);
-    */
-  }
-
-  StopMotors();
-}
-
 void ProcessCommand()
 {
   static uint32_t LastSucessfullTime_Ms = 0;
@@ -231,8 +202,6 @@ void setup()
 
   PrintSetupGreeting();
   PrintHelp();
-
-  DoMotorsTest();
 }
 
 void loop()
