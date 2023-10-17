@@ -20,9 +20,13 @@ bool t_GyroAcc::Initialize()
     return false;
   }
 
-  GyroAcc.setAccelerometerRange(MPU6050_RANGE_4_G);
-  GyroAcc.setGyroRange(MPU6050_RANGE_500_DEG);
+  GyroAcc.setAccelerometerRange(MPU6050_RANGE_8_G);
+  GyroAcc.setGyroRange(MPU6050_RANGE_2000_DEG);
+
   GyroAcc.setFilterBandwidth(MPU6050_BAND_94_HZ);
+
+  GyroAcc.setCycleRate(MPU6050_CYCLE_40_HZ);
+  GyroAcc.enableCycle(true);
 
   return true;
 }
