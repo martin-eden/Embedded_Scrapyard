@@ -36,10 +36,8 @@
 */
 
 #include <ESP8266WiFi.h>
-
 #include <ESP8266WebServer.h>
-
-#include <ESP8266TimerInterrupt.h>
+#include <Ticker.h>
 
 #include <me_GyroAcc_MPU6050.h>
 
@@ -56,9 +54,11 @@ const uint32_t
 
 MPU6050::t_GyroAcc GyroAcc;
 MPU6050::t_GyroAccReadings LastGyroReadings;
+uint32_t LastGyroReadingsTime_Ms = 0;
 
 ESP8266WebServer Http;
-ESP8266Timer Timer;
+
+Ticker Timer;
 
 void SetupSerial()
 {
@@ -66,23 +66,34 @@ void SetupSerial()
   delay(300);
 }
 
-void IRAM_ATTR GyroReadingsIsr()
-{
-  LastGyroReadings = GetGyroReadings();
-
-  // PrintGyroReadings(LastGyroReadings);
-}
-
 void SetupGyro()
 {
-  if (!GyroAcc.Initialize())
+  bool GyroInitialized = false;
+  for (
+    uint8_t NumTries = 0;
+    (NumTries < 20) && !GyroInitialized;
+    ++NumTries
+  )
+  {
+    GyroInitialized = GyroAcc.Initialize();
+    delay(100);
+  }
+
+  if (!GyroInitialized)
   {
     Serial.println("Failed to initialize gyro.");
     Serial.println("Stopped.");
     while (1);
   }
+  else
+  {
+    Serial.println("Gyro initialized.");
+  }
+}
 
-  Timer.attachInterruptInterval(GyroPollInterval_Ms * 1000, GyroReadingsIsr);
+MPU6050::t_GyroAccReadings GetGyroReadings()
+{
+  return GyroAcc.GetReadings();
 }
 
 void SetupWiFi()
@@ -92,30 +103,30 @@ void SetupWiFi()
   int8_t ConnectionStatus = WiFi.waitForConnectResult();
   if (ConnectionStatus == WL_CONNECTED)
   {
-    Serial.println("Connected!");
+    Serial.println("Connected to WiFi.");
     Serial.println();
 
-    Serial.printf("Hostname: %s\n", WiFi.hostname().c_str());
+    Serial.printf("  Hostname: %s\n", WiFi.hostname().c_str());
 
-    Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
+    Serial.printf("  MAC: %s\n", WiFi.macAddress().c_str());
 
-    Serial.print("IP: ");
+    Serial.print("  IP: ");
     Serial.println(WiFi.localIP());
 
-    Serial.print("DNS: ");
+    Serial.print("  DNS: ");
     WiFi.dnsIP().printTo(Serial);
     Serial.println();
 
-    Serial.printf("Station: %s\n", WiFi.SSID().c_str());
-    Serial.printf("Password: %s\n", WiFi.psk().c_str());
-    Serial.printf("Station MAC: %s\n", WiFi.BSSIDstr().c_str());
-    Serial.printf("RSSI: %d dBm\n", WiFi.RSSI());
+    Serial.printf("  Station: %s\n", WiFi.SSID().c_str());
+    Serial.printf("  Password: %s\n", WiFi.psk().c_str());
+    Serial.printf("  Station MAC: %s\n", WiFi.BSSIDstr().c_str());
+    Serial.printf("  RSSI: %d dBm\n", WiFi.RSSI());
 
     Serial.println();
   }
   else
   {
-    Serial.println("Not able to connect WiFi.");
+    Serial.println("Unable to connect to WiFi.");
     Serial.println("Stopped.");
     while (1);
   }
@@ -128,64 +139,26 @@ void SetupHttp()
   Http.begin();
 }
 
-void DoMotorsTest()
+void IRAM_ATTR GyroPoll_Isr()
 {
-  // Motor test will send commands to motor board to briefly move motors.
-  Serial.println("Here will be motor test.");
+  LastGyroReadings = GetGyroReadings();
+  LastGyroReadingsTime_Ms = millis();
 }
 
-void Http_HandleRoot()
+void SetupIsr()
 {
-  const uint16_t
-    Response_Ok = 200;
-  const char
-    * Content_Plaintext = "text/plain";
-
-  String SerializedGyroReadings = SerializeGyroReadings(LastGyroReadings);
-
-  Http.send(Response_Ok, Content_Plaintext, SerializedGyroReadings);
+  Timer.attach_ms(GyroPollInterval_Ms, GyroPoll_Isr);
 }
 
-void Http_HandleNotFound()
-{
-  String message = "Not Found\n\n";
-  message += "URI: ";
-  message += Http.uri();
-  message += "\nMethod: ";
-  message += (Http.method() == HTTP_GET) ? "GET" : "POST";
-
-  message += "\nArguments: ";
-  message += Http.args();
-  message += "\n";
-  for (uint8_t i = 0; i < Http.args(); ++i)
-  {
-    message += " " + Http.argName(i) + ": " + Http.arg(i) + "\n";
-  }
-
-  Http.send(404, "text/plain", message);
-}
-
-void PrintSetupGreeting()
-{
-  Serial.println();
-  Serial.println("-------------------------------------");
-  Serial.println(" Rover-4 overseer with accelerometer ");
-  Serial.println("-------------------------------------");
-}
-
-void PrintLoopGreeting()
-{
-  Serial.println("Rover-4 overseer with accelerometer: Loop here!");
-}
-
-void ProcessCommand()
-{
-  Http.handleClient();
-}
-
-String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings)
+String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t Time)
 {
   String Result = "";
+
+  Result += "Time";
+  Result += "(";
+  Result += Time;
+  Result += ")";
+  Result += " ";
 
   Result += "Acceleration";
   Result += "(";
@@ -209,23 +182,52 @@ String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings)
   Result += "(";
   Result += GyroReadings.Temperature_C;
   Result += ")";
-  Result += "\n";
 
   return Result;
 }
 
-void PrintGyroReadings(MPU6050::t_GyroAccReadings GyroReadings)
+void DoMotorsTest()
 {
-  Serial.print(SerializeGyroReadings(GyroReadings));
+  // Motor test will send commands to motor board to briefly move motors.
+  Serial.println("Here will be motor test.");
 }
 
-MPU6050::t_GyroAccReadings GetGyroReadings()
+void Http_HandleRoot()
 {
-  MPU6050::t_GyroAccReadings GyroReadings;
+  const uint16_t Response_Ok = 200;
+  const char * Content_Plaintext = "text/plain";
 
-  GyroReadings = GyroAcc.GetReadings();
+  String GyroReadings_Str = SerializeGyroReadings(LastGyroReadings, LastGyroReadingsTime_Ms);
 
-  return GyroReadings;
+  Http.send(Response_Ok, Content_Plaintext, GyroReadings_Str);
+
+  Serial.println(GyroReadings_Str);
+}
+
+void Http_HandleNotFound()
+{
+  Http.send(404, "text/plain", "Not Found\n\n");
+}
+
+void PrintSetupGreeting()
+{
+  Serial.println();
+  Serial.println("-------------------------------------");
+  Serial.println(" Rover-4 overseer with accelerometer ");
+  Serial.println("-------------------------------------");
+}
+
+void PrintLoopGreeting()
+{
+  Serial.println("Rover-4 overseer with accelerometer: Loop here!");
+}
+
+void DoBusiness()
+{
+  Http.handleClient();
+
+  // Serial.print(SerializeGyroReadings(LastGyroReadings));
+  // Serial.println();
 }
 
 void setup()
@@ -234,10 +236,12 @@ void setup()
 
   PrintSetupGreeting();
 
-  SetupGyro();
-
   SetupWiFi();
   SetupHttp();
+
+  SetupGyro();
+
+  SetupIsr();
 
   // DoMotorsTest();
 }
@@ -246,7 +250,7 @@ void loop()
 {
   // PrintLoopGreeting();
 
-  ProcessCommand();
+  DoBusiness();
 
   delay(TickTime_Ms);
 }
