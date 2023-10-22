@@ -2,8 +2,8 @@
 
 /*
   Status: working base
-  Version: 4
-  Last mod.: 2023-10-17
+  Version: 5
+  Last mod.: 2023-10-21
 */
 
 /*
@@ -38,6 +38,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <Ticker.h>
+#include <ArduinoJson.h>
 
 #include <me_GyroAcc_MPU6050.h>
 
@@ -77,7 +78,10 @@ void SetupGyro()
   {
     GyroInitialized = GyroAcc.Initialize();
     delay(100);
+    Serial.print(".");
   }
+
+  Serial.println();
 
   if (!GyroInitialized)
   {
@@ -154,6 +158,7 @@ String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t T
 {
   String Result = "";
 
+  /*
   Result += "Time";
   Result += "(";
   Result += Time;
@@ -182,6 +187,24 @@ String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t T
   Result += "(";
   Result += GyroReadings.Temperature_C;
   Result += ")";
+  */
+
+  StaticJsonDocument<192> doc;
+
+  doc["Timestamp_ms"] = Time;
+
+  JsonObject Acceleration_V3 = doc.createNestedObject("Acceleration_v3_mps");
+  Acceleration_V3["X"] = GyroReadings.Acceleration_Mps.x;
+  Acceleration_V3["Y"] = GyroReadings.Acceleration_Mps.y;
+  Acceleration_V3["Z"] = GyroReadings.Acceleration_Mps.z;
+
+  JsonObject Rotation_V3 = doc.createNestedObject("Rotation_v3_dps");
+  Rotation_V3["X"] = GyroReadings.Rotation_Dps.x;
+  Rotation_V3["Y"] = GyroReadings.Rotation_Dps.y;
+  Rotation_V3["Z"] = GyroReadings.Rotation_Dps.z;
+  doc["Temperature_C"] = GyroReadings.Temperature_C;
+
+  serializeJson(doc, Result);
 
   return Result;
 }
@@ -260,4 +283,5 @@ void loop()
   2023-10-08
   2023-10-14
   2023-10-17
+  2023-10-21
 */
