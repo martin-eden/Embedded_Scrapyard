@@ -1,4 +1,4 @@
-// Representation model for gyroscope/accelerometer MPU6050
+// Interface for gyroscope/accelerometer MPU6050
 
 /*
   Status: works

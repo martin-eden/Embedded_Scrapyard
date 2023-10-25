@@ -1,8 +1,13 @@
-// Representation model for gyroscope/accelerometer MPU6050
+// Interface for gyroscope/accelerometer MPU6050
 
 /*
   Version: 1
-  Last mod.: 2023-09-22
+  Last mod.: 2023-10-25
+*/
+
+/*
+  Implementation is based on Adafruit library. I just want to have
+  consistent structure naming over my code.
 */
 
 #pragma once
