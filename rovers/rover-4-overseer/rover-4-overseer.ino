@@ -2,8 +2,8 @@
 
 /*
   Status: working base
-  Version: 5
-  Last mod.: 2023-10-21
+  Version: 6
+  Last mod.: 2023-10-25
 */
 
 /*
@@ -50,12 +50,31 @@ const uint32_t
   SerialSpeed = 115200;
 
 const uint32_t
-  GyroPollInterval_Ms = 10,
+  GyroPollInterval_Ms = 50,
   TickTime_Ms = 50;
 
 MPU6050::t_GyroAcc GyroAcc;
 MPU6050::t_GyroAccReadings LastGyroReadings;
 uint32_t LastGyroReadingsTime_Ms = 0;
+
+/*
+  For gyro readings history we need timestamp and can store subset of
+  gyro each gyro status to reduce memory consumption.
+*/
+struct t_GyroHistoryRec
+{
+  uint32_t Timestamp_Ms;
+  struct
+  {
+    float x;
+    float y;
+    float z;
+  } Acceleration_Mps;
+};
+
+const uint16_t GyroHistoryCapacity = 150; // 150;
+t_GyroHistoryRec GyroHistory[GyroHistoryCapacity];
+uint16_t GyroHistoryCursor = 0;
 
 ESP8266WebServer Http;
 
@@ -72,12 +91,12 @@ void SetupGyro()
   bool GyroInitialized = false;
   for (
     uint8_t NumTries = 0;
-    (NumTries < 20) && !GyroInitialized;
+    (NumTries < 10) && !GyroInitialized;
     ++NumTries
   )
   {
     GyroInitialized = GyroAcc.Initialize();
-    delay(100);
+    delay(200);
     Serial.print(".");
   }
 
@@ -91,24 +110,99 @@ void SetupGyro()
   }
   else
   {
-    Serial.println("Gyro initialized.");
+    // Serial.println("Gyro initialized.");
   }
 }
 
+/*
+  Get gyro readings (acceleration, rotation, temeperature) and process
+  them before returning.
+
+  Values are rounded to some granularity value.
+
+  This is done to reduce minor fluctuations in values (jitter).
+
+  For cases when value is between two granulated points, jitter still
+  remains for and just amplified to granularity value. (Fluctuations
+  (1.49, 1.51, 1.49, ...) are rounded to (1, 2, 1, ...).)
+
+  Jitter can be further reduced by capacitive filtering before
+  granulating but current implementation is good enough for now.
+*/
 MPU6050::t_GyroAccReadings GetGyroReadings()
 {
-  return GyroAcc.GetReadings();
+  // Granularity for float values.
+  const float
+    GranularityUnit_Mps = 0.25,
+    GranularityUnit_Dps = 0.25,
+    GranularityUnit_C = 0.25;
+
+  MPU6050::t_GyroAccReadings Result;
+
+  Result = GyroAcc.GetReadings();
+
+  Result.Acceleration_Mps.x = RoundToUnit(Result.Acceleration_Mps.x, GranularityUnit_Mps);
+  Result.Acceleration_Mps.y = RoundToUnit(Result.Acceleration_Mps.y, GranularityUnit_Mps);
+  Result.Acceleration_Mps.z = RoundToUnit(Result.Acceleration_Mps.z, GranularityUnit_Mps);
+
+  Result.Rotation_Dps.x = RoundToUnit(Result.Rotation_Dps.x, GranularityUnit_Dps);
+  Result.Rotation_Dps.y = RoundToUnit(Result.Rotation_Dps.y, GranularityUnit_Dps);
+  Result.Rotation_Dps.z = RoundToUnit(Result.Rotation_Dps.z, GranularityUnit_Dps);
+
+  Result.Temperature_C = RoundToUnit(Result.Temperature_C, GranularityUnit_C);
+
+  return Result;
 }
 
-void SetupWiFi()
+void StoreGyroReadings(MPU6050::t_GyroAccReadings Readings, uint32_t Timestamp_Ms)
 {
-  WiFi.begin(NetworkName, Password);
+  t_GyroHistoryRec HistoryRec;
 
-  int8_t ConnectionStatus = WiFi.waitForConnectResult();
+  HistoryRec.Acceleration_Mps.x = Readings.Acceleration_Mps.x;
+  HistoryRec.Acceleration_Mps.y = Readings.Acceleration_Mps.y;
+  HistoryRec.Acceleration_Mps.z = Readings.Acceleration_Mps.z;
+  HistoryRec.Timestamp_Ms = Timestamp_Ms;
+
+  GyroHistory[GyroHistoryCursor] = HistoryRec;
+
+  ++GyroHistoryCursor;
+  GyroHistoryCursor %= GyroHistoryCapacity;
+}
+
+String SerializeHistoryRec_Json(t_GyroHistoryRec HistoryRec)
+{
+  String Result = "";
+
+  StaticJsonDocument<192> doc;
+
+  doc["Timestamp_ms"] = HistoryRec.Timestamp_Ms;
+
+  JsonObject Acceleration = doc.createNestedObject("Acceleration_v3_mps");
+  Acceleration["X"] = HistoryRec.Acceleration_Mps.x;
+  Acceleration["Y"] = HistoryRec.Acceleration_Mps.y;
+  Acceleration["Z"] = HistoryRec.Acceleration_Mps.z;
+
+  serializeJson(doc, Result);
+
+  return Result;
+}
+
+void PrintWifiCredentials()
+{
+  Serial.printf("  Station: %s\n", WiFi.SSID().c_str());
+  Serial.printf("  Password: %s\n", WiFi.psk().c_str());
+  Serial.println();
+}
+
+void PrintWifiParameters()
+{
+  int8_t ConnectionStatus = WiFi.status();
   if (ConnectionStatus == WL_CONNECTED)
   {
     Serial.println("Connected to WiFi.");
     Serial.println();
+
+    PrintWifiCredentials();
 
     Serial.printf("  Hostname: %s\n", WiFi.hostname().c_str());
 
@@ -121,8 +215,6 @@ void SetupWiFi()
     WiFi.dnsIP().printTo(Serial);
     Serial.println();
 
-    Serial.printf("  Station: %s\n", WiFi.SSID().c_str());
-    Serial.printf("  Password: %s\n", WiFi.psk().c_str());
     Serial.printf("  Station MAC: %s\n", WiFi.BSSIDstr().c_str());
     Serial.printf("  RSSI: %d dBm\n", WiFi.RSSI());
 
@@ -131,6 +223,24 @@ void SetupWiFi()
   else
   {
     Serial.println("Unable to connect to WiFi.");
+    PrintWifiCredentials();
+  }
+}
+
+void SetupWiFi()
+{
+  WiFi.begin(NetworkName, Password);
+
+  int8_t ConnectionStatus = WiFi.waitForConnectResult();
+
+  // To use data plotter I need option to print nothing at successfull connection.
+  if (ConnectionStatus != WL_CONNECTED)
+  {
+    PrintWifiParameters();
+  }
+
+  if (ConnectionStatus != WL_CONNECTED)
+  {
     Serial.println("Stopped.");
     while (1);
   }
@@ -147,6 +257,8 @@ void IRAM_ATTR GyroPoll_Isr()
 {
   LastGyroReadings = GetGyroReadings();
   LastGyroReadingsTime_Ms = millis();
+
+  StoreGyroReadings(LastGyroReadings, LastGyroReadingsTime_Ms);
 }
 
 void SetupIsr()
@@ -157,38 +269,6 @@ void SetupIsr()
 String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t Time)
 {
   String Result = "";
-
-  /*
-  Result += "Time";
-  Result += "(";
-  Result += Time;
-  Result += ")";
-  Result += " ";
-
-  Result += "Acceleration";
-  Result += "(";
-  Result += GyroReadings.Acceleration_Mps.x;
-  Result += " ";
-  Result += GyroReadings.Acceleration_Mps.y;
-  Result += " ";
-  Result += GyroReadings.Acceleration_Mps.z;
-  Result += ")";
-  Result += " ";
-  Result += "Rotation";
-  Result += "(";
-  Result += GyroReadings.Rotation_Dps.x;
-  Result += " ";
-  Result += GyroReadings.Rotation_Dps.y;
-  Result += " ";
-  Result += GyroReadings.Rotation_Dps.z;
-  Result += ")";
-  Result += " ";
-  Result += "Temperature";
-  Result += "(";
-  Result += GyroReadings.Temperature_C;
-  Result += ")";
-  */
-
   StaticJsonDocument<192> doc;
 
   doc["Timestamp_ms"] = Time;
@@ -245,12 +325,54 @@ void PrintLoopGreeting()
   Serial.println("Rover-4 overseer with accelerometer: Loop here!");
 }
 
-void DoBusiness()
+float RoundToUnit(float Value, float UnitSize)
+{
+  return trunc(Value / UnitSize) * UnitSize;
+}
+
+// Serialize gyro values for Arduino IDE plotter.
+String SerializeHistoryRec_Tsv(t_GyroHistoryRec GyroHistoryRec)
+{
+  String Result = "";
+
+  Result += GyroHistoryRec.Acceleration_Mps.x;
+  Result += "\t";
+  Result += GyroHistoryRec.Acceleration_Mps.y;
+  Result += "\t";
+  Result += GyroHistoryRec.Acceleration_Mps.z;
+  // Result += " ";
+  // Result += GyroHistoryRec.Temperature_C;
+
+  return Result;
+}
+
+// Print history of gyro readings.
+void PrintGyroHistory()
+{
+  const uint32_t PrintInterval_Ms = 5000;
+  static uint32_t LastPrintTime_Ms = 0;
+  uint32_t CurrentTime_Ms = millis();
+  bool IsTimeToPrint = (CurrentTime_Ms - LastPrintTime_Ms >= PrintInterval_Ms);
+
+  if (!IsTimeToPrint)
+    return;
+
+  for (
+    uint16_t PrintCursor = GyroHistoryCursor + 1;
+    PrintCursor != GyroHistoryCursor;
+    PrintCursor = (PrintCursor + 1) % GyroHistoryCapacity
+  ) {
+    Serial.println(SerializeHistoryRec_Tsv(GyroHistory[PrintCursor]));
+  }
+
+  LastPrintTime_Ms = CurrentTime_Ms;
+}
+
+void DoLoopBusiness()
 {
   Http.handleClient();
 
-  // Serial.print(SerializeGyroReadings(LastGyroReadings));
-  // Serial.println();
+  PrintGyroHistory();
 }
 
 void setup()
@@ -273,7 +395,7 @@ void loop()
 {
   // PrintLoopGreeting();
 
-  DoBusiness();
+  DoLoopBusiness();
 
   delay(TickTime_Ms);
 }
