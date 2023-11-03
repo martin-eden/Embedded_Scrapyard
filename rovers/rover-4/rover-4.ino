@@ -3,7 +3,7 @@
 /*
   Status: stable
   Version: 3
-  Last mod.: 2023-10-14
+  Last mod.: 2023-11-02
 */
 
 /*
@@ -34,7 +34,7 @@
 
   "L" [-100, 100] -- Left motor. Set specified power and direction.
   "R" [-100, 100] -- Right motor. Set specified power and direction.
-  "D" [0, 5000] -- Delay for given value in milliseconds.
+  "D" [0, 5000] -- Delay for given time in milliseconds.
 
   Whitespaces are stripped, so "L 50 R -50 D 1000" == "L50R50D1000".
 */
@@ -56,7 +56,7 @@ const uint8_t
   Deek_BrakeB_Pin = 8;
 
 const uint32_t
-  SerialSpeed = 9600;
+  SerialSpeed = 115200;
 
 const static char
   CommandReferenceText[] PROGMEM =
@@ -66,7 +66,7 @@ const static char
     "\n"
     "\"L\" [-100, 100] -- Left motor. Set specified power and direction.\n"
     "\"R\" [-100, 100] -- Right motor. Set specified power and direction.\n"
-    "\"D\" [0, 5000] -- Delay for given value in milliseconds.\n"
+    "\"D\" [0, 5000] -- Delay for given time in milliseconds.\n"
     "\n"
     "Whitespaces are stripped, so \"L 50 R -50 D 1000\" == \"L50R50D1000\".\n"
     "\n"
@@ -106,9 +106,9 @@ void SetupSerial()
 void PrintSetupGreeting()
 {
   Serial.println();
-  Serial.println("-----------------------------------");
-  Serial.println(" Rover-4 motor board: Hello there! ");
-  Serial.println("-----------------------------------");
+  Serial.println("---------------------");
+  Serial.println(" Rover-4 motor board ");
+  Serial.println("---------------------");
 }
 
 void PrintHelp()
@@ -218,4 +218,5 @@ void loop()
   2023-10-08
   2023-10-11
   2023-10-14
+  2023-11-02
 */
