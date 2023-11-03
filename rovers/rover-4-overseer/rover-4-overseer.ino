@@ -2,29 +2,8 @@
 
 /*
   Status: working base
-  Version: 6
-  Last mod.: 2023-10-25
-*/
-
-/*
-  This is code for Wemos D1 connected to Arduino Uno (with motor board)
-  via software serial.
-*/
-
-/*
-  I've got troubles using <ESP8266TimerInterrupt.h> and Deek motor
-  shield stacked top on board. When I start using timer interrupt,
-  D2 goes high and D2 is Motor A PWM pin.
-
-  As a workaround, NEW Arduino Uno BOARD added just for Deek motor
-  shield. This Wemos is now _overseer_ board.
-
-  It is connected to Arduino via software serial. So it controls motors
-  by sending string commands to Arduino.
-
-  Also it is connected to accelerometer on board. So intention is
-  to measure and transmit acceleration in the time motor command is
-  executed.
+  Version: 7
+  Last mod.: 2023-11-02
 */
 
 /*
@@ -35,6 +14,18 @@
     Accelerometer: MPU6050 (I2C)
 */
 
+/*
+  I've got troubles using Deek motor shield for Arduino Uno on Wemos D1.
+
+  So motor shield got dedicated Arduino Uno and Wemos sitting alone,
+  with WiFi, connected to Uno UART and responsible for communications
+  between boards and outer world.
+
+  To make life of Wemos more interesting, I've connected accelerometer
+  (via I2C). So it may have IMU-related API endpoints and sync them
+  with sending command to motor board.
+*/
+
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <Ticker.h>
@@ -43,8 +34,8 @@
 #include <me_GyroAcc_MPU6050.h>
 
 const char
-  * NetworkName = "",
-  * Password = "";
+  * StationName = "",
+  * StationPassword = "";
 
 const uint32_t
   SerialSpeed = 115200;
@@ -72,9 +63,14 @@ struct t_GyroHistoryRec
   } Acceleration_Mps;
 };
 
+bool IsGyroInitialized = false;
 const uint16_t GyroHistoryCapacity = 150; // 150;
 t_GyroHistoryRec GyroHistory[GyroHistoryCapacity];
 uint16_t GyroHistoryCursor = 0;
+
+const uint16_t Http_Response_Ok = 200;
+const uint16_t Http_Response_NotFound = 404;
+const char * Http_Content_Plaintext = "text/plain";
 
 ESP8266WebServer Http;
 
@@ -86,36 +82,161 @@ void SetupSerial()
   delay(300);
 }
 
+void PrintOurBanner()
+{
+  Serial.println();
+  Serial.println("-------------------------------------");
+  Serial.println(" Rover-4 overseer with accelerometer ");
+  Serial.println("-------------------------------------");
+}
+
 void SetupGyro()
 {
-  bool GyroInitialized = false;
+  Serial.print("Initializing gyro..");
   for (
     uint8_t NumTries = 0;
-    (NumTries < 10) && !GyroInitialized;
+    (NumTries < 10) && !IsGyroInitialized;
     ++NumTries
   )
   {
-    GyroInitialized = GyroAcc.Initialize();
-    delay(200);
+    IsGyroInitialized = GyroAcc.Initialize();
+    delay(100);
     Serial.print(".");
   }
 
-  Serial.println();
+  Serial.print(" ");
 
-  if (!GyroInitialized)
+  if (!IsGyroInitialized)
   {
-    Serial.println("Failed to initialize gyro.");
-    Serial.println("Stopped.");
-    while (1);
+    Serial.println("nah.");
   }
   else
   {
-    // Serial.println("Gyro initialized.");
+    Serial.println("yep.");
   }
 }
 
+void SetupWiFi(char const * _StationName, char const * _StationPassword)
+{
+  Serial.println("Setting-up WiFi: [");
+
+  Serial.printf(
+    "  We are:\n"
+    "    Name: %s\n"
+    "    MAC: %s\n"
+    "  Connecting to:\n"
+    "    Station: %s\n"
+    "    .. with some password\n",
+    WiFi.hostname().c_str(),
+    WiFi.macAddress().c_str(),
+    _StationName
+  );
+
+  uint32_t StartTimeMs = millis();
+
+  WiFi.begin(_StationName, _StationPassword);
+
+  int8_t ConnectionStatus = WiFi.waitForConnectResult(32000);
+
+  uint32_t FinishTimeMs = millis();
+  uint32_t TimePassedMs = FinishTimeMs - StartTimeMs;
+
+  switch (ConnectionStatus)
+  {
+    case WL_CONNECTED:
+      Serial.println(
+        "  Connected:"
+      );
+      Serial.println(
+        "    Station:"
+      );
+      Serial.printf(
+        "      RSSI (dBm): %d\n", WiFi.RSSI()
+      );
+      Serial.printf(
+        "      MAC: %s\n", WiFi.BSSIDstr().c_str()
+      );
+      Serial.println(
+        "    Our:"
+      );
+      Serial.print(
+        "      IP: "
+      );
+      Serial.println(WiFi.localIP());
+      Serial.print(
+        "      DNS: "
+      );
+      Serial.println(WiFi.dnsIP());
+
+      break;
+
+    case WL_NO_SSID_AVAIL:
+      Serial.println("  Can't see station.");
+      break;
+
+    case WL_WRONG_PASSWORD:
+      Serial.println("  Wrong password.");
+      break;
+
+    case WL_CONNECT_FAILED:
+      Serial.println("  I see station but connection failed. Probably wrong password.");
+      break;
+
+    case NA_STATE:
+      Serial.println("  We finished too early. Connection has not came.");
+      break;
+
+    default:
+      Serial.printf("  [debug] Uncovered case %d.\n", ConnectionStatus);
+      break;
+  }
+
+  Serial.printf("  Time taken (ms): %u\n", TimePassedMs);
+
+  Serial.println("]");
+}
+
+void SetupHttp()
+{
+  Serial.println("Setting-up HTTP: [");
+
+  Http.on("/", Http_HandleRoot);
+  Serial.println("  Added / hook.");
+
+  Http.onNotFound(Http_HandleNotFound);
+  Serial.println("  Added NOT_FOUND hook.");
+
+  Http.begin();
+
+  Serial.println("]");
+}
+
+void GyroPoll_Isr();
+
+void SetupIsr()
+{
+  Timer.attach_ms(GyroPollInterval_Ms, GyroPoll_Isr);
+
+  Serial.printf("Set-up timer interrupt every %d ms.\n", GyroPollInterval_Ms);
+}
+
+void Http_HandleRoot()
+{
+  String GyroReadings_Str = SerializeGyroReadings(LastGyroReadings, LastGyroReadingsTime_Ms);
+
+  Http.send(Http_Response_Ok, Http_Content_Plaintext, GyroReadings_Str);
+
+  Serial.printf("[%lu] Sent gyro readings to ", millis());
+  Serial.println(Http.client().remoteIP());
+}
+
+void Http_HandleNotFound()
+{
+  Http.send(Http_Response_NotFound, Http_Content_Plaintext, "Not Found\n\n");
+}
+
 /*
-  Get gyro readings (acceleration, rotation, temeperature) and process
+  Get gyro readings (acceleration, rotation, temperature) and process
   them before returning.
 
   Values are rounded to some granularity value.
@@ -123,11 +244,11 @@ void SetupGyro()
   This is done to reduce minor fluctuations in values (jitter).
 
   For cases when value is between two granulated points, jitter still
-  remains for and just amplified to granularity value. (Fluctuations
-  (1.49, 1.51, 1.49, ...) are rounded to (1, 2, 1, ...).)
+  persists for and just amplified to granularity value. (Fluctuations
+  (1.49, 1.51, 1.49, ...) are rounded to (1.0, 2.0, 1.0, ...).)
 
-  Jitter can be further reduced by capacitive filtering before
-  granulating but current implementation is good enough for now.
+  Jitter can be reduced by capacitive filtering before granulating but
+  current implementation is good enough for now.
 */
 MPU6050::t_GyroAccReadings GetGyroReadings()
 {
@@ -187,83 +308,12 @@ String SerializeHistoryRec_Json(t_GyroHistoryRec HistoryRec)
   return Result;
 }
 
-void PrintWifiCredentials()
-{
-  Serial.printf("  Station: %s\n", WiFi.SSID().c_str());
-  Serial.printf("  Password: %s\n", WiFi.psk().c_str());
-  Serial.println();
-}
-
-void PrintWifiParameters()
-{
-  int8_t ConnectionStatus = WiFi.status();
-  if (ConnectionStatus == WL_CONNECTED)
-  {
-    Serial.println("Connected to WiFi.");
-    Serial.println();
-
-    PrintWifiCredentials();
-
-    Serial.printf("  Hostname: %s\n", WiFi.hostname().c_str());
-
-    Serial.printf("  MAC: %s\n", WiFi.macAddress().c_str());
-
-    Serial.print("  IP: ");
-    Serial.println(WiFi.localIP());
-
-    Serial.print("  DNS: ");
-    WiFi.dnsIP().printTo(Serial);
-    Serial.println();
-
-    Serial.printf("  Station MAC: %s\n", WiFi.BSSIDstr().c_str());
-    Serial.printf("  RSSI: %d dBm\n", WiFi.RSSI());
-
-    Serial.println();
-  }
-  else
-  {
-    Serial.println("Unable to connect to WiFi.");
-    PrintWifiCredentials();
-  }
-}
-
-void SetupWiFi()
-{
-  WiFi.begin(NetworkName, Password);
-
-  int8_t ConnectionStatus = WiFi.waitForConnectResult();
-
-  // To use data plotter I need option to print nothing at successfull connection.
-  if (ConnectionStatus != WL_CONNECTED)
-  {
-    PrintWifiParameters();
-  }
-
-  if (ConnectionStatus != WL_CONNECTED)
-  {
-    Serial.println("Stopped.");
-    while (1);
-  }
-}
-
-void SetupHttp()
-{
-  Http.on("/", Http_HandleRoot);
-  Http.onNotFound(Http_HandleNotFound);
-  Http.begin();
-}
-
 void IRAM_ATTR GyroPoll_Isr()
 {
   LastGyroReadings = GetGyroReadings();
   LastGyroReadingsTime_Ms = millis();
 
   StoreGyroReadings(LastGyroReadings, LastGyroReadingsTime_Ms);
-}
-
-void SetupIsr()
-{
-  Timer.attach_ms(GyroPollInterval_Ms, GyroPoll_Isr);
 }
 
 String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t Time)
@@ -295,34 +345,9 @@ void DoMotorsTest()
   Serial.println("Here will be motor test.");
 }
 
-void Http_HandleRoot()
-{
-  const uint16_t Response_Ok = 200;
-  const char * Content_Plaintext = "text/plain";
-
-  String GyroReadings_Str = SerializeGyroReadings(LastGyroReadings, LastGyroReadingsTime_Ms);
-
-  Http.send(Response_Ok, Content_Plaintext, GyroReadings_Str);
-
-  Serial.println(GyroReadings_Str);
-}
-
-void Http_HandleNotFound()
-{
-  Http.send(404, "text/plain", "Not Found\n\n");
-}
-
-void PrintSetupGreeting()
-{
-  Serial.println();
-  Serial.println("-------------------------------------");
-  Serial.println(" Rover-4 overseer with accelerometer ");
-  Serial.println("-------------------------------------");
-}
-
 void PrintLoopGreeting()
 {
-  Serial.println("Rover-4 overseer with accelerometer: Loop here!");
+  Serial.printf("[%lu] Main loop iteration.", millis());
 }
 
 float RoundToUnit(float Value, float UnitSize)
@@ -372,19 +397,20 @@ void DoLoopBusiness()
 {
   Http.handleClient();
 
-  PrintGyroHistory();
+  // PrintGyroHistory();
 }
 
 void setup()
 {
   SetupSerial();
 
-  PrintSetupGreeting();
-
-  SetupWiFi();
-  SetupHttp();
+  PrintOurBanner();
 
   SetupGyro();
+
+  SetupWiFi(StationName, StationPassword);
+
+  SetupHttp();
 
   SetupIsr();
 
