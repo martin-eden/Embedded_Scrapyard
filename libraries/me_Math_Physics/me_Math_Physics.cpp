@@ -33,6 +33,20 @@ float GetDistanceFromEcho_Cm(uint32_t EchoDelay_Us)
 }
 
 /*
+  Convert meters per second value to standard gravity unit.
+
+  https://en.wikipedia.org/wiki/Standard_gravity
+
+  I just hate SI sometimes. 3G acceleration in Kerbal Space Program
+  tells me a lot more than 29.41 m/s. labylame <3
+*/
+float MpsToG(float MpS)
+{
+  const float StandardGravity = 9.80665;
+  return MpS / StandardGravity;
+}
+
+/*
   2022-11-01
   2023-11-04
 */

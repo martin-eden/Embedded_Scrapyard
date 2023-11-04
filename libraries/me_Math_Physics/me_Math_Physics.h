@@ -23,6 +23,7 @@
 #include <Arduino.h>
 
 float GetDistanceFromEcho_Cm(uint32_t EchoDelay_Us);
+float MpsToG(float MpS);
 
 /*
   2022-11-01
