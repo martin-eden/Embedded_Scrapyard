@@ -2,4 +2,5 @@
 
 #include <Arduino.h>
 
+void SetupMotorboardCommunication();
 void MotorsTest();

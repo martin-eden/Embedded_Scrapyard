@@ -67,6 +67,8 @@ void setup()
 
   SetupIsr();
 
+  SetupMotorboardCommunication();
+
   MotorsTest();
 }
 
