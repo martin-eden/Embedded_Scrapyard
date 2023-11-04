@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Last mod.: 2022-11-01
-  Version: 1.0
+  Last mod.: 2023-11-04
+  Version: 1
 */
 
 /*
@@ -22,7 +22,9 @@
 
 #include <Arduino.h>
 
-namespace me_Physics_Sound
-{
-  float GetDistanceFromEchoCm(uint32_t EchoDelayMcr);
-}
+float GetDistanceFromEcho_Cm(uint32_t EchoDelay_Us);
+
+/*
+  2022-11-01
+  2023-11-04
+*/
