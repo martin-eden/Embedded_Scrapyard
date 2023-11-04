@@ -2,14 +2,16 @@
 
 /*
   Status: works
-  Version: 1
-  Last mod.: 2023-10-12
+  Version: 2
+  Last mod.: 2023-11-03
 */
 
 #include "me_GyroAcc_MPU6050.h"
 
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
+
+#include <me_Math.h>
 
 using namespace MPU6050;
 
@@ -20,13 +22,10 @@ bool t_GyroAcc::Initialize()
     return false;
   }
 
-  GyroAcc.setAccelerometerRange(MPU6050_RANGE_8_G);
-  GyroAcc.setGyroRange(MPU6050_RANGE_2000_DEG);
+  GyroAcc.setAccelerometerRange(MPU6050_RANGE_2_G);
+  GyroAcc.setGyroRange(MPU6050_RANGE_250_DEG);
 
   GyroAcc.setFilterBandwidth(MPU6050_BAND_94_HZ);
-
-  GyroAcc.setCycleRate(MPU6050_CYCLE_40_HZ);
-  GyroAcc.enableCycle(true);
 
   return true;
 }
@@ -42,9 +41,9 @@ t_GyroAccReadings t_GyroAcc::GetReadings()
   Result.Acceleration_Mps.y = Acceleration.acceleration.y;
   Result.Acceleration_Mps.z = Acceleration.acceleration.z;
 
-  Result.Rotation_Dps.x = Rotation.gyro.x;
-  Result.Rotation_Dps.y = Rotation.gyro.y;
-  Result.Rotation_Dps.z = Rotation.gyro.z;
+  Result.Rotation_Dps.x = RadToDeg(Rotation.gyro.x);
+  Result.Rotation_Dps.y = RadToDeg(Rotation.gyro.y);
+  Result.Rotation_Dps.z = RadToDeg(Rotation.gyro.z);
 
   Result.Temperature_C = Temperature.temperature;
 
@@ -54,4 +53,5 @@ t_GyroAccReadings t_GyroAcc::GetReadings()
 /*
   2023-09-22
   2023-10-12
+  2023-11-03
 */

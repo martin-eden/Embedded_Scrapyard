@@ -13,6 +13,11 @@ void StoreGyroReadings(MPU6050::t_GyroAccReadings Readings, uint32_t Timestamp_M
   HistoryRec.Acceleration_Mps.x = Readings.Acceleration_Mps.x;
   HistoryRec.Acceleration_Mps.y = Readings.Acceleration_Mps.y;
   HistoryRec.Acceleration_Mps.z = Readings.Acceleration_Mps.z;
+
+  HistoryRec.Rotation_Dps.x = Readings.Rotation_Dps.x;
+  HistoryRec.Rotation_Dps.y = Readings.Rotation_Dps.y;
+  HistoryRec.Rotation_Dps.z = Readings.Rotation_Dps.z;
+
   HistoryRec.Timestamp_Ms = Timestamp_Ms;
 
   GyroHistory[GyroHistoryCursor] = HistoryRec;
@@ -41,14 +46,21 @@ String SerializeHistoryRec_Json(t_GyroHistoryRec HistoryRec)
 // Serialize gyro values for Arduino IDE plotter.
 String SerializeHistoryRec_Tsv(t_GyroHistoryRec GyroHistoryRec)
 {
+  const uint8_t NumFractionalDigits = 2;
   String Result = "";
 
-  Result += GyroHistoryRec.Acceleration_Mps.x;
+  Result += String(GyroHistoryRec.Acceleration_Mps.x, NumFractionalDigits);
   Result += "\t";
-  Result += GyroHistoryRec.Acceleration_Mps.y;
+  Result += String(GyroHistoryRec.Acceleration_Mps.y, NumFractionalDigits);
   Result += "\t";
-  Result += GyroHistoryRec.Acceleration_Mps.z;
-  // Result += " ";
+  Result += String(GyroHistoryRec.Acceleration_Mps.z, NumFractionalDigits);
+  Result += "\t";
+  Result += String(GyroHistoryRec.Rotation_Dps.x, NumFractionalDigits);
+  Result += "\t";
+  Result += String(GyroHistoryRec.Rotation_Dps.y, NumFractionalDigits);
+  Result += "\t";
+  Result += String(GyroHistoryRec.Rotation_Dps.z, NumFractionalDigits);
+  // Result += "\t";
   // Result += GyroHistoryRec.Temperature_C;
 
   return Result;
@@ -57,8 +69,8 @@ String SerializeHistoryRec_Tsv(t_GyroHistoryRec GyroHistoryRec)
 // Print history of gyro readings.
 void PrintGyroHistory()
 {
-  Serial.println("------------------------------");
-  uint16_t PrintCursor = (GyroHistoryCursor + 1) % GyroHistoryCapacity;
+  Serial.println(F("-----------------------------------------------------"));
+  uint16_t PrintCursor = GyroHistoryCursor;
   while (true)
   {
     Serial.printf(
@@ -67,12 +79,12 @@ void PrintGyroHistory()
       SerializeHistoryRec_Tsv(GyroHistory[PrintCursor]).c_str()
     );
 
+    PrintCursor = (PrintCursor + 1) % GyroHistoryCapacity;
+
     if (PrintCursor == GyroHistoryCursor)
     {
       break;
     }
-
-    PrintCursor = (PrintCursor + 1) % GyroHistoryCapacity;
   }
-  Serial.println("==============================");
+  Serial.println(F("====================================================="));
 }

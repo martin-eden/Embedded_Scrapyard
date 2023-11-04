@@ -2,7 +2,7 @@
 
 #include <ArduinoJson.h>
 
-#include "Math.h"
+#include <me_Math.h>
 
 MPU6050::t_GyroAccReadings LastGyroReadings;
 uint32_t LastGyroReadingsTime_Ms = 0;
@@ -84,44 +84,71 @@ MPU6050::t_GyroAccReadings GetGyroReadings()
 {
   // Granularity for float values.
   const float
-    GranularityUnit_Mps = 0.25,
-    GranularityUnit_Dps = 0.25,
-    GranularityUnit_C = 0.25;
+    Granularity_Mps = 1.0 / 100,
+    Granularity_Dps = 1.0 / 360,
+    Granularity_C = 1.0 / 4;
 
   MPU6050::t_GyroAccReadings Result;
 
   Result = GyroAcc.GetReadings();
 
-  Result.Acceleration_Mps.x = RoundToUnit(Result.Acceleration_Mps.x, GranularityUnit_Mps);
-  Result.Acceleration_Mps.y = RoundToUnit(Result.Acceleration_Mps.y, GranularityUnit_Mps);
-  Result.Acceleration_Mps.z = RoundToUnit(Result.Acceleration_Mps.z, GranularityUnit_Mps);
+  Result.Acceleration_Mps.x = RoundToUnit(Result.Acceleration_Mps.x, Granularity_Mps);
+  Result.Acceleration_Mps.y = RoundToUnit(Result.Acceleration_Mps.y, Granularity_Mps);
+  Result.Acceleration_Mps.z = RoundToUnit(Result.Acceleration_Mps.z, Granularity_Mps);
 
-  Result.Rotation_Dps.x = RoundToUnit(Result.Rotation_Dps.x, GranularityUnit_Dps);
-  Result.Rotation_Dps.y = RoundToUnit(Result.Rotation_Dps.y, GranularityUnit_Dps);
-  Result.Rotation_Dps.z = RoundToUnit(Result.Rotation_Dps.z, GranularityUnit_Dps);
+  Result.Rotation_Dps.x = RoundToUnit(Result.Rotation_Dps.x, Granularity_Dps);
+  Result.Rotation_Dps.y = RoundToUnit(Result.Rotation_Dps.y, Granularity_Dps);
+  Result.Rotation_Dps.z = RoundToUnit(Result.Rotation_Dps.z, Granularity_Dps);
 
-  Result.Temperature_C = RoundToUnit(Result.Temperature_C, GranularityUnit_C);
+  Result.Temperature_C = RoundToUnit(Result.Temperature_C, Granularity_C);
 
   return Result;
 }
 
 String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t Time)
 {
+  const uint8_t NumFractionalDigits = 2;
+
   String Result = "";
-  StaticJsonDocument<192> doc;
+  StaticJsonDocument<300> doc;
 
   doc["Timestamp_ms"] = Time;
 
-  JsonObject Acceleration_V3 = doc.createNestedObject("Acceleration_v3_mps");
-  Acceleration_V3["X"] = GyroReadings.Acceleration_Mps.x;
-  Acceleration_V3["Y"] = GyroReadings.Acceleration_Mps.y;
-  Acceleration_V3["Z"] = GyroReadings.Acceleration_Mps.z;
+  /*
+    I hate C++ templates.
 
-  JsonObject Rotation_V3 = doc.createNestedObject("Rotation_v3_dps");
-  Rotation_V3["X"] = GyroReadings.Rotation_Dps.x;
-  Rotation_V3["Y"] = GyroReadings.Rotation_Dps.y;
-  Rotation_V3["Z"] = GyroReadings.Rotation_Dps.z;
-  doc["Temperature_C"] = GyroReadings.Temperature_C;
+    Code snippet
+
+      Acceleration["X"] = serialized(String(Value, NumFractionalDigits));
+
+    works.
+
+    But if I want to wrap those "serialized(String" noise in function,
+    it wont compile:
+
+      SerializedValue SerializeFloat(float Value, uint8_t NumFractionalDigits = 2)
+      {
+        return serialized(String(Value, NumFractionalDigits));
+      }
+
+      Acceleration["X"] = SerializeFloat(Value);
+
+    Compiler will say something about "error: deduced class type".
+
+    So I have to keep this low-entropy code.
+  */
+
+  JsonObject Acceleration = doc.createNestedObject("Acceleration_mps");
+  Acceleration["X"] = serialized(String(GyroReadings.Acceleration_Mps.x, NumFractionalDigits));
+  Acceleration["Y"] = serialized(String(GyroReadings.Acceleration_Mps.y, NumFractionalDigits));
+  Acceleration["Z"] = serialized(String(GyroReadings.Acceleration_Mps.z, NumFractionalDigits));
+
+  JsonObject Rotation = doc.createNestedObject("Rotation_dps");
+  Rotation["X"] = serialized(String(GyroReadings.Rotation_Dps.x, NumFractionalDigits));
+  Rotation["Y"] = serialized(String(GyroReadings.Rotation_Dps.y, NumFractionalDigits));
+  Rotation["Z"] = serialized(String(GyroReadings.Rotation_Dps.z, NumFractionalDigits));
+
+  doc["Temperature_C"] = serialized(String(GyroReadings.Temperature_C, NumFractionalDigits));
 
   serializeJson(doc, Result);
 

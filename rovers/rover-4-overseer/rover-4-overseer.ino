@@ -3,7 +3,7 @@
 /*
   Status: working base
   Version: 8
-  Last mod.: 2023-11-03
+  Last mod.: 2023-11-04
 */
 
 /*
@@ -43,8 +43,8 @@ const uint32_t
   SerialSpeed = 115200;
 
 const uint32_t
-  GyroPollInterval_Ms = 12000,
-  HeartbeatInterval_Ms = 36000,
+  GyroPollInterval_Ms = 1200,
+  HeartbeatInterval_Ms = 20000,
   TickTime_Ms = 50;
 
 Ticker Timer;

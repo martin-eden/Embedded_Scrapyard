@@ -17,6 +17,12 @@ struct t_GyroHistoryRec
     float y;
     float z;
   } Acceleration_Mps;
+  struct
+  {
+    float x;
+    float y;
+    float z;
+  } Rotation_Dps;
 };
 
 void StoreGyroReadings(MPU6050::t_GyroAccReadings Readings, uint32_t Timestamp_Ms);
