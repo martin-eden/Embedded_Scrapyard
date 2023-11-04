@@ -2,7 +2,7 @@
 
 /*
   Version: 3
-  Last mod.: 2022-12-01
+  Last mod.: 2023-11-04
 */
 
 /*
@@ -18,13 +18,13 @@
 
   Uses
     <me_SR04.h>
-    <me_Physics_Sound.h>
+    <me_Math_Physics.h>
 */
 
 #include "me_SR04_Distance.h"
 
 #include <me_SR04.h>
-#include <me_Physics_Sound.h>
+#include <me_Math_Physics.h>
 
 using namespace me_SR04_Distance;
 
@@ -48,6 +48,11 @@ void SensorDistance::Measure()
   {
     _NotConnected = false;
     _HasDistance = true;
-    _DistanceCm = me_Physics_Sound::GetDistanceFromEchoCm(Sonar->EchoDelayMcr());
+    _DistanceCm = GetDistanceFromEcho_Cm(Sonar->EchoDelayMcr());
   }
 }
+
+/*
+  2022-12-01
+  2023-11-04
+*/
