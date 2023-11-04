@@ -33,7 +33,7 @@ namespace MPU6050
 
   struct t_GyroAccReadings
   {
-    t_Acceleration Acceleration_Mps;
+    t_Acceleration Acceleration_G;
     t_Rotation Rotation_Dps;
     float Temperature_C;
   };

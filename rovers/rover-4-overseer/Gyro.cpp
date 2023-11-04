@@ -92,9 +92,9 @@ MPU6050::t_GyroAccReadings GetGyroReadings()
 
   Result = GyroAcc.GetReadings();
 
-  Result.Acceleration_Mps.x = RoundToUnit(Result.Acceleration_Mps.x, Granularity_Mps);
-  Result.Acceleration_Mps.y = RoundToUnit(Result.Acceleration_Mps.y, Granularity_Mps);
-  Result.Acceleration_Mps.z = RoundToUnit(Result.Acceleration_Mps.z, Granularity_Mps);
+  Result.Acceleration_G.x = RoundToUnit(Result.Acceleration_G.x, Granularity_Mps);
+  Result.Acceleration_G.y = RoundToUnit(Result.Acceleration_G.y, Granularity_Mps);
+  Result.Acceleration_G.z = RoundToUnit(Result.Acceleration_G.z, Granularity_Mps);
 
   Result.Rotation_Dps.x = RoundToUnit(Result.Rotation_Dps.x, Granularity_Dps);
   Result.Rotation_Dps.y = RoundToUnit(Result.Rotation_Dps.y, Granularity_Dps);
@@ -138,10 +138,10 @@ String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t T
     So I have to keep this low-entropy code.
   */
 
-  JsonObject Acceleration = doc.createNestedObject("Acceleration_mps");
-  Acceleration["X"] = serialized(String(GyroReadings.Acceleration_Mps.x, NumFractionalDigits));
-  Acceleration["Y"] = serialized(String(GyroReadings.Acceleration_Mps.y, NumFractionalDigits));
-  Acceleration["Z"] = serialized(String(GyroReadings.Acceleration_Mps.z, NumFractionalDigits));
+  JsonObject Acceleration = doc.createNestedObject("Acceleration_G");
+  Acceleration["X"] = serialized(String(GyroReadings.Acceleration_G.x, NumFractionalDigits));
+  Acceleration["Y"] = serialized(String(GyroReadings.Acceleration_G.y, NumFractionalDigits));
+  Acceleration["Z"] = serialized(String(GyroReadings.Acceleration_G.z, NumFractionalDigits));
 
   JsonObject Rotation = doc.createNestedObject("Rotation_dps");
   Rotation["X"] = serialized(String(GyroReadings.Rotation_Dps.x, NumFractionalDigits));

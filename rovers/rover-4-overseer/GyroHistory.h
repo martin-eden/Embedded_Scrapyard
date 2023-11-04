@@ -16,7 +16,7 @@ struct t_GyroHistoryRec
     float x;
     float y;
     float z;
-  } Acceleration_Mps;
+  } Acceleration_G;
   struct
   {
     float x;

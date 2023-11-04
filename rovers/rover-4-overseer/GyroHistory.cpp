@@ -10,9 +10,9 @@ void StoreGyroReadings(MPU6050::t_GyroAccReadings Readings, uint32_t Timestamp_M
 {
   t_GyroHistoryRec HistoryRec;
 
-  HistoryRec.Acceleration_Mps.x = Readings.Acceleration_Mps.x;
-  HistoryRec.Acceleration_Mps.y = Readings.Acceleration_Mps.y;
-  HistoryRec.Acceleration_Mps.z = Readings.Acceleration_Mps.z;
+  HistoryRec.Acceleration_G.x = Readings.Acceleration_G.x;
+  HistoryRec.Acceleration_G.y = Readings.Acceleration_G.y;
+  HistoryRec.Acceleration_G.z = Readings.Acceleration_G.z;
 
   HistoryRec.Rotation_Dps.x = Readings.Rotation_Dps.x;
   HistoryRec.Rotation_Dps.y = Readings.Rotation_Dps.y;
@@ -25,6 +25,14 @@ void StoreGyroReadings(MPU6050::t_GyroAccReadings Readings, uint32_t Timestamp_M
   GyroHistoryCursor = (GyroHistoryCursor + 1) % GyroHistoryCapacity;
 }
 
+
+/*
+  Typical JSON is
+
+    {"Timestamp_ms":17815,"Acceleration_G":{"X":0.01,"Y":0.02,"Z":1.06},"Rotation_dps":{"X":-1.18,"Y":0.39,"Z":-0.85},"Temperature_C":27.75}
+
+  Use it for StaticJsonDocument memory allocation.
+*/
 String SerializeHistoryRec_Json(t_GyroHistoryRec HistoryRec)
 {
   String Result = "";
@@ -33,10 +41,15 @@ String SerializeHistoryRec_Json(t_GyroHistoryRec HistoryRec)
 
   doc["Timestamp_ms"] = HistoryRec.Timestamp_Ms;
 
-  JsonObject Acceleration = doc.createNestedObject("Acceleration_v3_mps");
-  Acceleration["X"] = HistoryRec.Acceleration_Mps.x;
-  Acceleration["Y"] = HistoryRec.Acceleration_Mps.y;
-  Acceleration["Z"] = HistoryRec.Acceleration_Mps.z;
+  JsonObject Acceleration = doc.createNestedObject("Acceleration_G");
+  Acceleration["X"] = HistoryRec.Acceleration_G.x;
+  Acceleration["Y"] = HistoryRec.Acceleration_G.y;
+  Acceleration["Z"] = HistoryRec.Acceleration_G.z;
+
+  JsonObject Rotation = doc.createNestedObject("Rotation_Dps");
+  Rotation["X"] = HistoryRec.Rotation_Dps.x;
+  Rotation["Y"] = HistoryRec.Rotation_Dps.y;
+  Rotation["Z"] = HistoryRec.Rotation_Dps.z;
 
   serializeJson(doc, Result);
 
@@ -49,11 +62,11 @@ String SerializeHistoryRec_Tsv(t_GyroHistoryRec GyroHistoryRec)
   const uint8_t NumFractionalDigits = 2;
   String Result = "";
 
-  Result += String(GyroHistoryRec.Acceleration_Mps.x, NumFractionalDigits);
+  Result += String(GyroHistoryRec.Acceleration_G.x, NumFractionalDigits);
   Result += "\t";
-  Result += String(GyroHistoryRec.Acceleration_Mps.y, NumFractionalDigits);
+  Result += String(GyroHistoryRec.Acceleration_G.y, NumFractionalDigits);
   Result += "\t";
-  Result += String(GyroHistoryRec.Acceleration_Mps.z, NumFractionalDigits);
+  Result += String(GyroHistoryRec.Acceleration_G.z, NumFractionalDigits);
   Result += "\t";
   Result += String(GyroHistoryRec.Rotation_Dps.x, NumFractionalDigits);
   Result += "\t";

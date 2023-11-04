@@ -2,8 +2,8 @@
 
 /*
   Status: works
-  Version: 2
-  Last mod.: 2023-11-03
+  Version: 3
+  Last mod.: 2023-11-04
 */
 
 #include "me_GyroAcc_MPU6050.h"
@@ -12,6 +12,7 @@
 #include <Adafruit_Sensor.h>
 
 #include <me_Math.h>
+#include <me_Math_Physics.h>
 
 using namespace MPU6050;
 
@@ -37,10 +38,15 @@ t_GyroAccReadings t_GyroAcc::GetReadings()
 
   GyroAcc.getEvent(&Acceleration, &Rotation, &Temperature);
 
-  Result.Acceleration_Mps.x = Acceleration.acceleration.x;
-  Result.Acceleration_Mps.y = Acceleration.acceleration.y;
-  Result.Acceleration_Mps.z = Acceleration.acceleration.z;
+  // Finally, convenient Gs!
+  Result.Acceleration_G.x = MpsToG(Acceleration.acceleration.x);
+  Result.Acceleration_G.y = MpsToG(Acceleration.acceleration.y);
+  Result.Acceleration_G.z = MpsToG(Acceleration.acceleration.z);
 
+  /*
+    Actually IMU6050 gives values in degrees per second.
+    It's Adafruit library comverts it to radians.
+  */
   Result.Rotation_Dps.x = RadToDeg(Rotation.gyro.x);
   Result.Rotation_Dps.y = RadToDeg(Rotation.gyro.y);
   Result.Rotation_Dps.z = RadToDeg(Rotation.gyro.z);
