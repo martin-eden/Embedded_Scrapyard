@@ -8,13 +8,13 @@
 
 #include <SoftwareSerial.h>
 
+#include <me_Install_StandardStreams.h>
+
 const uint8_t
   RX_Pin = 12,
   TX_Pin = 13;
 
 SoftwareSerial SoftwareSerial_(RX_Pin, TX_Pin);
-
-void PrintfSetup();
 
 void setup()
 {
@@ -22,27 +22,37 @@ void setup()
     SoftwareSerialBaud = 9600,
     HardwareSerialBaud = 9600;
 
-  PrintfSetup();
+  Install_StandardStreams();
 
   Serial.begin(HardwareSerialBaud);
 
   SoftwareSerial_.begin(SoftwareSerialBaud);
 
-  printf(
-    "--------------------------------------------------------------\n"
-    "\n"
-    "  Software serial test begins.\n"
-    "\n"
-    "    Software serial baud: %lu\n"
-    "\n"
-    "    Our baud is %lu.\n"
-    "\n"
-    "    Protocol:\n"
-    "\n"
-    "      * Bytes we read from him, we print.\n"
-    "      * Bytes you are sending to us, we giving a copy to him.\n"
-    "--------------------------------------------------------------\n",
+  printf_P(
+    PSTR(
+      "--------------------------------------------------------------\n"
+      "\n"
+      "  Software serial test begins.\n"
+      "\n"
+      "    Software serial:\n"
+      "\n"
+      "      Baud: %lu\n"
+      "      RX pin: %d\n"
+      "      TX pin: %d\n"
+      "\n"
+      "    Hardware serial:\n"
+      "\n"
+      "      Baud: %lu\n"
+      "\n"
+      "    Protocol:\n"
+      "\n"
+      "      * Bytes we read from him, we print.\n"
+      "      * Bytes you are sending to us, we giving a copy to him.\n"
+      "--------------------------------------------------------------\n"
+    ),
     SoftwareSerialBaud,
+    RX_Pin,
+    TX_Pin,
     HardwareSerialBaud
   );
 }
@@ -64,17 +74,4 @@ void loop()
 
     SoftwareSerial_.write(HardwareSerialCharRead);
   }
-}
-
-FILE f_out;
-
-int putc_serial(char c, FILE *)
-{
-  bool Result = Serial.write(c);
-  return Result;
-}
-
-void PrintfSetup()
-{
-  fdevopen(&putc_serial, 0);
 }
