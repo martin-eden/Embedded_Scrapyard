@@ -56,7 +56,7 @@ const uint8_t
   Deek_BrakeB_Pin = 8;
 
 const uint32_t
-  SerialSpeed = 115200;
+  SerialSpeed = 9600; // 115200;
 
 const static char
   CommandReferenceText[] PROGMEM =
