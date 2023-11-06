@@ -165,12 +165,18 @@ bool GetDurationValue(uint16_t *DurationValue)
   return Result;
 }
 
-// Core function. Parse Serial for valid command.
+/*
+  Parse Serial for valid command.
+
+  Core function.
+*/
 bool MotorboardCommands::ParseCommand(MotorboardCommands::TMotorboardCommand *Result)
 {
   TCommandType CommandType;
   int8_t Motor_Perc;
   uint16_t Duration_Ms;
+
+  if (!Serial.available()) return false;
 
   TTokenType TokenType;
 
