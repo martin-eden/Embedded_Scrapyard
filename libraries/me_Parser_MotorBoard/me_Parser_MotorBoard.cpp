@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1
-  Last mod.: 2023-10-14
+  Version: 2
+  Last mod.: 2023-11-05
 */
 
 /*
@@ -29,8 +29,7 @@ enum TTokenType
   Token_Number
 };
 
-// Lexer.
-// Note: Reads Serial().
+// Lexer. Reads Serial().
 bool PeekNextToken(TTokenType *NextToken)
 {
   bool IsOk = false;
@@ -64,157 +63,148 @@ bool PeekNextToken(TTokenType *NextToken)
   return IsOk;
 }
 
-// Command names.
-const char
-  CommandName_LeftMotor = 'L',
-  CommandName_RightMotor = 'R',
-  CommandName_Duration = 'D';
-
-// Convert command name to command type.
-// Note: Reads Serial().
+// Convert command name to command type. Reads Serial.
 bool GetCommandType(TCommandType *CommandType)
 {
-  bool IsOk = false;
+  // Command names.
+  const char
+    CommandName_LeftMotor = 'L',
+    CommandName_RightMotor = 'R',
+    CommandName_Duration = 'D';
+
+  bool Result = false;
 
   if (!Serial.available())
   {
-    return IsOk;
+    return false;
   }
 
   char IncomingChar;
   IncomingChar = Serial.read();
 
-  if (IncomingChar == CommandName_LeftMotor)
+  Result = true;
+
+  switch (IncomingChar)
   {
-    *CommandType = Command_LeftMotor;
-    IsOk = true;
-  }
-  else if (IncomingChar == CommandName_RightMotor)
-  {
-    *CommandType = Command_RightMotor;
-    IsOk = true;
-  }
-  else if (IncomingChar == CommandName_Duration)
-  {
-    *CommandType = Command_Duration;
-    IsOk = true;
+    case CommandName_LeftMotor:
+      *CommandType = Command_LeftMotor;
+      break;
+    case CommandName_RightMotor:
+      *CommandType = Command_RightMotor;
+      break;
+    case CommandName_Duration:
+      *CommandType = Command_Duration;
+      break;
+    default:
+      Result = false;
+      break;
   }
 
-  return IsOk;
+  return Result;
 }
 
-// Note: Motor value accepted range is [-100, 100].
-// Note: Reads Serial().
+// Get motor value from Serial.
 bool GetMotorValue(int8_t *MotorValue)
 {
-  bool IsOk = false;
+  const int8_t
+    MinValue = -100,
+    MaxValue = 100;
+
+  bool Result = false;
 
   if (!Serial.available())
   {
-    return IsOk;
+    return false;
   }
+
+  Result = true;
 
   LookaheadMode lookaheadMode = SKIP_WHITESPACE;
-  int32_t ParseIntValue = Serial.parseInt(lookaheadMode);
+  int32_t ParsedInt = Serial.parseInt(lookaheadMode);
 
-  if ((ParseIntValue >= -100) && (ParseIntValue <= 100))
+  if ((ParsedInt >= MinValue) && (ParsedInt <= MaxValue))
   {
-    *MotorValue = ParseIntValue;
-    IsOk = true;
+    *MotorValue = ParsedInt;
+  }
+  else
+  {
+    Result = false;
   }
 
-  return IsOk;
+  return Result;
 }
 
-// Note: Duration (ms) accepted range is [0, 5000].
-// Note: Reads Serial().
+// Get duration value (ms) from Serial.
 bool GetDurationValue(uint16_t *DurationValue)
 {
-  bool IsOk = false;
+  const int16_t
+    MinValue = 0,
+    MaxValue = 5000;
+
+  bool Result = false;
 
   if (!Serial.available())
   {
-    return IsOk;
+    return false;
   }
+
+  Result = true;
 
   LookaheadMode lookaheadMode = SKIP_WHITESPACE;
-  int32_t ParseIntValue = Serial.parseInt(lookaheadMode);
+  int32_t ParsedInt = Serial.parseInt(lookaheadMode);
 
-  if ((ParseIntValue >= 0) && (ParseIntValue <= 5000))
+  if ((ParsedInt >= MinValue) && (ParsedInt <= MaxValue))
   {
-    *DurationValue = ParseIntValue;
-    IsOk = true;
+    *DurationValue = ParsedInt;
+  }
+  else
+  {
+    Result = false;
   }
 
-  return IsOk;
+  return Result;
 }
 
-// Main. Parse Serial() for valid command.
+// Core function. Parse Serial for valid command.
 bool MotorboardCommands::ParseCommand(MotorboardCommands::TMotorboardCommand *Result)
 {
-  bool IsOk = false;
-
   TCommandType CommandType;
-  int8_t MotorValue;
-  uint16_t DurationValue;
+  int8_t Motor_Perc;
+  uint16_t Duration_Ms;
 
   TTokenType TokenType;
 
-  IsOk = PeekNextToken(&TokenType);
-
-  if (!IsOk)
-  {
-    return IsOk;
-  }
+  if (!PeekNextToken(&TokenType)) return false;
 
   if (TokenType == Token_Word)
   {
-    IsOk = GetCommandType(&CommandType);
-    if (!IsOk)
-    {
-      return IsOk;
-    }
+    if (!GetCommandType(&CommandType)) return false;
 
-    if (CommandType == Command_LeftMotor)
-    {
-      IsOk = GetMotorValue(&MotorValue);
-      if (!IsOk)
-      {
-        return IsOk;
-      }
+    Result->Type = CommandType;
 
-      Result->Type = Command_LeftMotor;
-      Result->MotorSpeed = MotorValue;
-    }
-    else if (CommandType == Command_RightMotor)
+    switch (CommandType)
     {
-      IsOk = GetMotorValue(&MotorValue);
-      if (!IsOk)
-      {
-        return IsOk;
-      }
+      case Command_LeftMotor:
+      case Command_RightMotor:
+        if (!GetMotorValue(&Motor_Perc)) return false;
+        Result->MotorSpeed = Motor_Perc;
+        break;
 
-      Result->Type = Command_RightMotor;
-      Result->MotorSpeed = MotorValue;
-    }
-    else if (CommandType == Command_Duration)
-    {
-      IsOk = GetDurationValue(&DurationValue);
-      if (!IsOk)
-      {
-        return IsOk;
-      }
+      case Command_Duration:
+        if (!GetDurationValue(&Duration_Ms)) return false;
+        Result->Duration_Ms = Duration_Ms;
+        break;
 
-      Result->Type = Command_Duration;
-      Result->Duration_Ms = DurationValue;
-    }
-    else
-    {
-      IsOk = false;
+      default:
+        return false;
     }
   }
+  else
+  {
+    return false;
+  }
 
-  return IsOk;
+  return true;
 }
 
 // Debug printer.
@@ -250,3 +240,8 @@ void MotorboardCommands::DisplayCommand(TMotorboardCommand Command)
 
   Serial.println();
 }
+
+/*
+  2023-10-14
+  2023-11-05
+*/
