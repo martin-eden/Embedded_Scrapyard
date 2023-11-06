@@ -70,12 +70,52 @@ void setup()
   SetupSerial();
 
   PrintSetupGreeting();
-  PrintHelp();
+  PrintProtocolHelp();
 }
 
 void loop()
 {
-  ProcessCommand();
+  static uint32_t LastCommandTime_Ms = 0;
+  static bool MotorsAreStopped = false;
+  static bool AcknowledgePrinted = false;
+  uint32_t TimePassed_Ms;
+
+  TMotorboardCommand Command;
+
+  if (Serial.available())
+  {
+    if (ParseCommand(&Command))
+    {
+      // Serial.println("Got command.");
+      // DisplayCommand(Command);
+
+      ExecuteCommand(Command);
+
+      MotorsAreStopped = false;
+
+      LastCommandTime_Ms = millis();
+    }
+
+    AcknowledgePrinted = false;
+  }
+
+  if (!Serial.available())
+  {
+    if (!AcknowledgePrinted)
+    {
+      printf("G\n");
+      AcknowledgePrinted = true;
+    }
+  }
+
+  TimePassed_Ms = millis() - LastCommandTime_Ms;
+
+  // Motors auto-stop:
+  if ((TimePassed_Ms >= AutoStopTimeout_Ms) && !MotorsAreStopped)
+  {
+    StopMotors();
+    MotorsAreStopped = true;
+  }
 
   delay(TickTime_Ms);
 }
@@ -123,24 +163,47 @@ void PrintSetupGreeting()
   );
 }
 
-void PrintHelp()
+void PrintProtocolHelp()
 {
   printf_P(
     PSTR(
+      "                          Protocol\n"
+      "\n"
       "Motor board command format.\n"
       "\n"
       "  Command is two tokens. Command type and command value.\n"
       "\n"
-      "  L [-100, 100]\n"
-      "    Left motor. Set specified power and direction.\n"
-      "  R [-100, 100]\n"
-      "    Right motor. Set specified power and direction.\n"
-      "  D [0, 5000]\n"
-      "    Delay for given interval in milliseconds. Motors are running!\n"
+      "  Commands\n"
       "\n"
-      "Whitespaces are stripped: \"L 50 R -50 D 1000\" == \"L50R50D1000\".\n"
+      "    L [-100, 100]\n"
+      "      Left motor. Set specified power and direction.\n"
+      "    R [-100, 100]\n"
+      "      Right motor. Set specified power and direction.\n"
+      "    D [0, 5000]\n"
+      "      Delay for given interval in milliseconds.\n"
+      "      Motors will be running.\n"
       "\n"
-      "Motors are stopped when no command received in some interval of time.\n"
+      "  Whitespaces are stripped: \"L 50 R -50 D 1000\" == \"L50R50D1000\".\n"
+      "\n"
+      "Feedback\n"
+      "\n"
+      "  If we input channel is empty now, we emit \"G\\n\" (go, got it,\n"
+      "  gimme more) as a sign that we are ready for next commands.\n"
+      "\n"
+      "  This behavior is needed for throttling commands-provider board.\n"
+      "  Without it can overflow our Serial input buffer while we are\n"
+      "  executing commands.\n"
+      "\n"
+      "  Command-provider board MAY send any garbage but\n"
+      "\n"
+      "    * MUST assure that data chunk size is no more than\n"
+      "      our input buffer\n"
+      "    * MUST wait for \"G\\n\" before sending chunk\n"
+      "\n"
+      "Behavior\n"
+      "\n"
+      "  Motors are stopped when no command received in <AutoStop>\n"
+      "  interval of time.\n"
       "\n"
       "\n"
     )
@@ -176,40 +239,6 @@ void StopMotors()
   // Serial.println("Motors are stopped.");
 }
 
-void ProcessCommand()
-{
-  static uint32_t LastSucessfullTime_Ms = 0;
-  static bool MotorsAreStopped = false;
-  uint32_t TimePassed_Ms;
-
-  TMotorboardCommand Command;
-
-  if (ParseCommand(&Command))
-  {
-    // Serial.println("Got command.");
-    // DisplayCommand(Command);
-
-    // printf("G\n");
-
-    ExecuteCommand(Command);
-
-    LastSucessfullTime_Ms = millis();
-
-    MotorsAreStopped = false;
-  }
-
-  TimePassed_Ms = millis() - LastSucessfullTime_Ms;
-
-  if ((TimePassed_Ms >= AutoStopTimeout_Ms) && !MotorsAreStopped)
-  {
-    // Serial.println("Auto-stopping motors.");
-
-    StopMotors();
-
-    MotorsAreStopped = true;
-  }
-}
-
 // ---
 
 /*
@@ -218,4 +247,5 @@ void ProcessCommand()
   2023-10-11
   2023-10-14
   2023-11-02
+  2023-11-05
 */
