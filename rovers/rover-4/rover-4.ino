@@ -2,49 +2,31 @@
 
 /*
   Status: stable
-  Version: 3
-  Last mod.: 2023-11-02
+  Version: 4
+  Last mod.: 2023-11-05
 */
 
 /*
-  This is code for Arduino Uno with stacked Deek motor shield.
+  This code is for Arduino Uno with stacked Deek motor shield.
 */
 
 /*
-  I've got troubles using <ESP8266TimerInterrupt.h> and Deek motor
-  shield stacked top on board. When I start using timer interrupt,
-  D2 goes high and D2 is Motor A PWM pin.
-
-  As a workaround, NEW Arduino Uno BOARD added just for Deek motor
-  shield. It is connected to some master board over UART.
+  Deek motor shield is for Arduino Uno, it is not electrically
+  compatible with Wemos D1. So Arduino Uno hosts Deek motor shield.
+  It is connected to Wemos D1 over UART.
 */
 
 /*
-  1: Motor controller
+  Hardware setup
 
-    Board: Arduino Uno
-    Processor: ATmega328P
-    Motor board: Deek (stacked)
-*/
-
-/*
-  Motor board command format.
-
-  Command is two tokens. Command type and command value.
-
-  "L" [-100, 100] -- Left motor. Set specified power and direction.
-  "R" [-100, 100] -- Right motor. Set specified power and direction.
-  "D" [0, 5000] -- Delay for given time in milliseconds.
-
-  Whitespaces are stripped, so "L 50 R -50 D 1000" == "L50R50D1000".
-*/
-
-/*
-  Motors are stopped when no command received in some interval of time.
+    Board: Arduino Uno (ATmega328P)
+    Peripherials:
+      * Deek motor board (stacked)
 */
 
 #include <me_DeekMotor.h>
 #include <me_Parser_MotorBoard.h>
+#include <me_Install_StandardStreams.h>
 
 const uint8_t
   Deek_DirA_Pin = 12,
@@ -56,25 +38,11 @@ const uint8_t
   Deek_BrakeB_Pin = 8;
 
 const uint32_t
-  SerialSpeed = 9600; // 115200;
+  SerialBaud = 9600; // 115200;
 
-const static char
-  CommandReferenceText[] PROGMEM =
-    "Motor board command format.\n"
-    "\n"
-    "Command is two tokens. Command type and command value.\n"
-    "\n"
-    "\"L\" [-100, 100] -- Left motor. Set specified power and direction.\n"
-    "\"R\" [-100, 100] -- Right motor. Set specified power and direction.\n"
-    "\"D\" [0, 5000] -- Delay for given time in milliseconds.\n"
-    "\n"
-    "Whitespaces are stripped, so \"L 50 R -50 D 1000\" == \"L50R50D1000\".\n"
-    "\n"
-    "Motors are stopped when no command received in some interval of time.\n"
-    ;
-
-const uint32_t
-  TickTime_Ms = 50;
+const uint16_t
+  TickTime_Ms = 50,
+  AutoStopTimeout_Ms = 2000;
 
 const TDeekMotorPins
   LeftMotorPins =
@@ -95,35 +63,88 @@ DeekMotor RightMotor(RightMotorPins);
 
 using namespace MotorboardCommands; // mostly for TMotorboardCommand
 
+// ---
+
+void setup()
+{
+  SetupSerial();
+
+  PrintSetupGreeting();
+  PrintHelp();
+}
+
+void loop()
+{
+  ProcessCommand();
+
+  delay(TickTime_Ms);
+}
+
+// ---
+
 void SetupSerial()
 {
   const uint16_t SerialParseIntTimeout_Ms = 100;
 
-  Serial.begin(SerialSpeed);
+  Serial.begin(SerialBaud);
   Serial.setTimeout(SerialParseIntTimeout_Ms);
+
+  Install_StandardStreams();
 }
 
 void PrintSetupGreeting()
 {
-  Serial.println();
-  Serial.println("---------------------");
-  Serial.println(" Rover-4 motor board ");
-  Serial.println("---------------------");
+  printf_P(
+    PSTR(
+      "\n"
+      "-------------------------------------------------------------\n"
+      "                    Rover-4 motor board\n"
+      "-------------------------------------------------------------\n"
+      "\n"
+      "  Pins assignment\n"
+      "\n"
+      "    Left motor : Direction = %2d, PWM = %2d, Brake = %2d\n"
+      "    Right motor: Direction = %2d, PWM = %2d, Brake = %2d\n"
+      "\n"
+      "  Tick duration (ms): %d\n"
+      "  Auto-stop timeout (ms): %d\n"
+      "\n"
+      "-------------------------------------------------------------\n"
+      "\n"
+    ),
+    LeftMotorPins.Direction_Pin,
+    LeftMotorPins.Pwm_Pin,
+    LeftMotorPins.Brake_Pin,
+    RightMotorPins.Direction_Pin,
+    RightMotorPins.Pwm_Pin,
+    RightMotorPins.Brake_Pin,
+    TickTime_Ms,
+    AutoStopTimeout_Ms
+  );
 }
 
 void PrintHelp()
 {
-  char c;
-  for (size_t i = 0; i < strlen_P(CommandReferenceText); ++i)
-  {
-    c = pgm_read_byte_near(CommandReferenceText + i);
-    Serial.print(c);
-  }
-}
-
-void PrintLoopGreeting()
-{
-  Serial.println("Rover-4 motor board:  Loop here!");
+  printf_P(
+    PSTR(
+      "Motor board command format.\n"
+      "\n"
+      "  Command is two tokens. Command type and command value.\n"
+      "\n"
+      "  L [-100, 100]\n"
+      "    Left motor. Set specified power and direction.\n"
+      "  R [-100, 100]\n"
+      "    Right motor. Set specified power and direction.\n"
+      "  D [0, 5000]\n"
+      "    Delay for given interval in milliseconds. Motors are running!\n"
+      "\n"
+      "Whitespaces are stripped: \"L 50 R -50 D 1000\" == \"L50R50D1000\".\n"
+      "\n"
+      "Motors are stopped when no command received in some interval of time.\n"
+      "\n"
+      "\n"
+    )
+  );
 }
 
 void ExecuteCommand(TMotorboardCommand Command)
@@ -158,19 +179,17 @@ void StopMotors()
 void ProcessCommand()
 {
   static uint32_t LastSucessfullTime_Ms = 0;
-  const uint32_t AutoStopTimeout_Ms = 2000;
   static bool MotorsAreStopped = false;
   uint32_t TimePassed_Ms;
 
   TMotorboardCommand Command;
-  bool IsOk;
 
-  IsOk = ParseCommand(&Command);
-
-  if (IsOk)
+  if (ParseCommand(&Command))
   {
     // Serial.println("Got command.");
     // DisplayCommand(Command);
+
+    // printf("G\n");
 
     ExecuteCommand(Command);
 
@@ -180,11 +199,6 @@ void ProcessCommand()
   }
 
   TimePassed_Ms = millis() - LastSucessfullTime_Ms;
-
-  if ((TimePassed_Ms < AutoStopTimeout_Ms) && MotorsAreStopped)
-  {
-    MotorsAreStopped = false;
-  }
 
   if ((TimePassed_Ms >= AutoStopTimeout_Ms) && !MotorsAreStopped)
   {
@@ -196,22 +210,7 @@ void ProcessCommand()
   }
 }
 
-void setup()
-{
-  SetupSerial();
-
-  PrintSetupGreeting();
-  PrintHelp();
-}
-
-void loop()
-{
-  // PrintLoopGreeting();
-
-  ProcessCommand();
-
-  delay(TickTime_Ms);
-}
+// ---
 
 /*
   2023-10-07
