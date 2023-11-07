@@ -3,7 +3,7 @@
 /*
   Status: working base
   Version: 8
-  Last mod.: 2023-11-04
+  Last mod.: 2023-11-07
 */
 
 /*
@@ -53,6 +53,8 @@ void SetupSerial();
 void PrintBanner();
 void SendGyroReadings_Callback();
 
+// ---
+
 void setup()
 {
   SetupSerial();
@@ -69,8 +71,30 @@ void setup()
 
   SetupMotorboardCommunication();
 
-  MotorsTest();
+  bool MotorboardIsConnected = TestConnection();
+  if (MotorboardIsConnected)
+  {
+    Serial.println("Motorboard is connected.");
+
+    Serial.println("Doing real-world motors test.");
+    HardwareMotorsTest();
+  }
+  else
+    Serial.println("Motorboard is not connected.");
 }
+
+void Heartbeat();
+
+void loop()
+{
+  Heartbeat();
+
+  HandleHttp();
+
+  delay(TickTime_Ms);
+}
+
+// ---
 
 void SetupSerial()
 {
@@ -110,17 +134,6 @@ void IRAM_ATTR GyroPoll_Isr()
   StoreGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
 }
 
-void Heartbeat();
-
-void loop()
-{
-  Heartbeat();
-
-  HandleHttp();
-
-  delay(TickTime_Ms);
-}
-
 void Heartbeat()
 {
   static uint32_t LastPrintTime_Ms = millis();
@@ -143,4 +156,5 @@ void Heartbeat()
   2023-10-17
   2023-10-21
   2023-11-03
+  2023-11-07
 */
