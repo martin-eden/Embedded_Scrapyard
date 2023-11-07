@@ -1,60 +1,116 @@
+// Interface to motor board.
+
+/*
+  Status: finishing base
+  Version: 1
+  Last mod.: 2023-11-07
+*/
+
 #include "Motors.h"
 
 #include <SoftwareSerial.h>
 
-auto& usbSerial = Serial;
-EspSoftwareSerial::UART softSerial;
+HardwareSerial HardwareSerial_ = Serial;
+EspSoftwareSerial::UART SoftwareSerial_;
 
-void SetupMotorboardCommunication()
+// ---
+
+bool SetupMotorboardCommunication()
 {
-  Serial.println("Motorboard initialization.");
+  HardwareSerial_.println("Motorboard initialization.");
 
-  // To do: Try reducing baud. Looks like 115200 messages arrive mangled.
   const uint32_t Baud = 9600; // 57600; // 115200;
   EspSoftwareSerial::Config Config = SWSERIAL_8N1;
-  const uint8_t
-    RX_Pin = D7,
-    TX_Pin = D9;
-  bool Invert = false;
+  const uint8_t RX_Pin = D7;
+  const uint8_t TX_Pin = D9;
 
-  softSerial.begin(Baud, Config, RX_Pin, TX_Pin, Invert);
-  if (!softSerial)
+  SoftwareSerial_.begin(Baud, Config, RX_Pin, TX_Pin);
+
+  if (!SoftwareSerial_)
   {
-    Serial.println("Software serial initialization failed.");
-    while (1) delay (1000);
+    HardwareSerial_.println("Software serial initialization failed. Stopped.");
+    while(1);
   }
 
-  Serial.println("Motorboard initialized.");
+  HardwareSerial_.println("Motorboard initialized.");
+
+  return TestConnection();
 }
 
-void MotorsTest()
+bool TestConnection()
 {
-  Serial.println("Motor test.");
+  return SendCommand(" ");
+}
+
+void HardwareMotorsTest()
+{
+  HardwareSerial_.println("Motor test.");
 
   // Send commands to motor board to briefly move motors.
-  softSerial.write("L20R20D100 L0R0D200");
-  delay(700);
-  softSerial.write("L40R40D100 L0R0D200");
-  delay(700);
-  softSerial.write("L60R60D100 L0R0D200");
-  delay(700);
-  softSerial.write("L80R80D100 L0R0D200");
-  delay(700);
-  softSerial.write("L100R100D100 L0R0D200");
-  delay(700);
-  softSerial.write("L-20R-20D100 L0R0D200");
-  delay(700);
-  softSerial.write("L-40R-40D100 L0R0D200");
-  delay(700);
-  softSerial.write("L-60R-60D100 L0R0D200");
-  delay(700);
-  softSerial.write("L-80R-80D100 L0R0D200");
-  delay(700);
-  softSerial.write("L-100R-100D100 L0R0D200");
-  delay(700);
+  SendCommand("L 20  R 20  D 100");
+  SendCommand("L 40  R 40  D 100");
+  SendCommand("L 60  R 60  D 100");
+  SendCommand("L 80  R 80  D 100");
+  SendCommand("L 99  R 99  D 100");
+  SendCommand("L 80  R 80  D 100");
+  SendCommand("L 60  R 60  D 100");
+  SendCommand("L 40  R 40  D 100");
+  SendCommand("L 20  R 20  D 100");
+  SendCommand("L  0  R  0  D 100");
 
-  softSerial.write("L100R100D100 L0R0D200");
-  delay(700);
+  SendCommand("L-20  R-20  D 100");
+  SendCommand("L-40  R-40  D 100");
+  SendCommand("L-60  R-60  D 100");
+  SendCommand("L-80  R-80  D 100");
+  SendCommand("L-99  R-99  D 100");
+  SendCommand("L-80  R-80  D 100");
+  SendCommand("L-60  R-60  D 100");
+  SendCommand("L-40  R-40  D 100");
+  SendCommand("L-20  R-20  D 100");
+  SendCommand("L  0  R  0  D 100");
 
-  Serial.println("Motor test done.");
+  HardwareSerial_.println("Motor test done.");
+}
+
+uint32_t GetTimePassed_Ms(uint32_t LastTimestamp_MS);
+
+bool SendCommand(const char * Command)
+{
+  const uint32_t ResponseAwaitTimeout_Ms = 5000;
+  bool GotResponse = false;
+
+  // Sending data:
+  SoftwareSerial_.write(Command);
+
+  // Waiting for response:
+  const uint32_t ResponseWaitStartTime_Ms = millis();
+  uint32_t ResponseReceiveTime_Ms = 0;
+  while(GetTimePassed_Ms(ResponseWaitStartTime_Ms) < ResponseAwaitTimeout_Ms)
+  {
+    if (SoftwareSerial_.available())
+    {
+      GotResponse = true;
+      ResponseReceiveTime_Ms = millis();
+      break;
+    }
+  }
+
+  if (GotResponse)
+  {
+    // Discarding respone. Important thing is that we got feedback.
+    while(SoftwareSerial_.available())
+    {
+       SoftwareSerial_.flush();
+    }
+    HardwareSerial_.printf("Got response in %d ms.\n", ResponseReceiveTime_Ms);
+  }
+
+  return GotResponse;
+}
+
+// ---
+
+uint32_t GetTimePassed_Ms(uint32_t LastTimestamp_MS)
+{
+  return millis() - LastTimestamp_MS;
 }
