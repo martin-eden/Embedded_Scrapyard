@@ -21,3 +21,6 @@ bool SendCommand(const char * Command);
 
 // Actually spin motors for some time.
 void HardwareMotorsTest();
+
+// debug
+void FigureOutPingOfBoard();

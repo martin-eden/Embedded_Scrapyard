@@ -69,25 +69,20 @@ void setup()
 
   SetupIsr();
 
-  SetupMotorboardCommunication();
-
-  bool MotorboardIsConnected = TestConnection();
+  bool MotorboardIsConnected = SetupMotorboardCommunication();
   if (MotorboardIsConnected)
   {
-    Serial.println("Motorboard is connected.");
-
     Serial.println("Doing real-world motors test.");
     HardwareMotorsTest();
+    FigureOutPingOfBoard();
   }
-  else
-    Serial.println("Motorboard is not connected.");
 }
 
 void Heartbeat();
 
 void loop()
 {
-  Heartbeat();
+  // Heartbeat();
 
   HandleHttp();
 
