@@ -66,14 +66,6 @@ void setup()
 
   PrintBanner();
 
-  // SetupWiFi(StationName, StationPassword);
-
-  // Http::Setup(SendGyroReadings_Callback);
-
-  SetupGyro();
-
-  SetupIsr();
-
   bool MotorboardIsConnected =
     SetupMotorboardCommunication(
       Motorboard_Baud,
@@ -85,6 +77,14 @@ void setup()
   {
     HardwareMotorsTest();
   }
+
+  SetupGyro();
+
+  SetupWiFi(StationName, StationPassword);
+
+  Http::Setup(SendGyroReadings_Callback);
+
+  SetupIsr();
 }
 
 void Heartbeat();

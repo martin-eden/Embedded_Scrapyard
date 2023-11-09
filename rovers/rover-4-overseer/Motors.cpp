@@ -2,7 +2,7 @@
 
 /*
   Status: works
-  Version: 3
+  Version: 4
   Last mod.: 2023-11-09
 */
 
@@ -60,103 +60,12 @@ bool TestConnection()
 bool SendCommand_Trace(const char * Command);
 String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms);
 
-void HardwareMotorsTest()
-{
-  HardwareSerial_.print("Motors test.. ");
-
-  const uint16_t TestDuration_Ms = 500;
-  const uint8_t PowerIncrement_Pc = 25;
-
-  const uint16_t NumCommands = ((100 / PowerIncrement_Pc) + 1) * 4;
-
-  uint16_t PhaseDuration_Ms = TestDuration_Ms / NumCommands;
-
-  int8_t MotorPower_Pc;
-
-  for (MotorPower_Pc = 0; MotorPower_Pc <= 100; MotorPower_Pc += 20)
-  {
-    SendCommand_Trace(
-      GenerateCommand(
-        MotorPower_Pc,
-        MotorPower_Pc,
-        PhaseDuration_Ms
-      ).c_str()
-    );
-  }
-
-  for (MotorPower_Pc = 100; MotorPower_Pc >= -100; MotorPower_Pc -= 20)
-  {
-    SendCommand_Trace(
-      GenerateCommand(
-        MotorPower_Pc,
-        MotorPower_Pc,
-        PhaseDuration_Ms
-      ).c_str()
-    );
-  }
-
-  for (MotorPower_Pc = -100; MotorPower_Pc <= 0; MotorPower_Pc += 20)
-  {
-    SendCommand_Trace(
-      GenerateCommand(
-        MotorPower_Pc,
-        MotorPower_Pc,
-        PhaseDuration_Ms
-      ).c_str()
-    );
-  }
-
-  HardwareSerial_.println("done.");
-}
-
 uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0)
 {
   if (EndTime_Ms == 0)
     EndTime_Ms = millis();
 
   return EndTime_Ms - StartTime_Ms;
-}
-
-// SendCommand with time tracing.
-bool SendCommand_Trace(const char * Command)
-{
-  HardwareSerial_.printf(
-    "Ping_Ms(\"%s\"): ",
-    Command
-  );
-
-  uint32_t StartTime_Ms;
-  StartTime_Ms = millis();
-
-  bool SendCommandResult;
-  SendCommandResult = SendCommand(Command);
-
-  uint32_t EndTime_Ms;
-  EndTime_Ms = millis();
-
-  HardwareSerial_.printf(
-    "%u\n",
-    GetTimePassed_Ms(StartTime_Ms, EndTime_Ms)
-  );
-
-  return SendCommandResult;
-}
-
-String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms)
-{
-  uint8_t MaxCommandSize = 32;
-  char Command[MaxCommandSize];
-
-  snprintf(
-    Command,
-    MaxCommandSize,
-    "L %d R %d D %d ",
-    LeftMotor_Pc,
-    RightMotor_Pc,
-    Duration_Ms
-  );
-
-  return String(Command);
 }
 
 // ---
@@ -232,6 +141,48 @@ bool SendCommand(const char * Commands)
   return false;
 }
 
+// SendCommand with time tracing.
+bool SendCommand_Trace(const char * Command)
+{
+  HardwareSerial_.printf(
+    "Ping_Ms(\"%s\"): ",
+    Command
+  );
+
+  uint32_t StartTime_Ms;
+  StartTime_Ms = millis();
+
+  bool SendCommandResult;
+  SendCommandResult = SendCommand(Command);
+
+  uint32_t EndTime_Ms;
+  EndTime_Ms = millis();
+
+  HardwareSerial_.printf(
+    "%u\n",
+    GetTimePassed_Ms(StartTime_Ms, EndTime_Ms)
+  );
+
+  return SendCommandResult;
+}
+
+String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms)
+{
+  uint8_t MaxCommandSize = 32;
+  char Command[MaxCommandSize];
+
+  snprintf(
+    Command,
+    MaxCommandSize,
+    "L %d R %d D %d ",
+    LeftMotor_Pc,
+    RightMotor_Pc,
+    Duration_Ms
+  );
+
+  return String(Command);
+}
+
 // Exploration. Sending commands to measure ping.
 uint16_t DetectPing_Ms(uint16_t TotalTestDuration_Ms, uint8_t NumMeasurements)
 {
@@ -243,7 +194,7 @@ uint16_t DetectPing_Ms(uint16_t TotalTestDuration_Ms, uint8_t NumMeasurements)
   for (uint8_t i = 0; i < NumMeasurements; ++i)
   {
     uint32_t StartTime_Ms = millis();
-    SendCommand_Trace(Command.c_str());
+    SendCommand(Command.c_str());
     TimePassed_Ms += GetTimePassed_Ms(StartTime_Ms);
   }
 
@@ -267,6 +218,55 @@ uint16_t DetectPing_Ms(uint16_t TotalTestDuration_Ms, uint8_t NumMeasurements)
   }
 
   return Result;
+}
+
+void HardwareMotorsTest()
+{
+  HardwareSerial_.print("Motors test.. ");
+
+  const uint16_t TestDuration_Ms = 500;
+  const uint8_t PowerIncrement_Pc = 25;
+
+  const uint16_t NumCommands = ((100 / PowerIncrement_Pc) + 1) * 4;
+
+  uint16_t PhaseDuration_Ms = TestDuration_Ms / NumCommands;
+
+  int8_t MotorPower_Pc;
+
+  for (MotorPower_Pc = 0; MotorPower_Pc <= 100; MotorPower_Pc += 20)
+  {
+    SendCommand(
+      GenerateCommand(
+        MotorPower_Pc,
+        MotorPower_Pc,
+        PhaseDuration_Ms
+      ).c_str()
+    );
+  }
+
+  for (MotorPower_Pc = 100; MotorPower_Pc >= -100; MotorPower_Pc -= 20)
+  {
+    SendCommand(
+      GenerateCommand(
+        MotorPower_Pc,
+        MotorPower_Pc,
+        PhaseDuration_Ms
+      ).c_str()
+    );
+  }
+
+  for (MotorPower_Pc = -100; MotorPower_Pc <= 0; MotorPower_Pc += 20)
+  {
+    SendCommand(
+      GenerateCommand(
+        MotorPower_Pc,
+        MotorPower_Pc,
+        PhaseDuration_Ms
+      ).c_str()
+    );
+  }
+
+  HardwareSerial_.println("done.");
 }
 
 // ---
