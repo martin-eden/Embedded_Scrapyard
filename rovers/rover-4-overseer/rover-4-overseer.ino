@@ -40,7 +40,12 @@ const char
   * StationPassword = "";
 
 const uint32_t
-  SerialSpeed = 115200;
+  Serial_Baud = 115200,
+  Motorboard_Baud = 9600;
+
+const uint8_t
+  Motorboard_Receive_Pin = D7,
+  Motorboard_Transmit_Pin = D9;
 
 const uint32_t
   GyroPollInterval_Ms = 1200,
@@ -57,24 +62,28 @@ void SendGyroReadings_Callback();
 
 void setup()
 {
-  SetupSerial();
+  Serial.begin(Serial_Baud);
 
   PrintBanner();
 
-  SetupWiFi(StationName, StationPassword);
+  // SetupWiFi(StationName, StationPassword);
 
-  Http::Setup(SendGyroReadings_Callback);
+  // Http::Setup(SendGyroReadings_Callback);
 
   SetupGyro();
 
   SetupIsr();
 
-  bool MotorboardIsConnected = SetupMotorboardCommunication();
+  bool MotorboardIsConnected =
+    SetupMotorboardCommunication(
+      Motorboard_Baud,
+      Motorboard_Receive_Pin,
+      Motorboard_Transmit_Pin
+    );
+
   if (MotorboardIsConnected)
   {
-    Serial.println("Doing real-world motors test.");
     HardwareMotorsTest();
-    FigureOutPingOfBoard();
   }
 }
 
@@ -90,12 +99,6 @@ void loop()
 }
 
 // ---
-
-void SetupSerial()
-{
-  Serial.begin(SerialSpeed);
-  delay(300);
-}
 
 void PrintBanner()
 {

@@ -2,7 +2,7 @@
 
 /*
   Status: works
-  Version: 2
+  Version: 3
   Last mod.: 2023-11-09
 */
 
@@ -16,18 +16,15 @@ EspSoftwareSerial::UART SoftwareSerial_;
 // ---
 
 // Setup communication channel and test connection.
-bool SetupMotorboardCommunication()
+bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin)
 {
   bool Result = false;
 
   HardwareSerial_.print("Motorboard initialization... ");
 
-  const uint32_t Baud = 9600; // 57600; // 115200;
   EspSoftwareSerial::Config Config = SWSERIAL_8N1;
-  const uint8_t RX_Pin = D7;
-  const uint8_t TX_Pin = D9;
 
-  SoftwareSerial_.begin(Baud, Config, RX_Pin, TX_Pin);
+  SoftwareSerial_.begin(Baud, Config, Receive_Pin, Transmit_Pin);
 
   if (!SoftwareSerial_)
   {
@@ -43,6 +40,12 @@ bool SetupMotorboardCommunication()
   else
     HardwareSerial_.println("nah!");
 
+  HardwareSerial_.print("Measuring motorboard ping: ");
+
+  uint16_t PingValue_Ms = DetectPing_Ms();
+
+  HardwareSerial_.printf("%d ms\n", PingValue_Ms);
+
   return Result;
 }
 
@@ -53,88 +56,60 @@ bool TestConnection()
 }
 
 // Send commands to motor board to briefly move motors.
+
+bool SendCommand_Trace(const char * Command);
+String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms);
+
 void HardwareMotorsTest()
 {
   HardwareSerial_.print("Motors test.. ");
 
-  SendCommand("L 20  R 20  D 10");
-  SendCommand("L 40  R 40  D 10");
-  SendCommand("L 60  R 60  D 10");
-  SendCommand("L 80  R 80  D 10");
-  SendCommand("L 99  R 99  D 10");
-  SendCommand("L 80  R 80  D 10");
-  SendCommand("L 60  R 60  D 10");
-  SendCommand("L 40  R 40  D 10");
-  SendCommand("L 20  R 20  D 10");
-  SendCommand("L  0  R  0  D 10");
+  const uint16_t TestDuration_Ms = 500;
+  const uint8_t PowerIncrement_Pc = 25;
 
-  SendCommand("L-20  R-20  D 10");
-  SendCommand("L-40  R-40  D 10");
-  SendCommand("L-60  R-60  D 10");
-  SendCommand("L-80  R-80  D 10");
-  SendCommand("L-99  R-99  D 10");
-  SendCommand("L-80  R-80  D 10");
-  SendCommand("L-60  R-60  D 10");
-  SendCommand("L-40  R-40  D 10");
-  SendCommand("L-20  R-20  D 10");
-  SendCommand("L  0  R  0  D 10");
+  const uint16_t NumCommands = ((100 / PowerIncrement_Pc) + 1) * 4;
+
+  uint16_t PhaseDuration_Ms = TestDuration_Ms / NumCommands;
+
+  int8_t MotorPower_Pc;
+
+  for (MotorPower_Pc = 0; MotorPower_Pc <= 100; MotorPower_Pc += 20)
+  {
+    SendCommand_Trace(
+      GenerateCommand(
+        MotorPower_Pc,
+        MotorPower_Pc,
+        PhaseDuration_Ms
+      ).c_str()
+    );
+  }
+
+  for (MotorPower_Pc = 100; MotorPower_Pc >= -100; MotorPower_Pc -= 20)
+  {
+    SendCommand_Trace(
+      GenerateCommand(
+        MotorPower_Pc,
+        MotorPower_Pc,
+        PhaseDuration_Ms
+      ).c_str()
+    );
+  }
+
+  for (MotorPower_Pc = -100; MotorPower_Pc <= 0; MotorPower_Pc += 20)
+  {
+    SendCommand_Trace(
+      GenerateCommand(
+        MotorPower_Pc,
+        MotorPower_Pc,
+        PhaseDuration_Ms
+      ).c_str()
+    );
+  }
 
   HardwareSerial_.println("done.");
 }
 
-uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0);
-
-/*
-  Core function.
-
-  Send command to motor board and wait for feedback.
-*/
-bool SendCommand(const char * Command)
-{
-  const uint32_t ResponseWaitTimeout_Ms = 5000;
-
-  bool GotResponse = false;
-
-  // Discarding any non-read data from motor board:
-  while(SoftwareSerial_.available())
-  {
-     SoftwareSerial_.flush();
-     delay(1);
-  }
-
-  // Sending data:
-  SoftwareSerial_.write(Command);
-
-  // Waiting for response:
-  uint32_t ResponseWaitStartTime_Ms = millis();
-  while(GetTimePassed_Ms(ResponseWaitStartTime_Ms) < ResponseWaitTimeout_Ms)
-  {
-    if (SoftwareSerial_.available() == 2)
-    {
-      char c1 = SoftwareSerial_.read();
-      char c2 = SoftwareSerial_.read();
-
-      // Correct response is "G <NewLine>":
-      GotResponse = (c1 == 'G') && (c2 == '\n');
-
-      break;
-    }
-    delay(1);
-  }
-
-  // Discarding other response. Important thing is that we got feedback.
-  while(SoftwareSerial_.available())
-  {
-     SoftwareSerial_.flush();
-     delay(1);
-  }
-
-  return GotResponse;
-}
-
-// ---
-
-uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms /* = 0 */)
+uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0)
 {
   if (EndTime_Ms == 0)
     EndTime_Ms = millis();
@@ -167,72 +142,145 @@ bool SendCommand_Trace(const char * Command)
   return SendCommandResult;
 }
 
-// Exploration. Sending commands to measure ping.
-void FigureOutPingOfBoard()
+String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms)
 {
-  HardwareSerial_.println("Measuring ping to motorboard:");
+  uint8_t MaxCommandSize = 32;
+  char Command[MaxCommandSize];
 
-  //* (1)
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 1000");
-  // (1) */
+  snprintf(
+    Command,
+    MaxCommandSize,
+    "L %d R %d D %d ",
+    LeftMotor_Pc,
+    RightMotor_Pc,
+    Duration_Ms
+  );
 
-  /* (2)
-  SendCommand_Trace("D 0");
+  return String(Command);
+}
 
-  SendCommand_Trace("D 1");
-  SendCommand_Trace("D 2");
-  SendCommand_Trace("D 3");
-  SendCommand_Trace("D 5");
-  SendCommand_Trace("D 8");
-  SendCommand_Trace("D 13");
+// ---
 
-  SendCommand_Trace("D 10");
-  SendCommand_Trace("D 20");
-  SendCommand_Trace("D 30");
-  SendCommand_Trace("D 50");
-  SendCommand_Trace("D 80");
-  SendCommand_Trace("D 130");
+/*
+  Core function.
 
-  SendCommand_Trace("D 100");
-  SendCommand_Trace("D 200");
-  SendCommand_Trace("D 300");
-  SendCommand_Trace("D 500");
-  SendCommand_Trace("D 800");
-  SendCommand_Trace("D 1300");
+  Send command to motor board and wait for feedback.
+*/
+bool SendCommand(const char * Commands)
+{
+  /*
+    Response wait timeout.
 
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 2000");
-  SendCommand_Trace("D 3000");
-  SendCommand_Trace("D 5000");
-  SendCommand_Trace("D 8000");
-  SendCommand_Trace("D 13000");
+    As we do not parse commands, we dont know how they will take to
+    execute. We just sending them and waiting for feedback.
 
-  SendCommand_Trace("D 4900");
-  SendCommand_Trace("D 5000");
-  SendCommand_Trace("D 5100");
+    But if connection to motorboard is dropped we will never receive
+    feedback. In this case we are stopping listening and exiting by
+    timeout.
 
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 1000");
-  SendCommand_Trace("D 1000");
-  // (2) */
+    So here is tradeoff between maximum command execution time and
+    time wasted when connection was dropped.
 
-  HardwareSerial_.println("Measuring ping done.");
+    Protocol sets high limit for duration phase 5s but we can have
+    more commands in that string.
+  */
+  const uint32_t ResponseWaitTimeout_Ms = 5000;
+
+  // Discarding any non-read data from motor board:
+  while(SoftwareSerial_.available())
+  {
+     SoftwareSerial_.flush();
+     delay(10);
+  }
+
+  // Sending data:
+  SoftwareSerial_.write(Commands);
 
   /*
-    Typical ping on 9600 baud is [143, 153] ms. Let it be 150 ms.
+    Waiting for response.
 
-    That means that time gap between messages is that value.
-
-    Continuous control packets should have execution time more than
-    this value.
+    We ignoring all side output from board and waiting for "G\n"
+    and empty stream as a signal that board is redy for further
+    commands.
   */
+  char
+    CurChar = '\0',
+    PrevChar = '\0';
+
+  uint32_t ResponseWaitStartTime_Ms = millis();
+
+  while (GetTimePassed_Ms(ResponseWaitStartTime_Ms) < ResponseWaitTimeout_Ms)
+  {
+    if (SoftwareSerial_.available())
+    {
+      PrevChar = CurChar;
+      CurChar = SoftwareSerial_.read();
+
+      // Correct response is "G <NewLine>":
+      if ((PrevChar == 'G') && (CurChar == '\n'))
+      {
+        delay(1);
+
+        if (!SoftwareSerial_.available())
+          return true;
+      }
+    }
+
+    delay(1);
+  }
+
+  return false;
 }
+
+// Exploration. Sending commands to measure ping.
+uint16_t DetectPing_Ms(uint16_t TotalTestDuration_Ms, uint8_t NumMeasurements)
+{
+  const uint16_t MeasurementDuration_Ms = TotalTestDuration_Ms / NumMeasurements;
+
+  String Command = GenerateCommand(0, 0, MeasurementDuration_Ms);
+
+  uint32_t TimePassed_Ms = 0;
+  for (uint8_t i = 0; i < NumMeasurements; ++i)
+  {
+    uint32_t StartTime_Ms = millis();
+    SendCommand_Trace(Command.c_str());
+    TimePassed_Ms += GetTimePassed_Ms(StartTime_Ms);
+  }
+
+  uint16_t Result;
+
+  // Average test execution time:
+  uint16_t AverageTestTime_Ms = TimePassed_Ms / NumMeasurements;
+
+  /*
+    If board is not connected, SendCommand() exits by timeout.
+
+    In this case time passed for measurement can be less than expected.
+  */
+  if (AverageTestTime_Ms > MeasurementDuration_Ms)
+  {
+    Result = AverageTestTime_Ms - MeasurementDuration_Ms;
+  }
+  else
+  {
+    Result = AverageTestTime_Ms;
+  }
+
+  return Result;
+}
+
+// ---
+
+/*
+  Typical ping on 9600 baud is 20 ms.
+
+  10ms is polling interval in motor board. So 5ms average response time.
+
+  Typical command should take like 17 ms. Plus 2 ms to transmit response.
+
+  Should be round 24 ms according to my estimations but actual 20 ms
+  is good enough.
+*/
 
 /*
   2023-11-07

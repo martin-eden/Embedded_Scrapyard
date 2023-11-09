@@ -11,16 +11,19 @@
 #include <Arduino.h>
 
 // Setup motorboard communication channel and test connection.
-bool SetupMotorboardCommunication();
+bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin);
 
 // Test connection by sending no-op command to motor board.
 bool TestConnection();
 
 // Send given M-codes. Returns TRUE if got response.
-bool SendCommand(const char * Command);
+bool SendCommand(const char * Commands);
 
 // Actually spin motors for some time.
 void HardwareMotorsTest();
 
 // Exploration. Send neutral commands to measure ping.
-void FigureOutPingOfBoard();
+uint16_t DetectPing_Ms(
+  uint16_t TotalTestDuration_Ms = 3000,
+  uint8_t NumMeasurements = 5
+);
