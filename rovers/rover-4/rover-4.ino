@@ -33,7 +33,8 @@ const uint32_t
 
 const uint16_t
   // Delay between main loop iterations:
-  TickTime_Ms = 30,
+  TickTime_Ms = 10,
+
   // Timeout to stop motors when no command received:
   AutoStopTimeout_Ms = 1000;
 
@@ -97,13 +98,16 @@ void loop()
   static bool AcknowledgePrinted = false;
   uint32_t TimePassed_Ms;
 
+  const uint32_t
+    IntecharacterDelay_Us = 1000000 / (SerialBaud / 10);
+
   TMotorboardCommand Command;
 
   while (Serial.available())
   {
     if (ParseCommand(&Command))
     {
-      DisplayCommand(Command);
+      // DisplayCommand(Command);
 
       ExecuteCommand(Command);
 
@@ -113,6 +117,8 @@ void loop()
     }
 
     AcknowledgePrinted = false;
+
+    delayMicroseconds(IntecharacterDelay_Us);
   }
 
   if (!Serial.available())
@@ -120,6 +126,7 @@ void loop()
     if (!AcknowledgePrinted)
     {
       printf("G\n");
+
       AcknowledgePrinted = true;
     }
   }
@@ -148,23 +155,12 @@ void PrintSetupGreeting()
       "                    Rover-4 motor board\n"
       "-------------------------------------------------------------\n"
       "\n"
-      "  Pins assignment\n"
-      "\n"
-      "    Left motor : Direction = %2d, PWM = %2d, Brake = %2d\n"
-      "    Right motor: Direction = %2d, PWM = %2d, Brake = %2d\n"
-      "\n"
       "  Tick duration (ms): %d\n"
       "  Auto-stop timeout (ms): %d\n"
       "\n"
       "-------------------------------------------------------------\n"
       "\n"
     ),
-    LeftMotorPins.Direction_Pin,
-    LeftMotorPins.Pwm_Pin,
-    LeftMotorPins.Brake_Pin,
-    RightMotorPins.Direction_Pin,
-    RightMotorPins.Pwm_Pin,
-    RightMotorPins.Brake_Pin,
     TickTime_Ms,
     AutoStopTimeout_Ms
   );
@@ -204,9 +200,8 @@ void PrintProtocolHelp()
       "\n"
       "  Command-provider board MAY send any garbage but\n"
       "\n"
-      "    * MUST assure that data chunk size is no more than\n"
-      "      our input buffer\n"
-      "    * MUST wait for \"G\\n\" before sending chunk\n"
+      "    * data chunk size MUST be less is no more than our input buffer\n"
+      "    * MUST wait for \"G\\n\" as a signal that we are ready to process\n"
       "\n"
       "Behavior\n"
       "\n"
