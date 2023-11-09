@@ -39,9 +39,9 @@ bool SetupMotorboardCommunication()
   Result = TestConnection();
 
   if (Result)
-    HardwareSerial_.println("yep!");
+    HardwareSerial_.println("yep.");
   else
-    HardwareSerial_.println("nah.");
+    HardwareSerial_.println("nah!");
 
   return Result;
 }
@@ -55,7 +55,7 @@ bool TestConnection()
 // Send commands to motor board to briefly move motors.
 void HardwareMotorsTest()
 {
-  HardwareSerial_.println("Motor test.");
+  HardwareSerial_.print("Motors test.. ");
 
   SendCommand("L 20  R 20  D 10");
   SendCommand("L 40  R 40  D 10");
@@ -79,7 +79,7 @@ void HardwareMotorsTest()
   SendCommand("L-20  R-20  D 10");
   SendCommand("L  0  R  0  D 10");
 
-  HardwareSerial_.println("Motor test done.");
+  HardwareSerial_.println("done.");
 }
 
 uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0);
@@ -146,8 +146,7 @@ uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms /* = 0 */)
 bool SendCommand_Trace(const char * Command)
 {
   HardwareSerial_.printf(
-    "[%lu] Ping_Ms(SendCommand(\"%s\")): ",
-    millis(),
+    "Ping_Ms(\"%s\"): ",
     Command
   );
 
@@ -171,6 +170,7 @@ bool SendCommand_Trace(const char * Command)
 // Exploration. Sending commands to measure ping.
 void FigureOutPingOfBoard()
 {
+  HardwareSerial_.println("Measuring ping to motorboard:");
 
   //* (1)
   SendCommand_Trace("D 1000");
@@ -222,7 +222,7 @@ void FigureOutPingOfBoard()
   SendCommand_Trace("D 1000");
   // (2) */
 
-  HardwareSerial_.println("Done.");
+  HardwareSerial_.println("Measuring ping done.");
 
   /*
     Typical ping on 9600 baud is [143, 153] ms. Let it be 150 ms.
