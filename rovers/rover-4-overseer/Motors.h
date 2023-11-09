@@ -1,9 +1,9 @@
 // Interface to motor board.
 
 /*
-  Status: extending and reworking
+  Status: works
   Version: 1
-  Last mod.: 2023-11-07
+  Last mod.: 2023-11-09
 */
 
 #pragma once
@@ -22,5 +22,5 @@ bool SendCommand(const char * Command);
 // Actually spin motors for some time.
 void HardwareMotorsTest();
 
-// debug
+// Exploration. Send neutral commands to measure ping.
 void FigureOutPingOfBoard();

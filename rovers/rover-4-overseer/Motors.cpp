@@ -2,8 +2,8 @@
 
 /*
   Status: works
-  Version: 1
-  Last mod.: 2023-11-07
+  Version: 2
+  Last mod.: 2023-11-09
 */
 
 #include "Motors.h"
@@ -168,9 +168,17 @@ bool SendCommand_Trace(const char * Command)
   return SendCommandResult;
 }
 
-//
+// Exploration. Sending commands to measure ping.
 void FigureOutPingOfBoard()
 {
+
+  //* (1)
+  SendCommand_Trace("D 1000");
+  SendCommand_Trace("D 1000");
+  SendCommand_Trace("D 1000");
+  // (1) */
+
+  /* (2)
   SendCommand_Trace("D 0");
 
   SendCommand_Trace("D 1");
@@ -212,6 +220,7 @@ void FigureOutPingOfBoard()
   SendCommand_Trace("D 1000");
   SendCommand_Trace("D 1000");
   SendCommand_Trace("D 1000");
+  // (2) */
 
   HardwareSerial_.println("Done.");
 
@@ -224,3 +233,8 @@ void FigureOutPingOfBoard()
     this value.
   */
 }
+
+/*
+  2023-11-07
+  2023-11-09
+*/
