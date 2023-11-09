@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 2
-  Last mod.: 2023-11-05
+  Version: 3
+  Last mod.: 2023-11-09
 */
 
 /*
@@ -20,47 +20,25 @@
 
 #include "me_Parser_MotorBoard.h"
 
-using namespace MotorboardCommands;
+using namespace MotorboardCommandsParser;
 
-// For lexer.
-enum TTokenType
+// ---
+
+bool HasWordToken()
 {
-  Token_Word,
-  Token_Number
-};
-
-// Lexer. Reads Serial().
-bool PeekNextToken(TTokenType *NextToken)
-{
-  bool IsOk = false;
-
-  char IncomingChar;
-
-  while (Serial.available() && !IsOk)
+  while(Serial.available())
   {
-    IncomingChar = Serial.peek();
+    char NextChar = Serial.peek();
 
-    if (
-      (IncomingChar >= 'A') ||
-      (IncomingChar <= 'z')
-    ) {
-      *NextToken = Token_Word;
-      IsOk = true;
-    }
-    else if (
-      (IncomingChar == '-') ||
-      ((IncomingChar >= '0') && (IncomingChar <= '9'))
-    ) {
-      *NextToken = Token_Number;
-      IsOk = true;
-    }
-    else
+    if ((NextChar >= 'A') || (NextChar <= 'z'))
     {
-      Serial.read();
+      return true;
     }
+
+    Serial.read();
   }
 
-  return IsOk;
+  return false;
 }
 
 // Convert command name to command type. Reads Serial.
@@ -72,35 +50,33 @@ bool GetCommandType(TCommandType *CommandType)
     CommandName_RightMotor = 'R',
     CommandName_Duration = 'D';
 
-  bool Result = false;
-
   if (!Serial.available())
   {
     return false;
   }
 
-  char IncomingChar;
-  IncomingChar = Serial.read();
+  char NextChar = Serial.read();
 
-  Result = true;
-
-  switch (IncomingChar)
+  switch (NextChar)
   {
     case CommandName_LeftMotor:
-      *CommandType = Command_LeftMotor;
+      *CommandType = CommandType_LeftMotor;
       break;
+
     case CommandName_RightMotor:
-      *CommandType = Command_RightMotor;
+      *CommandType = CommandType_RightMotor;
       break;
+
     case CommandName_Duration:
-      *CommandType = Command_Duration;
+      *CommandType = CommandType_Duration;
       break;
+
     default:
-      Result = false;
+      return false;
       break;
   }
 
-  return Result;
+  return true;
 }
 
 // Get motor value from Serial.
@@ -165,89 +141,48 @@ bool GetDurationValue(uint16_t *DurationValue)
   return Result;
 }
 
+// ---
+
 /*
   Parse Serial for valid command.
 
   Core function.
 */
-bool MotorboardCommands::ParseCommand(MotorboardCommands::TMotorboardCommand *Result)
+bool MotorboardCommandsParser::ParseCommand(TMotorboardCommand * Result)
 {
-  TCommandType CommandType;
-  int8_t Motor_Perc;
-  uint16_t Duration_Ms;
-
-  if (!Serial.available()) return false;
-
-  TTokenType TokenType;
-
-  if (!PeekNextToken(&TokenType)) return false;
-
-  if (TokenType == Token_Word)
-  {
-    if (!GetCommandType(&CommandType)) return false;
-
-    Result->Type = CommandType;
-
-    switch (CommandType)
-    {
-      case Command_LeftMotor:
-      case Command_RightMotor:
-        if (!GetMotorValue(&Motor_Perc)) return false;
-        Result->MotorSpeed = Motor_Perc;
-        break;
-
-      case Command_Duration:
-        if (!GetDurationValue(&Duration_Ms)) return false;
-        Result->Duration_Ms = Duration_Ms;
-        break;
-
-      default:
-        return false;
-    }
-  }
-  else
-  {
+  if (!Serial.available())
     return false;
+
+  if (!HasWordToken())
+    return false;
+
+  if (!GetCommandType(&Result->CommandType))
+    return false;
+
+  switch (Result->CommandType)
+  {
+    case CommandType_LeftMotor:
+    case CommandType_RightMotor:
+      if (!GetMotorValue(&Result->MotorSpeed_Pc))
+        return false;
+
+      break;
+
+    case CommandType_Duration:
+      if (!GetDurationValue(&Result->Duration_Ms))
+        return false;
+
+      break;
+
+    default:
+      return false;
   }
 
   return true;
 }
 
-// Debug printer.
-void MotorboardCommands::DisplayCommand(TMotorboardCommand Command)
-{
-  if (
-    (Command.Type == Command_LeftMotor) ||
-    (Command.Type == Command_RightMotor)
-  ) {
-    Serial.print("(");
-    if (Command.Type == Command_LeftMotor)
-    {
-      Serial.print("Left: ");
-    }
-    else if (Command.Type == Command_RightMotor)
-    {
-      Serial.print("Right: ");
-    }
-    Serial.print(Command.MotorSpeed);
-    Serial.print(")");
-  }
-  else if (Command.Type == Command_Duration)
-  {
-    Serial.print("(");
-    Serial.print("Duration: ");
-    Serial.print(Command.Duration_Ms);
-    Serial.print(")");
-  }
-  else
-  {
-    Serial.print("Unsupported command.");
-  }
-
-  Serial.println();
-}
-
 /*
   2023-10-14
   2023-11-05
+  2023-11-09
 */

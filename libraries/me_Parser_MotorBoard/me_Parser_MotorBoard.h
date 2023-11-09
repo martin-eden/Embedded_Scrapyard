@@ -1,32 +1,37 @@
 // Serial() parser for motor board commands.
 
 /*
-  Last mod.: 2023-10-14
+  Version: 2
+  Last mod.: 2023-11-09
 */
 
 #pragma once
 
 #include <Arduino.h>
 
-namespace MotorboardCommands
+namespace MotorboardCommandsParser
 {
   enum TCommandType
   {
-    Command_LeftMotor,
-    Command_RightMotor,
-    Command_Duration
+    CommandType_LeftMotor,
+    CommandType_RightMotor,
+    CommandType_Duration
   };
 
   struct TMotorboardCommand
   {
-    TCommandType Type;
+    TCommandType CommandType;
     union
     {
-      int8_t MotorSpeed;
-      int16_t Duration_Ms;
+      int8_t MotorSpeed_Pc;
+      uint16_t Duration_Ms;
     };
   };
 
   bool ParseCommand(TMotorboardCommand *Result);
-  void DisplayCommand(TMotorboardCommand Command);
 }
+
+/*
+  2023-10-14
+  2023-11-09
+*/
