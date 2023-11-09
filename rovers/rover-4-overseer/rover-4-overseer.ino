@@ -3,7 +3,7 @@
 /*
   Status: working base
   Version: 8
-  Last mod.: 2023-11-07
+  Last mod.: 2023-11-09
 */
 
 /*
@@ -63,7 +63,7 @@ void setup()
 
   SetupWiFi(StationName, StationPassword);
 
-  SetupHttp(SendGyroReadings_Callback);
+  Http::Setup(SendGyroReadings_Callback);
 
   SetupGyro();
 
@@ -84,7 +84,7 @@ void loop()
 {
   // Heartbeat();
 
-  HandleHttp();
+  Http::HandleEvents();
 
   delay(TickTime_Ms);
 }
@@ -109,9 +109,9 @@ void SendGyroReadings_Callback()
 {
   String GyroReadings_Str = SerializeGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
 
-  SendStrHttp(GyroReadings_Str);
+  Http::SendString(GyroReadings_Str);
 
-  Serial.printf("[%lu] Sent gyro readings to %s.\n", millis(), GetHttpClientIp().c_str());
+  Serial.printf("[%lu] Sent gyro readings to %s.\n", millis(), Http::GetClientIp().c_str());
 }
 
 void GyroPoll_Isr();

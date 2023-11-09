@@ -1,41 +1,62 @@
+// Http-end functions
+
+/*
+  Status: stable
+  Version: 1
+  Last mod.: 2023-11-09
+*/
+
 #include "Http.h"
 
-ESP8266WebServer Http;
+using namespace Http;
+
+ESP8266WebServer HttpServer;
+
+// ---
 
 void Http_HandleRoot();
 void Http_HandleNotFound();
 
-void SetupHttp(THandlerFunction RootCallback_Func)
+void Http::Setup(THandlerFunction RootCallback_Func)
 {
   Serial.println("Setting-up HTTP: [");
 
-  Http.on("/", RootCallback_Func);
+  HttpServer.on("/", RootCallback_Func);
   Serial.println("  Added / hook.");
 
-  Http.onNotFound(Http_HandleNotFound);
+  HttpServer.onNotFound(Http_HandleNotFound);
   Serial.println("  Added NOT_FOUND hook.");
 
-  Http.begin();
+  HttpServer.begin();
 
   Serial.println("]");
 }
 
+void Http::HandleEvents()
+{
+  HttpServer.handleClient();
+}
+
+void Http::SendString(String s)
+{
+  HttpServer.send(Http_Response_Ok, Http_Content_Plaintext, s);
+}
+
+String Http::GetClientIp()
+{
+  return HttpServer.client().remoteIP().toString();
+}
+
+// ---
+
 void Http_HandleNotFound()
 {
-  Http.send(Http_Response_NotFound, Http_Content_Plaintext, "Not Found\n\n");
+  HttpServer.send(Http_Response_NotFound, Http_Content_Plaintext, "Not Found\n\n");
 }
 
-void HandleHttp()
-{
-  Http.handleClient();
-}
+// ---
 
-void SendStrHttp(String s)
-{
-  Http.send(Http_Response_Ok, Http_Content_Plaintext, s);
-}
-
-String GetHttpClientIp()
-{
-  return Http.client().remoteIP().toString();
-}
+/*
+  2023-11-07
+  2023-11-09
+*/
