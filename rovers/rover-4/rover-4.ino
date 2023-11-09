@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 4
-  Last mod.: 2023-11-05
+  Version: 5
+  Last mod.: 2023-11-09
 */
 
 /*
@@ -28,6 +28,16 @@
 #include <me_Parser_MotorBoard.h>
 #include <me_Install_StandardStreams.h>
 
+const uint32_t
+  SerialBaud = 9600; // 115200;
+
+const uint16_t
+  // Delay between main loop iterations:
+  TickTime_Ms = 30,
+  // Timeout to stop motors when no command received:
+  AutoStopTimeout_Ms = 1000;
+
+// Deek motor board pin mapping:
 const uint8_t
   Deek_DirA_Pin = 12,
   Deek_PwmA_Pin = 3,
@@ -36,13 +46,6 @@ const uint8_t
   Deek_DirB_Pin = 13,
   Deek_PwmB_Pin = 11,
   Deek_BrakeB_Pin = 8;
-
-const uint32_t
-  SerialBaud = 9600; // 115200;
-
-const uint16_t
-  TickTime_Ms = 50,
-  AutoStopTimeout_Ms = 2000;
 
 const TDeekMotorPins
   LeftMotorPins =
@@ -61,16 +64,30 @@ const TDeekMotorPins
 DeekMotor LeftMotor(LeftMotorPins);
 DeekMotor RightMotor(RightMotorPins);
 
-using namespace MotorboardCommands; // mostly for TMotorboardCommand
+/*
+  Timeout for Serial.parseInt() function.
+
+  That function will wait in empty stream for this time if next character
+  could be a digit.
+
+  Actually this value should be barely larger than delay between two characters.
+*/
+
+const uint16_t SerialParseIntTimeout_Ms = 100;
+
+using namespace MotorboardCommandsParser;
 
 // ---
 
 void setup()
 {
-  SetupSerial();
+  Serial.begin(SerialBaud);
+  Serial.setTimeout(SerialParseIntTimeout_Ms);
 
-  PrintSetupGreeting();
+  Install_StandardStreams();
+
   PrintProtocolHelp();
+  PrintSetupGreeting();
 }
 
 void loop()
@@ -82,12 +99,11 @@ void loop()
 
   TMotorboardCommand Command;
 
-  if (Serial.available())
+  while (Serial.available())
   {
     if (ParseCommand(&Command))
     {
-      // Serial.println("Got command.");
-      // DisplayCommand(Command);
+      DisplayCommand(Command);
 
       ExecuteCommand(Command);
 
@@ -114,6 +130,7 @@ void loop()
   if ((TimePassed_Ms >= AutoStopTimeout_Ms) && !MotorsAreStopped)
   {
     StopMotors();
+    // printf("(Motors are stopped.)\n");
     MotorsAreStopped = true;
   }
 
@@ -121,16 +138,6 @@ void loop()
 }
 
 // ---
-
-void SetupSerial()
-{
-  const uint16_t SerialParseIntTimeout_Ms = 100;
-
-  Serial.begin(SerialBaud);
-  Serial.setTimeout(SerialParseIntTimeout_Ms);
-
-  Install_StandardStreams();
-}
 
 void PrintSetupGreeting()
 {
@@ -167,6 +174,7 @@ void PrintProtocolHelp()
 {
   printf_P(
     PSTR(
+      "\n"
       "                          Protocol\n"
       "\n"
       "Motor board command format.\n"
@@ -183,7 +191,7 @@ void PrintProtocolHelp()
       "      Delay for given interval in milliseconds.\n"
       "      Motors will be running.\n"
       "\n"
-      "  Whitespaces are stripped: \"L 50 R -50 D 1000\" == \"L50R50D1000\".\n"
+      "  Whitespaces are stripped: \"L 50 R -50 D 1000\" == \"L50R-50D1000\".\n"
       "\n"
       "Feedback\n"
       "\n"
@@ -210,21 +218,59 @@ void PrintProtocolHelp()
   );
 }
 
+// Print parsed command.
+void DisplayCommand(TMotorboardCommand Command)
+{
+  char
+    EmptyName[] = "",
+    LeftMotorName[] = "LeftMotor",
+    RightMotorName[] = "RightMotor",
+    DurationStr[] = "Duration";
+
+  char * CommandName;
+  int32_t CommandData;
+
+  switch (Command.CommandType)
+  {
+    case CommandType_LeftMotor:
+      CommandName = LeftMotorName;
+      CommandData = Command.MotorSpeed_Pc;
+      break;
+
+    case CommandType_RightMotor:
+      CommandName = RightMotorName;
+      CommandData = Command.MotorSpeed_Pc;
+      break;
+
+    case CommandType_Duration:
+      CommandName = DurationStr;
+      CommandData = Command.Duration_Ms;
+      break;
+
+    default:
+      CommandName = EmptyName;
+      CommandData = 0;
+  }
+
+  if (CommandName)
+    printf("(%s: %ld)\n", CommandName, CommandData);
+  else
+    printf("Unsupported command.\n");
+}
+
 void ExecuteCommand(TMotorboardCommand Command)
 {
-  // DisplayCommand(Command);
-
-  switch (Command.Type)
+  switch (Command.CommandType)
   {
-    case Command_LeftMotor:
-      LeftMotor.SetSpeed(Command.MotorSpeed);
+    case CommandType_LeftMotor:
+      LeftMotor.SetSpeed(Command.MotorSpeed_Pc);
       break;
 
-    case Command_RightMotor:
-      RightMotor.SetSpeed(Command.MotorSpeed);
+    case CommandType_RightMotor:
+      RightMotor.SetSpeed(Command.MotorSpeed_Pc);
       break;
 
-    case Command_Duration:
+    case CommandType_Duration:
       delay(Command.Duration_Ms);
       break;
   }
@@ -232,11 +278,8 @@ void ExecuteCommand(TMotorboardCommand Command)
 
 void StopMotors()
 {
-  ExecuteCommand({Command_LeftMotor, 0});
-  ExecuteCommand({Command_RightMotor, 0});
-  ExecuteCommand({Command_Duration, 100});
-
-  // Serial.println("Motors are stopped.");
+  ExecuteCommand({CommandType_LeftMotor, 0});
+  ExecuteCommand({CommandType_RightMotor, 0});
 }
 
 // ---
@@ -248,4 +291,5 @@ void StopMotors()
   2023-10-14
   2023-11-02
   2023-11-05
+  2023-11-09
 */
