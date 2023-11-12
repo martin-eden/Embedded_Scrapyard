@@ -3,7 +3,7 @@
 /*
   Status: stable
   Version: 5
-  Last mod.: 2023-11-09
+  Last mod.: 2023-11-11
 */
 
 /*
@@ -29,14 +29,46 @@
 #include <me_Install_StandardStreams.h>
 
 const uint32_t
-  SerialBaud = 9600; // 115200;
+  SerialSpeed_Bips = 57600; // 9600; 57600; 115200;
 
 const uint16_t
-  // Delay between main loop iterations:
-  TickTime_Ms = 10,
-
   // Timeout to stop motors when no command received:
   AutoStopTimeout_Ms = 1000;
+
+// ---
+
+const uint8_t BitsPerCharacter = 10;
+const uint8_t TypicalCommandLength = 15; // "L 50 R 50 D 50 "
+const uint16_t
+  TimePerCommand_Ms =
+    1000
+    /
+    (
+      (SerialSpeed_Bips / BitsPerCharacter)
+      /
+      TypicalCommandLength
+    )
+    +
+    1;
+
+/*
+  Calculating delay between main loop iterations.
+
+  Thats the main factor in ping.
+
+  There is no sense in polling serial faster than time of transfer
+  for typical command. In that case we will start reading command
+  that is not transferred yet and will spend time waiting for
+  it's end anyway.
+
+  Calculations for 57600 baud:
+
+    5760 bytes per second
+    5.76 bytes per millisecond
+    .384 commands per millisecond
+    2.6 milliseconds per command
+*/
+const uint16_t TickTime_Ms = TimePerCommand_Ms;
 
 // Deek motor board pin mapping:
 const uint8_t
@@ -82,7 +114,7 @@ using namespace MotorboardCommandsParser;
 
 void setup()
 {
-  Serial.begin(SerialBaud);
+  Serial.begin(SerialSpeed_Bips);
   Serial.setTimeout(SerialParseIntTimeout_Ms);
 
   Install_StandardStreams();
@@ -99,7 +131,7 @@ void loop()
   uint32_t TimePassed_Ms;
 
   const uint32_t
-    IntecharacterDelay_Us = 1000000 / (SerialBaud / 10);
+    IntecharacterDelay_Us = 1000000 / (SerialSpeed_Bips / 10);
 
   TMotorboardCommand Command;
 
@@ -125,7 +157,7 @@ void loop()
   {
     if (!AcknowledgePrinted)
     {
-      printf("G\n");
+      SendReadySignal();
 
       AcknowledgePrinted = true;
     }
@@ -155,12 +187,14 @@ void PrintSetupGreeting()
       "                    Rover-4 motor board\n"
       "-------------------------------------------------------------\n"
       "\n"
-      "  Tick duration (ms): %d\n"
-      "  Auto-stop timeout (ms): %d\n"
+      "  Serial speed (baud): %lu\n"
+      "  Tick duration (ms): %u\n"
+      "  Auto-stop timeout (ms): %u\n"
       "\n"
       "-------------------------------------------------------------\n"
       "\n"
     ),
+    SerialSpeed_Bips,
     TickTime_Ms,
     AutoStopTimeout_Ms
   );
@@ -191,17 +225,17 @@ void PrintProtocolHelp()
       "\n"
       "Feedback\n"
       "\n"
-      "  If we input channel is empty now, we emit \"G\\n\" (go, got it,\n"
+      "  If we input channel is empty now, we emit \"\\nG\\n\" (go, got it,\n"
       "  gimme more) as a sign that we are ready for next commands.\n"
       "\n"
       "  This behavior is needed for throttling commands-provider board.\n"
-      "  Without it can overflow our Serial input buffer while we are\n"
+      "  Without it can overflow our serial input buffer while we are\n"
       "  executing commands.\n"
       "\n"
       "  Command-provider board MAY send any garbage but\n"
       "\n"
-      "    * data chunk size MUST be less is no more than our input buffer\n"
-      "    * MUST wait for \"G\\n\" as a signal that we are ready to process\n"
+      "    * data chunk size MUST be less than our input buffer\n"
+      "    * MUST wait for \"\\nG\\n\" as a signal that we are ready to process\n"
       "\n"
       "Behavior\n"
       "\n"
@@ -277,6 +311,11 @@ void StopMotors()
   ExecuteCommand({CommandType_RightMotor, 0});
 }
 
+void SendReadySignal()
+{
+  printf("\nG\n");
+}
+
 // ---
 
 /*
@@ -287,4 +326,5 @@ void StopMotors()
   2023-11-02
   2023-11-05
   2023-11-09
+  2023-11-11
 */
