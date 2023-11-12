@@ -2,18 +2,26 @@
 
 /*
   Status: works
-  Version: 5
-  Last mod.: 2023-11-11
+  Version: 6
+  Last mod.: 2023-11-12
 */
 
 #include "Motors.h"
 
 #include <SoftwareSerial.h>
 
-HardwareSerial & HardwareSerial_ = Serial;
+auto & HardwareSerial_ = Serial;
 EspSoftwareSerial::UART SoftwareSerial_;
 
 // ---
+
+const uint16_t Motorboard_PrintHelpMaxTime_Ms = 4000;
+
+// Delay to wait when motorboard is transferring. Will set in Setup..().
+static uint8_t TimePerCharacter_Ms = 0;
+
+bool SetupSoftwareSerial(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin);
+uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0);
 
 // Setup communication channel and test connection.
 bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin)
@@ -22,25 +30,33 @@ bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Tr
 
   HardwareSerial_.print("Motorboard initialization... ");
 
-  EspSoftwareSerial::Config Config = SWSERIAL_8N1;
-
-  SoftwareSerial_.begin(Baud, Config, Receive_Pin, Transmit_Pin);
-
-  if(!SoftwareSerial_)
+  if (!SetupSoftwareSerial(Baud, Receive_Pin, Transmit_Pin))
   {
-    // Well, this shouldn't happen.
-    HardwareSerial_.println("Software serial initialization failed. Stopped.");
-    while(1);
+    // This never happened in my experience.
+    HardwareSerial_.println("Software serial initialization failed.");
+    return false;
   }
+
+  TimePerCharacter_Ms = 1000 / (Baud / 10) + 1;
 
   IsConnected = TestConnection();
 
-  if(IsConnected)
+  if (!IsConnected)
+  {
+    uint32_t StartTime_Ms = millis();
+    while (!IsConnected && (GetTimePassed_Ms(StartTime_Ms) < Motorboard_PrintHelpMaxTime_Ms * 10))
+    {
+      delay(10);
+      IsConnected = TestConnection();
+    }
+  }
+
+  if (IsConnected)
     HardwareSerial_.println("yep.");
   else
     HardwareSerial_.println("nah!");
 
-  if(IsConnected)
+  if (IsConnected)
   {
     HardwareSerial_.print("Measuring motorboard ping: ");
     uint16_t PingValue_Ms = DetectPing_Ms();
@@ -50,16 +66,13 @@ bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Tr
   return IsConnected;
 }
 
-uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0);
+bool WaitForReadySignal(uint16_t Timeout_Ms);
 
 /*
   Core function.
 
   Send command to motor board and wait for feedback.
-*/
-bool SendCommand(const char * Commands)
-{
-  /*
+
     Response wait timeout.
 
     As we do not parse commands, we dont know how they will take to
@@ -74,55 +87,42 @@ bool SendCommand(const char * Commands)
 
     Protocol sets high limit for duration phase 5s but we can have
     more commands in that string.
-  */
-  const uint32_t ResponseWaitTimeout_Ms = 5000;
 
-  // Discarding any non-read data from motor board:
-  while(SoftwareSerial_.available())
+    Command is limited to chunk size. I expect chunk size is less than
+    100 bytes. So theoretical limit is how many time may be spent on
+    processing 100 byte string. "D5000" takes 5 second per 5 bytes.
+    So 100 seconds.
+*/
+bool SendCommand(const char * Commands, uint16_t Timeout_Ms /* = ... */)
+{
+  if (SoftwareSerial_.available())
   {
-     SoftwareSerial_.flush();
-     delay(10);
+    /*
+      Motorboard is sending something to us. Thats not typical.
+
+      Probably it's startup help text. Wait for ready signal.
+      It should be after help text is printed.
+    */
+
+    if (!WaitForReadySignal(Motorboard_PrintHelpMaxTime_Ms))
+      return false;
   }
 
-  // Sending data:
   SoftwareSerial_.write(Commands);
 
-  /*
-    Waiting for response.
-
-    We ignoring all side output from board and waiting for "\nG\n"
-    and empty stream as a signal that board is ready for further
-    commands.
-  */
-  char Chars[3] = "";
-
-  uint32_t ResponseWaitStartTime_Ms = millis();
-
-  while(GetTimePassed_Ms(ResponseWaitStartTime_Ms) < ResponseWaitTimeout_Ms)
-  {
-    if(SoftwareSerial_.available())
-    {
-      Chars[2] = Chars[1];
-      Chars[1] = Chars[0];
-      Chars[0] = SoftwareSerial_.read();
-
-      // Correct response is "G <NewLine>":
-      if((Chars[2] == '\n') && (Chars[1] == 'G') && (Chars[0] == '\n'))
-      {
-        delay(1);
-
-        if (!SoftwareSerial_.available())
-          return true;
-      }
-    }
-
-    delay(1);
-  }
-
-  return false;
+  return WaitForReadySignal(Timeout_Ms);
 }
 
 // ---
+
+bool SetupSoftwareSerial(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin)
+{
+  EspSoftwareSerial::Config ByteEncoding = SWSERIAL_8N1;
+
+  SoftwareSerial_.begin(Baud, ByteEncoding, Receive_Pin, Transmit_Pin);
+
+  return (bool) SoftwareSerial_;
+}
 
 uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms /* = 0 */)
 {
@@ -132,19 +132,49 @@ uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms /* = 0 */)
   return EndTime_Ms - StartTime_Ms;
 }
 
+bool WaitForReadySignal(uint16_t Timeout_Ms)
+{
+  /*
+    Waiting for response.
+
+    We ignoring all side output from board and waiting for "\nG\n"
+    and empty stream as a signal that board is ready for further
+    commands.
+  */
+  char Chars[3] = "";
+
+  uint32_t StartTime_Ms = millis();
+
+  while (GetTimePassed_Ms(StartTime_Ms) < Timeout_Ms)
+  {
+    if (SoftwareSerial_.available())
+    {
+      Chars[2] = Chars[1];
+      Chars[1] = Chars[0];
+      Chars[0] = SoftwareSerial_.read();
+
+      // Correct response is "\nG\n":
+      if ((Chars[2] == '\n') && (Chars[1] == 'G') && (Chars[0] == '\n'))
+      {
+        delay(TimePerCharacter_Ms);
+
+        if (!SoftwareSerial_.available())
+          return true;
+      }
+    }
+
+    delay(TimePerCharacter_Ms);
+  }
+
+  return false;
+}
+
 // Send command and measure time.
 bool SendCommand_Time_Ms(const char * Command, uint32_t * TimeTaken_Ms)
 {
-  uint32_t StartTime_Ms;
-  StartTime_Ms = millis();
-
-  bool SendCommandResult;
-  SendCommandResult = SendCommand(Command);
-
-  uint32_t EndTime_Ms;
-  EndTime_Ms = millis();
-
-  *TimeTaken_Ms = GetTimePassed_Ms(StartTime_Ms, EndTime_Ms);
+  uint32_t StartTime_Ms = millis();
+  bool SendCommandResult = SendCommand(Command);
+  *TimeTaken_Ms = GetTimePassed_Ms(StartTime_Ms);
 
   return SendCommandResult;
 }
@@ -166,7 +196,10 @@ bool SendCommand_Trace(const char * Command)
 // Send dummy command to get feedback.
 bool TestConnection()
 {
-  return SendCommand(" ");
+  uint16_t TestCommandTimeout_Ms = 3 * TimePerCharacter_Ms + 10;
+  bool Result = SendCommand(" ", TestCommandTimeout_Ms);
+  // HardwareSerial_.printf("\nTestConnection(%u): %u\n", TestCommandTimeout_Ms, Result);
+  return Result;
 }
 
 String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms)
@@ -192,7 +225,9 @@ uint16_t DetectPing_Ms(uint8_t NumMeasurements)
   char Command[] = " ";
 
   uint32_t TimePassed_Ms = 0;
-  for(uint8_t i = 0; i < NumMeasurements; ++i)
+  uint8_t NumMeasurementsDone = 0;
+
+  for (NumMeasurementsDone = 0; NumMeasurementsDone < NumMeasurements; ++NumMeasurementsDone)
   {
     uint32_t SendCommand_Duration_Ms = 0;
 
@@ -204,57 +239,54 @@ uint16_t DetectPing_Ms(uint8_t NumMeasurements)
     TimePassed_Ms += SendCommand_Duration_Ms;
   }
 
-  // Average test execution time:
-  uint16_t AverageTestTime_Ms = TimePassed_Ms / NumMeasurements;
-
-  return AverageTestTime_Ms;
+  return TimePassed_Ms / NumMeasurementsDone;
 }
 
-// Send commands to motor board to briefly move motors.
+/*
+  Send commands to motor board to briefly move motors.
+
+  Originally it was linear progression [0, 100, 0, -100, 0].
+  But it became too boring when I tested and debugged code.
+  So now its sine sweep. Motor power is sin([0, 360]).
+
+  Nonlinear acceleration.
+*/
 void HardwareMotorsTest()
 {
   HardwareSerial_.print("Motors test.. ");
 
-  const uint16_t TestDuration_Ms = 500;
-  const uint8_t PowerIncrement_Pc = 25;
+  /*
+    Ideal test duration.
 
-  const uint16_t NumCommands = ((100 / PowerIncrement_Pc) + 1) * 4;
+    Actual test time will be longer as sending commands will take
+    additional time (~8 ms per command for 57600 baud).
+  */
+  const uint16_t TestDuration_Ms = 800;
+  const uint16_t NumCommands = 12;
 
-  uint16_t PhaseDuration_Ms = TestDuration_Ms / NumCommands;
+  const uint16_t CommandDuration_Ms = TestDuration_Ms / NumCommands;
 
-  int8_t MotorPower_Pc;
+  const uint16_t NumAnglesInCircle = 360;
+  const uint16_t AngleIncerement = NumAnglesInCircle / NumCommands;
+  const uint8_t Amplitude = 100;
 
-  for(MotorPower_Pc = 0; MotorPower_Pc <= 100; MotorPower_Pc += 20)
+  uint16_t Angle = 0;
+  while (1)
   {
-    SendCommand(
-      GenerateCommand(
-        MotorPower_Pc,
-        MotorPower_Pc,
-        PhaseDuration_Ms
-      ).c_str()
-    );
-  }
+    if (Angle > NumAnglesInCircle)
+      Angle = NumAnglesInCircle;
 
-  for(MotorPower_Pc = 100; MotorPower_Pc >= -100; MotorPower_Pc -= 20)
-  {
-    SendCommand(
-      GenerateCommand(
-        MotorPower_Pc,
-        MotorPower_Pc,
-        PhaseDuration_Ms
-      ).c_str()
-    );
-  }
+    float Angle_Rad = (float) Angle / NumAnglesInCircle * (2 * M_PI);
+    int8_t MotorPower_Pc = Amplitude * sin(Angle_Rad);
 
-  for(MotorPower_Pc = -100; MotorPower_Pc <= 0; MotorPower_Pc += 20)
-  {
     SendCommand(
-      GenerateCommand(
-        MotorPower_Pc,
-        MotorPower_Pc,
-        PhaseDuration_Ms
-      ).c_str()
+      GenerateCommand(MotorPower_Pc, MotorPower_Pc, CommandDuration_Ms).c_str()
     );
+
+    if (Angle == NumAnglesInCircle)
+      break;
+
+    Angle += AngleIncerement;
   }
 
   HardwareSerial_.println("done.");
@@ -263,18 +295,8 @@ void HardwareMotorsTest()
 // ---
 
 /*
-  Typical ping on 9600 baud is 20 ms.
-
-  10ms is polling interval in motor board. So 5ms average response time.
-
-  Typical command should take like 17 ms. Plus 2 ms to transmit response.
-
-  Should be around 24 ms according to my estimations but actual 20 ms
-  is good enough.
-*/
-
-/*
   2023-11-07
   2023-11-09
   2023-11-11
+  2023-11-12
 */

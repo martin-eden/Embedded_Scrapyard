@@ -61,7 +61,9 @@ void SendGyroReadings_Callback();
 
 void setup()
 {
+  uint16_t SerialWarmup_Ms = 300;
   Serial.begin(Serial_Baud);
+  delay(SerialWarmup_Ms);
 
   PrintBanner();
 

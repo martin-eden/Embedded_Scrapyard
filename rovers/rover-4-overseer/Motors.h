@@ -2,8 +2,8 @@
 
 /*
   Status: works
-  Version: 1
-  Last mod.: 2023-11-09
+  Version: 2
+  Last mod.: 2023-11-12
 */
 
 #pragma once
@@ -17,7 +17,7 @@ bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Tr
 bool TestConnection();
 
 // Send given M-codes. Returns TRUE if got response.
-bool SendCommand(const char * Commands);
+bool SendCommand(const char * Commands, uint16_t Timeout_Ms = 5000);
 
 // Actually spin motors for some time.
 void HardwareMotorsTest();
