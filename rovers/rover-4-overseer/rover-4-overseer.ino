@@ -2,8 +2,8 @@
 
 /*
   Status: working base
-  Version: 8
-  Last mod.: 2023-11-09
+  Version: 9
+  Last mod.: 2023-11-11
 */
 
 /*
@@ -41,7 +41,7 @@ const char
 
 const uint32_t
   Serial_Baud = 115200,
-  Motorboard_Baud = 9600;
+  Motorboard_Baud = 57600; // 9600; 57600; 115200;
 
 const uint8_t
   Motorboard_Receive_Pin = D7,
@@ -54,7 +54,6 @@ const uint32_t
 
 Ticker Timer;
 
-void SetupSerial();
 void PrintBanner();
 void SendGyroReadings_Callback();
 
@@ -65,6 +64,8 @@ void setup()
   Serial.begin(Serial_Baud);
 
   PrintBanner();
+
+  PrintSettings();
 
   bool MotorboardIsConnected =
     SetupMotorboardCommunication(
@@ -78,13 +79,18 @@ void setup()
     HardwareMotorsTest();
   }
 
-  SetupGyro();
+  bool GyroIsConnected = SetupGyro();
 
   SetupWiFi(StationName, StationPassword);
 
   Http::Setup(SendGyroReadings_Callback);
 
-  SetupIsr();
+  if (GyroIsConnected)
+  {
+    SetupGyroIsr();
+  }
+
+  Serial.println("All setup done.");
 }
 
 void Heartbeat();
@@ -108,6 +114,25 @@ void PrintBanner()
   Serial.println("-------------------------------------");
 }
 
+// Print connection settings.
+void PrintSettings()
+{
+  Serial.printf(
+    "\n"
+    "Settings:\n"
+    "\n"
+    "  Our baud: %u\n"
+    "  Motorboard baud: %u\n"
+    "  Motorboard receive pin: %u\n"
+    "  Motorboard transmit pin: %u\n"
+    "\n",
+    Serial_Baud,
+    Motorboard_Baud,
+    Motorboard_Receive_Pin,
+    Motorboard_Transmit_Pin
+  );
+}
+
 void SendGyroReadings_Callback()
 {
   String GyroReadings_Str = SerializeGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
@@ -119,7 +144,7 @@ void SendGyroReadings_Callback()
 
 void GyroPoll_Isr();
 
-void SetupIsr()
+void SetupGyroIsr()
 {
   Timer.attach_ms(GyroPollInterval_Ms, GyroPoll_Isr);
 
@@ -155,4 +180,5 @@ void Heartbeat()
   2023-10-21
   2023-11-03
   2023-11-07
+  2023-11-11
 */
