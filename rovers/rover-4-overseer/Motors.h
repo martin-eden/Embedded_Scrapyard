@@ -22,8 +22,5 @@ bool SendCommand(const char * Commands);
 // Actually spin motors for some time.
 void HardwareMotorsTest();
 
-// Exploration. Send neutral commands to measure ping.
-uint16_t DetectPing_Ms(
-  uint16_t TotalTestDuration_Ms = 3000,
-  uint8_t NumMeasurements = 5
-);
+// Exploration. Send neutral command to measure ping.
+uint16_t DetectPing_Ms(uint8_t NumMeasurements = 5);

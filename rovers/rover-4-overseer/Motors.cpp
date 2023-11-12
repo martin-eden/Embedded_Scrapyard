@@ -2,8 +2,8 @@
 
 /*
   Status: works
-  Version: 4
-  Last mod.: 2023-11-09
+  Version: 5
+  Last mod.: 2023-11-11
 */
 
 #include "Motors.h"
@@ -18,7 +18,7 @@ EspSoftwareSerial::UART SoftwareSerial_;
 // Setup communication channel and test connection.
 bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin)
 {
-  bool Result = false;
+  bool IsConnected = false;
 
   HardwareSerial_.print("Motorboard initialization... ");
 
@@ -26,49 +26,31 @@ bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Tr
 
   SoftwareSerial_.begin(Baud, Config, Receive_Pin, Transmit_Pin);
 
-  if (!SoftwareSerial_)
+  if(!SoftwareSerial_)
   {
     // Well, this shouldn't happen.
     HardwareSerial_.println("Software serial initialization failed. Stopped.");
     while(1);
   }
 
-  Result = TestConnection();
+  IsConnected = TestConnection();
 
-  if (Result)
+  if(IsConnected)
     HardwareSerial_.println("yep.");
   else
     HardwareSerial_.println("nah!");
 
-  HardwareSerial_.print("Measuring motorboard ping: ");
+  if(IsConnected)
+  {
+    HardwareSerial_.print("Measuring motorboard ping: ");
+    uint16_t PingValue_Ms = DetectPing_Ms();
+    HardwareSerial_.printf("%d ms\n", PingValue_Ms);
+  }
 
-  uint16_t PingValue_Ms = DetectPing_Ms();
-
-  HardwareSerial_.printf("%d ms\n", PingValue_Ms);
-
-  return Result;
+  return IsConnected;
 }
 
-// Send dummy command to get feedback.
-bool TestConnection()
-{
-  return SendCommand(" ");
-}
-
-// Send commands to motor board to briefly move motors.
-
-bool SendCommand_Trace(const char * Command);
-String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms);
-
-uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0)
-{
-  if (EndTime_Ms == 0)
-    EndTime_Ms = millis();
-
-  return EndTime_Ms - StartTime_Ms;
-}
-
-// ---
+uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0);
 
 /*
   Core function.
@@ -108,25 +90,24 @@ bool SendCommand(const char * Commands)
   /*
     Waiting for response.
 
-    We ignoring all side output from board and waiting for "G\n"
-    and empty stream as a signal that board is redy for further
+    We ignoring all side output from board and waiting for "\nG\n"
+    and empty stream as a signal that board is ready for further
     commands.
   */
-  char
-    CurChar = '\0',
-    PrevChar = '\0';
+  char Chars[3] = "";
 
   uint32_t ResponseWaitStartTime_Ms = millis();
 
-  while (GetTimePassed_Ms(ResponseWaitStartTime_Ms) < ResponseWaitTimeout_Ms)
+  while(GetTimePassed_Ms(ResponseWaitStartTime_Ms) < ResponseWaitTimeout_Ms)
   {
-    if (SoftwareSerial_.available())
+    if(SoftwareSerial_.available())
     {
-      PrevChar = CurChar;
-      CurChar = SoftwareSerial_.read();
+      Chars[2] = Chars[1];
+      Chars[1] = Chars[0];
+      Chars[0] = SoftwareSerial_.read();
 
       // Correct response is "G <NewLine>":
-      if ((PrevChar == 'G') && (CurChar == '\n'))
+      if((Chars[2] == '\n') && (Chars[1] == 'G') && (Chars[0] == '\n'))
       {
         delay(1);
 
@@ -141,14 +122,19 @@ bool SendCommand(const char * Commands)
   return false;
 }
 
-// SendCommand with time tracing.
-bool SendCommand_Trace(const char * Command)
-{
-  HardwareSerial_.printf(
-    "Ping_Ms(\"%s\"): ",
-    Command
-  );
+// ---
 
+uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms /* = 0 */)
+{
+  if (EndTime_Ms == 0)
+    EndTime_Ms = millis();
+
+  return EndTime_Ms - StartTime_Ms;
+}
+
+// Send command and measure time.
+bool SendCommand_Time_Ms(const char * Command, uint32_t * TimeTaken_Ms)
+{
   uint32_t StartTime_Ms;
   StartTime_Ms = millis();
 
@@ -158,12 +144,29 @@ bool SendCommand_Trace(const char * Command)
   uint32_t EndTime_Ms;
   EndTime_Ms = millis();
 
-  HardwareSerial_.printf(
-    "%u\n",
-    GetTimePassed_Ms(StartTime_Ms, EndTime_Ms)
-  );
+  *TimeTaken_Ms = GetTimePassed_Ms(StartTime_Ms, EndTime_Ms);
 
   return SendCommandResult;
+}
+
+// SendCommand with time tracing and debug output.
+bool SendCommand_Trace(const char * Command)
+{
+  HardwareSerial_.printf("SendCommand_Time_Ms(\"%s\"): ", Command);
+
+  uint32_t TimeTaken_Ms = 0;
+
+  bool SendCommandResult = SendCommand_Time_Ms(Command, &TimeTaken_Ms);
+
+  HardwareSerial_.printf("%u\n", TimeTaken_Ms);
+
+  return SendCommandResult;
+}
+
+// Send dummy command to get feedback.
+bool TestConnection()
+{
+  return SendCommand(" ");
 }
 
 String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms)
@@ -184,42 +187,30 @@ String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Durat
 }
 
 // Exploration. Sending commands to measure ping.
-uint16_t DetectPing_Ms(uint16_t TotalTestDuration_Ms, uint8_t NumMeasurements)
+uint16_t DetectPing_Ms(uint8_t NumMeasurements)
 {
-  const uint16_t MeasurementDuration_Ms = TotalTestDuration_Ms / NumMeasurements;
-
-  String Command = GenerateCommand(0, 0, MeasurementDuration_Ms);
+  char Command[] = " ";
 
   uint32_t TimePassed_Ms = 0;
-  for (uint8_t i = 0; i < NumMeasurements; ++i)
+  for(uint8_t i = 0; i < NumMeasurements; ++i)
   {
-    uint32_t StartTime_Ms = millis();
-    SendCommand(Command.c_str());
-    TimePassed_Ms += GetTimePassed_Ms(StartTime_Ms);
-  }
+    uint32_t SendCommand_Duration_Ms = 0;
 
-  uint16_t Result;
+    bool IsSent = SendCommand_Time_Ms(Command, &SendCommand_Duration_Ms);
+
+    if (!IsSent)
+      break;
+
+    TimePassed_Ms += SendCommand_Duration_Ms;
+  }
 
   // Average test execution time:
   uint16_t AverageTestTime_Ms = TimePassed_Ms / NumMeasurements;
 
-  /*
-    If board is not connected, SendCommand() exits by timeout.
-
-    In this case time passed for measurement can be less than expected.
-  */
-  if (AverageTestTime_Ms > MeasurementDuration_Ms)
-  {
-    Result = AverageTestTime_Ms - MeasurementDuration_Ms;
-  }
-  else
-  {
-    Result = AverageTestTime_Ms;
-  }
-
-  return Result;
+  return AverageTestTime_Ms;
 }
 
+// Send commands to motor board to briefly move motors.
 void HardwareMotorsTest()
 {
   HardwareSerial_.print("Motors test.. ");
@@ -233,7 +224,7 @@ void HardwareMotorsTest()
 
   int8_t MotorPower_Pc;
 
-  for (MotorPower_Pc = 0; MotorPower_Pc <= 100; MotorPower_Pc += 20)
+  for(MotorPower_Pc = 0; MotorPower_Pc <= 100; MotorPower_Pc += 20)
   {
     SendCommand(
       GenerateCommand(
@@ -244,7 +235,7 @@ void HardwareMotorsTest()
     );
   }
 
-  for (MotorPower_Pc = 100; MotorPower_Pc >= -100; MotorPower_Pc -= 20)
+  for(MotorPower_Pc = 100; MotorPower_Pc >= -100; MotorPower_Pc -= 20)
   {
     SendCommand(
       GenerateCommand(
@@ -255,7 +246,7 @@ void HardwareMotorsTest()
     );
   }
 
-  for (MotorPower_Pc = -100; MotorPower_Pc <= 0; MotorPower_Pc += 20)
+  for(MotorPower_Pc = -100; MotorPower_Pc <= 0; MotorPower_Pc += 20)
   {
     SendCommand(
       GenerateCommand(
@@ -278,11 +269,12 @@ void HardwareMotorsTest()
 
   Typical command should take like 17 ms. Plus 2 ms to transmit response.
 
-  Should be round 24 ms according to my estimations but actual 20 ms
+  Should be around 24 ms according to my estimations but actual 20 ms
   is good enough.
 */
 
 /*
   2023-11-07
   2023-11-09
+  2023-11-11
 */
