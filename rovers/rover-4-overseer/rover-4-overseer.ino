@@ -2,8 +2,8 @@
 
 /*
   Status: working base
-  Version: 9
-  Last mod.: 2023-11-11
+  Version: 10
+  Last mod.: 2023-11-13
 */
 
 /*
@@ -18,12 +18,13 @@
   I've got troubles using Deek motor shield for Arduino Uno on Wemos D1.
 
   So motor shield got dedicated Arduino Uno and Wemos sitting alone,
-  with WiFi, connected to Uno UART and responsible for communications
-  between boards and outer world.
+  with WiFi, connected to Uno UART and responsible for communication
+  with motor board and with outer world over HTTP.
 
   To make life of Wemos more interesting, I've connected accelerometer
-  (via I2C). So it may have IMU-related API endpoints and sync them
-  with sending command to motor board.
+  via I2C. So now it may have accelerometer-related API endpoints
+  (start logging, stop logging) and sync log acceleration during
+  execution of motorboard command.
 */
 
 #include <Ticker.h>
@@ -52,22 +53,33 @@ const uint32_t
   HeartbeatInterval_Ms = 20000,
   TickTime_Ms = 50;
 
-Ticker Timer;
+// ---
 
-void PrintBanner();
-void SendGyroReadings_Callback();
+auto& CommentStream = Serial;
+
+Ticker GyroPoll_Timer;
+Ticker Heartbeat_Timer;
+
+void PrintLabel();
+void HttpRootHandler_Callback();
 
 // ---
 
 void setup()
 {
-  uint16_t SerialWarmup_Ms = 300;
-  Serial.begin(Serial_Baud);
-  delay(SerialWarmup_Ms);
+  {
+    uint16_t SerialWarmup_Ms = 300;
+    CommentStream.begin(Serial_Baud);
+    delay(SerialWarmup_Ms);
+  }
 
-  PrintBanner();
+  PrintLabel();
 
   PrintSettings();
+
+  CommentStream.printf(
+    "--[ Setup\n"
+  );
 
   bool MotorboardIsConnected =
     SetupMotorboardCommunication(
@@ -83,24 +95,47 @@ void setup()
 
   bool GyroIsConnected = SetupGyro();
 
-  SetupWiFi(StationName, StationPassword);
+  uint16_t WifiConnectTimeout_Ms = 20000;
+  bool WifiIsConnected =
+    me_WiFi::SetupWifi(
+      StationName,
+      StationPassword,
+      WifiConnectTimeout_Ms
+    );
 
-  Http::Setup(SendGyroReadings_Callback);
+  if (WifiIsConnected)
+  {
+    Http::Setup(HttpRootHandler_Callback);
+  }
 
   if (GyroIsConnected)
   {
-    SetupGyroIsr();
+    SetupGyroPoll();
   }
 
-  Serial.println("All setup done.");
-}
+  // SetupHeartbeat();
 
-void Heartbeat();
+  CommentStream.printf(
+    PSTR(
+      "Modules\n"
+      "\n"
+      "  Motorboard = %u\n"
+      "  Gyro = %u\n"
+      "  Wi-Fi = %u\n"
+      "\n"
+    ),
+    MotorboardIsConnected,
+    GyroIsConnected,
+    WifiIsConnected
+  );
+
+  CommentStream.printf(
+    "--] Setup\n"
+  );
+}
 
 void loop()
 {
-  // Heartbeat();
-
   Http::HandleEvents();
 
   delay(TickTime_Ms);
@@ -108,70 +143,84 @@ void loop()
 
 // ---
 
-void PrintBanner()
+void PrintLabel()
 {
-  Serial.println();
-  Serial.println("-------------------------------------");
-  Serial.println(" Rover-4 overseer with accelerometer ");
-  Serial.println("-------------------------------------");
-}
-
-// Print connection settings.
-void PrintSettings()
-{
-  Serial.printf(
-    "\n"
-    "Settings:\n"
-    "\n"
-    "  Our baud: %u\n"
-    "  Motorboard baud: %u\n"
-    "  Motorboard receive pin: %u\n"
-    "  Motorboard transmit pin: %u\n"
-    "\n",
-    Serial_Baud,
-    Motorboard_Baud,
-    Motorboard_Receive_Pin,
-    Motorboard_Transmit_Pin
+  CommentStream.printf(
+    PSTR(
+      "\n"
+      "--------------------------------------\n"
+      " Motorboard client with accelerometer \n"
+      "--------------------------------------\n"
+      "\n"
+    )
   );
 }
 
-void SendGyroReadings_Callback()
+void PrintSettings()
 {
-  String GyroReadings_Str = SerializeGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
+  CommentStream.printf(
+    PSTR(
+      "Settings\n"
+      "\n"
+      "  Our stream baud: %u\n"
+      "\n"
+      "  Motorboard connection\n"
+      "\n"
+      "    Baud: %u\n"
+      "    Receive pin: %u\n"
+      "    Transmit pin: %u\n"
+      "\n"
+      "  Accelerometer poll interval (ms): %u\n"
+      "\n"
+    ),
+    Serial_Baud,
+    Motorboard_Baud,
+    Motorboard_Receive_Pin,
+    Motorboard_Transmit_Pin,
+    GyroPollInterval_Ms
+  );
+}
+
+void HttpRootHandler_Callback()
+{
+  String GyroReadings_Str =
+    SerializeGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
 
   Http::SendString(GyroReadings_Str);
 
-  Serial.printf("[%lu] Sent gyro readings to %s.\n", millis(), Http::GetClientIp().c_str());
+  CommentStream.printf(
+    "[%lu] Sent gyro readings to %s.\n",
+    millis(),
+    Http::GetClientIp().c_str()
+  );
 }
 
-void GyroPoll_Isr();
+void GyroPoll_IsrCallback();
 
-void SetupGyroIsr()
+void SetupGyroPoll()
 {
-  Timer.attach_ms(GyroPollInterval_Ms, GyroPoll_Isr);
-
-  Serial.printf("Set-up gyro polling every %d ms.\n", GyroPollInterval_Ms);
+  GyroPoll_Timer.attach_ms(GyroPollInterval_Ms, GyroPoll_IsrCallback);
 }
 
-void IRAM_ATTR GyroPoll_Isr()
+void IRAM_ATTR GyroPoll_IsrCallback()
 {
   UpdateGyroReadings();
   StoreGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
 }
 
-void Heartbeat()
+void SetupHeartbeat()
 {
-  static uint32_t LastPrintTime_Ms = millis();
-  uint32_t CurrentTime_Ms = millis();
-  uint32_t TimePassed_Ms = CurrentTime_Ms - LastPrintTime_Ms;
-  if (TimePassed_Ms > HeartbeatInterval_Ms)
-  {
-    LastPrintTime_Ms = CurrentTime_Ms;
+  Heartbeat_Timer.attach_ms_scheduled(HeartbeatInterval_Ms, Heartbeat_Callback);
+}
 
-    Serial.printf("[%lu] Still alive.\n", millis());
+void Heartbeat_Callback()
+{
+  CommentStream.printf(
+    "[%lu] Still alive.\n",
+    millis()
+  );
 
-    PrintGyroHistory();
-  }
+  PrintGyroHistory();
 }
 
 /*
@@ -183,4 +232,5 @@ void Heartbeat()
   2023-11-03
   2023-11-07
   2023-11-11
+  2023-11-13
 */
