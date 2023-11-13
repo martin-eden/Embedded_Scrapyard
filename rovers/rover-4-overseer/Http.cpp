@@ -1,47 +1,47 @@
-// Http-end functions
+// Http-server easy-to-use functions
 
 /*
   Status: stable
-  Version: 1
-  Last mod.: 2023-11-09
+  Version: 2
+  Last mod.: 2023-11-13
 */
 
 #include "Http.h"
-
-using namespace Http;
 
 ESP8266WebServer HttpServer;
 
 // ---
 
-void Http_HandleRoot();
-void Http_HandleNotFound();
+void NotFoundHandler_Callback();
 
-void Http::Setup(THandlerFunction RootCallback_Func)
+using namespace Http;
+
+// Start HTTP server with given callback function
+void Http::Setup(THandlerFunction RootHandler_Callback)
 {
-  Serial.println("Setting-up HTTP: [");
-
-  HttpServer.on("/", RootCallback_Func);
-  Serial.println("  Added / hook.");
-
-  HttpServer.onNotFound(Http_HandleNotFound);
-  Serial.println("  Added NOT_FOUND hook.");
+  HttpServer.on("/", RootHandler_Callback);
+  HttpServer.onNotFound(NotFoundHandler_Callback);
 
   HttpServer.begin();
-
-  Serial.println("]");
 }
 
+// Main loop handler
 void Http::HandleEvents()
 {
   HttpServer.handleClient();
 }
 
-void Http::SendString(String s)
+// Send string as plaintext
+void Http::SendString(String DataString)
 {
-  HttpServer.send(Http_Response_Ok, Http_Content_Plaintext, s);
+  HttpServer.send(
+    Response_Ok,
+    Content_Plaintext,
+    DataString
+  );
 }
 
+// Get string with client IP address
 String Http::GetClientIp()
 {
   return HttpServer.client().remoteIP().toString();
@@ -49,9 +49,14 @@ String Http::GetClientIp()
 
 // ---
 
-void Http_HandleNotFound()
+// "Not found" handler
+void NotFoundHandler_Callback()
 {
-  HttpServer.send(Http_Response_NotFound, Http_Content_Plaintext, "Not Found\n\n");
+  HttpServer.send(
+    Response_NotFound,
+    Content_Plaintext,
+    "No such endpoint.\n\n"
+  );
 }
 
 // ---
@@ -59,4 +64,5 @@ void Http_HandleNotFound()
 /*
   2023-11-07
   2023-11-09
+  2023-11-13
 */

@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 1
-  Last mod.: 2023-11-09
+  Version: 2
+  Last mod.: 2023-11-13
 */
 
 #pragma once
@@ -14,14 +14,21 @@
 
 namespace Http
 {
-  const uint16_t Http_Response_Ok = 200;
-  const uint16_t Http_Response_NotFound = 404;
-  const char Http_Content_Plaintext[] = "text/plain";
+  const uint16_t Response_Ok = 200;
+  const uint16_t Response_NotFound = 404;
+  const char Content_Plaintext[] = "text/plain";
 
   typedef std::function<void (void)> THandlerFunction;
 
-  void Setup(THandlerFunction RootCallback_Func);
+  void Setup(THandlerFunction RootHandler_Callback);
   void HandleEvents();
-  void SendString(String s);
+
+  void SendString(String DataString);
+
   String GetClientIp();
 }
+
+/*
+  2023-11-07
+  2023-11-13
+*/
