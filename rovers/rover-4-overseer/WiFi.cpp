@@ -2,26 +2,48 @@
 
 #include <ESP8266WiFi.h>
 
-void SetupWiFi(char const * _StationName, char const * _StationPassword)
+// ---
+
+using namespace me_WiFi;
+
+String GetOurName();
+String GetOurMac_Str();
+int8_t GetRssi_Dbm();
+String GetStationMac_Str();
+String GetStationIp_Str();
+String GetOurIp_Str();
+
+/*
+  Core function.
+
+  Try to connect to given station with given password in given timeout.
+*/
+bool me_WiFi::SetupWifi(
+  char const * StationName,
+  char const * StationPassword,
+  uint16_t Timeout_Ms
+)
 {
-  Serial.println("Setting-up WiFi: [");
+  Serial.printf("Setting-up WiFi: [\n");
 
   Serial.printf(
     "  We are:\n"
     "    Name: %s\n"
     "    MAC: %s\n"
     "  Connecting to:\n"
-    "    Station: %s\n",
-    WiFi.hostname().c_str(),
-    WiFi.macAddress().c_str(),
-    _StationName
+    "    Station: %s\n"
+    "  With timeout (ms): %u\n",
+    GetOurName().c_str(),
+    GetOurMac_Str().c_str(),
+    StationName,
+    Timeout_Ms
   );
 
   uint32_t StartTimeMs = millis();
 
-  WiFi.begin(_StationName, _StationPassword);
+  WiFi.begin(StationName, StationPassword);
 
-  int8_t ConnectionStatus = WiFi.waitForConnectResult(32000);
+  int8_t ConnectionStatus = WiFi.waitForConnectResult(Timeout_Ms);
 
   uint32_t FinishTimeMs = millis();
   uint32_t TimePassedMs = FinishTimeMs - StartTimeMs;
@@ -29,46 +51,35 @@ void SetupWiFi(char const * _StationName, char const * _StationPassword)
   switch (ConnectionStatus)
   {
     case WL_CONNECTED:
-      Serial.println(
-        "  Connected:"
-      );
-      Serial.println(
-        "    Station:"
-      );
       Serial.printf(
-        "      RSSI (dBm): %d\n", WiFi.RSSI()
+        "  Connected:\n"
+        "    Station:\n"
+        "      MAC: %s\n"
+        "    Channel:\n"
+        "      RSSI (dBm): %d\n"
+        "      Station IP: %s\n"
+        "      Our IP: %s\n",
+        GetStationMac_Str().c_str(),
+        GetRssi_Dbm(),
+        GetStationIp_Str().c_str(),
+        GetOurIp_Str().c_str()
       );
-      Serial.printf(
-        "      MAC: %s\n", WiFi.BSSIDstr().c_str()
-      );
-      Serial.println(
-        "    Our:"
-      );
-      Serial.print(
-        "      IP: "
-      );
-      Serial.println(WiFi.localIP());
-      Serial.print(
-        "      DNS: "
-      );
-      Serial.println(WiFi.dnsIP());
-
       break;
 
     case WL_NO_SSID_AVAIL:
-      Serial.println("  Can't see station.");
+      Serial.printf("  Can't see station.\n");
       break;
 
     case WL_WRONG_PASSWORD:
-      Serial.println("  Wrong password.");
+      Serial.printf("  Wrong password.\n");
       break;
 
     case WL_CONNECT_FAILED:
-      Serial.println("  I see station but connection failed. Probably wrong password.");
+      Serial.printf("  I see station but connection failed. Probably wrong password.\n");
       break;
 
     case NA_STATE:
-      Serial.println("  We finished too early. Connection has not came.");
+      Serial.printf("  We finished too early. Connection was not established.\n");
       break;
 
     default:
@@ -78,6 +89,40 @@ void SetupWiFi(char const * _StationName, char const * _StationPassword)
 
   Serial.printf("  Time taken (ms): %u\n", TimePassedMs);
 
-  Serial.println("]");
+  Serial.printf("]\n\n");
+
+  return (ConnectionStatus == WL_CONNECTED);
 }
 
+// ---
+String me_WiFi::GetOurName()
+{
+  return WiFi.hostname();
+}
+
+String me_WiFi::GetOurMac_Str()
+{
+  return WiFi.macAddress();
+}
+
+int8_t me_WiFi::GetRssi_Dbm()
+{
+  return WiFi.RSSI();
+}
+
+String me_WiFi::GetStationMac_Str()
+{
+  return WiFi.BSSIDstr();
+}
+
+String me_WiFi::GetStationIp_Str()
+{
+  return WiFi.dnsIP().toString();
+}
+
+String me_WiFi::GetOurIp_Str()
+{
+  return WiFi.localIP().toString();
+}
+
+// ---
