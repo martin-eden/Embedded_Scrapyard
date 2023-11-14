@@ -3,7 +3,7 @@
 /*
   Status: working base
   Version: 10
-  Last mod.: 2023-11-13
+  Last mod.: 2023-11-14
 */
 
 /*
@@ -29,7 +29,8 @@
 
 #include <Ticker.h>
 
-#include "Motors.h"
+#include "Motorboard.h"
+
 #include "Gyro.h"
 #include "GyroHistory.h"
 
@@ -56,6 +57,8 @@ namespace Overseer
     TickTime_Ms = 50;
 
   constexpr auto *CommentStream = &Serial;
+
+  Motorboard Motorboard_;
 
   Ticker GyroPoll_Timer;
   Ticker Heartbeat_Timer;
@@ -94,7 +97,7 @@ void setup()
   );
 
   bool MotorboardIsConnected =
-    SetupMotorboardCommunication(
+    Motorboard_.SetupConnection(
       Motorboard_Baud,
       Motorboard_Receive_Pin,
       Motorboard_Transmit_Pin
@@ -102,7 +105,7 @@ void setup()
 
   if (MotorboardIsConnected)
   {
-    HardwareMotorsTest();
+    Motorboard_.RunMotorsTest();
   }
 
   bool GyroIsConnected = SetupGyro();
