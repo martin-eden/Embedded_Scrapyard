@@ -1,3 +1,11 @@
+// Wi-Fi functions that I need
+
+/*
+  Status: reforming
+  Version: 2
+  Last mod.: 2023-11-14
+*/
+
 #include "me_Wifi.h"
 
 #include <ESP8266WiFi.h>
@@ -120,3 +128,8 @@ String me_Wifi::GetOurIp_Str()
 }
 
 // ---
+
+/*
+  2023-11-13
+  2023-11-14
+*/

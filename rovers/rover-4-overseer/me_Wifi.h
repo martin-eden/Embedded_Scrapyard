@@ -1,8 +1,8 @@
 // Setting-up WiFi
 
 /*
-  Version: 2
-  Last mod.: 2023-11-13
+  Version: 3
+  Last mod.: 2023-11-14
 */
 
 #pragma once
@@ -48,4 +48,5 @@ namespace me_Wifi
 /*
   2023-11-07
   2023-11-13
+  2023-11-14
 */
