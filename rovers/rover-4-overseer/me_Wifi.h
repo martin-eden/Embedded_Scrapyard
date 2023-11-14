@@ -9,7 +9,7 @@
 
 #include <Arduino.h>
 
-namespace me_WiFi
+namespace me_Wifi
 {
   /*
     Terminology.
@@ -17,10 +17,8 @@ namespace me_WiFi
     Under "station" I assume what is usually called "Access Point".
     Under "station IP" I assume what is called "DNS IP".
 
-    I just imagining docking process in Elite where we are ship docking
-    to other structure (Station).
-
-    Note "Wifi" in function names but "WiFi" in namespace.
+    I just imagining docking process in Elite: Odyssey where we are ship
+    docking to other structure (Station).
   */
 
   // Initially we have name and id (MAC):
@@ -31,10 +29,10 @@ namespace me_WiFi
   bool SetupWifi(
     char const * StationName,
     char const * StationPassword,
-    uint16_t Timeout_Ms = 32000
+    uint16_t Timeout_S = 32
   );
 
-  // Is we succeeded, Channel is established. Channel has strength (RSSI).
+  // If we succeeded, Channel is established. Channel has strength (RSSI).
   int8_t GetRssi_Dbm();
 
   // Channel has two ends, station end and ship end.

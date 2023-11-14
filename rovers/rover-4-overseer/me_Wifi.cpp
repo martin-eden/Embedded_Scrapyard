@@ -1,27 +1,20 @@
-#include "WiFi.h"
+#include "me_Wifi.h"
 
 #include <ESP8266WiFi.h>
 
 // ---
 
-using namespace me_WiFi;
-
-String GetOurName();
-String GetOurMac_Str();
-int8_t GetRssi_Dbm();
-String GetStationMac_Str();
-String GetStationIp_Str();
-String GetOurIp_Str();
+using namespace me_Wifi;
 
 /*
   Core function.
 
   Try to connect to given station with given password in given timeout.
 */
-bool me_WiFi::SetupWifi(
+bool me_Wifi::SetupWifi(
   char const * StationName,
   char const * StationPassword,
-  uint16_t Timeout_Ms
+  uint16_t Timeout_S
 )
 {
   Serial.printf("Setting-up WiFi: [\n");
@@ -32,17 +25,18 @@ bool me_WiFi::SetupWifi(
     "    MAC: %s\n"
     "  Connecting to:\n"
     "    Station: %s\n"
-    "  With timeout (ms): %u\n",
+    "  With timeout (s): %u\n",
     GetOurName().c_str(),
     GetOurMac_Str().c_str(),
     StationName,
-    Timeout_Ms
+    Timeout_S
   );
 
   uint32_t StartTimeMs = millis();
 
   WiFi.begin(StationName, StationPassword);
 
+  uint16_t Timeout_Ms = 1000 * Timeout_S;
   int8_t ConnectionStatus = WiFi.waitForConnectResult(Timeout_Ms);
 
   uint32_t FinishTimeMs = millis();
@@ -95,32 +89,32 @@ bool me_WiFi::SetupWifi(
 }
 
 // ---
-String me_WiFi::GetOurName()
+String me_Wifi::GetOurName()
 {
   return WiFi.hostname();
 }
 
-String me_WiFi::GetOurMac_Str()
+String me_Wifi::GetOurMac_Str()
 {
   return WiFi.macAddress();
 }
 
-int8_t me_WiFi::GetRssi_Dbm()
+int8_t me_Wifi::GetRssi_Dbm()
 {
   return WiFi.RSSI();
 }
 
-String me_WiFi::GetStationMac_Str()
+String me_Wifi::GetStationMac_Str()
 {
   return WiFi.BSSIDstr();
 }
 
-String me_WiFi::GetStationIp_Str()
+String me_Wifi::GetStationIp_Str()
 {
   return WiFi.dnsIP().toString();
 }
 
-String me_WiFi::GetOurIp_Str()
+String me_Wifi::GetOurIp_Str()
 {
   return WiFi.localIP().toString();
 }
