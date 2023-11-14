@@ -8,7 +8,7 @@
 
 #include "Motorboard.h"
 
-// ---
+// -- internal helpers
 
 uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0)
 {
@@ -18,10 +18,12 @@ uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms = 0)
   return EndTime_Ms - StartTime_Ms;
 }
 
-// ---
+// -- public
+
+using namespace Motorboard;
 
 // Setup communication channel and test connection.
-bool Motorboard::SetupConnection(
+bool MotorboardChannel::Setup(
   uint32_t Baud,
   uint8_t Receive_Pin,
   uint8_t Transmit_Pin
@@ -29,40 +31,30 @@ bool Motorboard::SetupConnection(
 {
   bool IsConnected = false;
 
-  CommentStream.print("Motorboard initialization... ");
+  CommentStream->print("Motorboard initialization... ");
 
-  if (!SetupSoftwareSerial(Baud, Receive_Pin, Transmit_Pin))
+  if (!SetupChannel(Baud, Receive_Pin, Transmit_Pin))
   {
     // This never happened in my experience.
-    CommentStream.println("Software serial initialization failed.");
+    CommentStream->println("Software serial initialization failed.");
     return false;
   }
 
   TimePerCharacter_Ms = 1000 / (Baud / 10) + 1;
 
-  IsConnected = TestConnection();
+  IsConnected = Test();
 
   if (!IsConnected)
   {
-    uint32_t StartTime_Ms = millis();
-    while (!IsConnected && (GetTimePassed_Ms(StartTime_Ms) < Motorboard_PrintHelpMaxTime_Ms))
-    {
-      delay(10);
-      IsConnected = TestConnection();
-    }
+    uint16_t MotorboardSetupGracePeriod_Ms = 3000;
+    delay(MotorboardSetupGracePeriod_Ms);
+    IsConnected = Test();
   }
 
   if (IsConnected)
-    CommentStream.println("yep.");
+    CommentStream->println("yep.");
   else
-    CommentStream.println("nah!");
-
-  if (IsConnected)
-  {
-    CommentStream.print("Measuring motorboard ping: ");
-    uint16_t PingValue_Ms = DetectPing_Ms();
-    CommentStream.printf("%d ms\n", PingValue_Ms);
-  }
+    CommentStream->println("nah!");
 
   return IsConnected;
 }
@@ -92,7 +84,7 @@ bool Motorboard::SetupConnection(
     processing 100 byte string. "D5000" takes 5 second per 5 bytes.
     So 100 seconds.
 */
-bool Motorboard::SendCommand(const char * Commands, uint16_t Timeout_Ms /* = ... */)
+bool MotorboardChannel::Send(const char * Command, uint16_t Timeout_Ms)
 {
   if (MotorboardStream.available())
   {
@@ -100,150 +92,35 @@ bool Motorboard::SendCommand(const char * Commands, uint16_t Timeout_Ms /* = ...
       Motorboard is sending something to us. Thats not typical.
 
       Probably it's startup help text. Wait for ready signal.
-      It should be after help text is printed.
+      It should appear after help text is printed.
     */
 
-    if (!WaitForReadySignal(Motorboard_PrintHelpMaxTime_Ms))
+    if (!WaitForReadySignal(ReadingMaxTime_Ms))
       return false;
   }
 
-  MotorboardStream.write(Commands);
+  MotorboardStream.write(Command);
 
   return WaitForReadySignal(Timeout_Ms);
 }
 
-// Generate command in general format.
-String Motorboard::GenerateCommand(
-  int8_t LeftMotor_Pc,
-  int8_t RightMotor_Pc,
-  uint16_t Duration_Ms
-)
-{
-  uint8_t MaxCommandSize = 32;
-  char Command[MaxCommandSize];
-
-  snprintf(
-    Command,
-    MaxCommandSize,
-    "L %d R %d D %d ",
-    LeftMotor_Pc,
-    RightMotor_Pc,
-    Duration_Ms
-  );
-
-  return String(Command);
-}
-
 // Send dummy command to get feedback.
-bool Motorboard::TestConnection()
+bool MotorboardChannel::Test()
 {
   uint16_t TestCommandTimeout_Ms = 3 * TimePerCharacter_Ms + 10;
 
-  return SendCommand(" ", TestCommandTimeout_Ms);
+  return Send(" ", TestCommandTimeout_Ms);
 }
 
-/*
-  Send commands to motor board to briefly move motors.
+// -- private
 
-  Originally it was linear progression [0, 100, 0, -100, 0].
-  But it became too boring when I tested and debugged code.
-  So now its sine sweep. Motor power is sin([0, 360]).
-
-  Nonlinear acceleration.
-*/
-void Motorboard::RunMotorsTest()
+bool MotorboardChannel::SetupChannel(
+  uint32_t Baud,
+  uint8_t Receive_Pin,
+  uint8_t Transmit_Pin
+)
 {
-  CommentStream.print("Motors test.. ");
-
-  /*
-    Ideal test duration.
-
-    Actual test time will be longer as sending commands will take
-    additional time (~8 ms per command for 57600 baud).
-  */
-  const uint16_t TestDuration_Ms = 800;
-  const uint16_t NumCommands = 12;
-
-  const uint16_t CommandDuration_Ms = TestDuration_Ms / NumCommands;
-
-  const uint16_t NumAnglesInCircle = 360;
-  const uint16_t AngleIncerement = NumAnglesInCircle / NumCommands;
-  const uint8_t Amplitude = 100;
-
-  uint16_t Angle = 0;
-  while (1)
-  {
-    if (Angle > NumAnglesInCircle)
-      Angle = NumAnglesInCircle;
-
-    float Angle_Rad = (float) Angle / NumAnglesInCircle * (2 * M_PI);
-    int8_t MotorPower_Pc = Amplitude * sin(Angle_Rad);
-
-    SendCommand(
-      GenerateCommand(MotorPower_Pc, MotorPower_Pc, CommandDuration_Ms).c_str()
-    );
-
-    if (Angle == NumAnglesInCircle)
-      break;
-
-    Angle += AngleIncerement;
-  }
-
-  CommentStream.println("done.");
-}
-
-// Exploration. Send commands to measure ping.
-uint16_t Motorboard::DetectPing_Ms(uint8_t NumMeasurements)
-{
-  char Command[] = " ";
-
-  uint32_t TimePassed_Ms = 0;
-  uint8_t NumMeasurementsDone = 0;
-
-  for (NumMeasurementsDone = 0; NumMeasurementsDone < NumMeasurements; ++NumMeasurementsDone)
-  {
-    uint32_t SendCommand_Duration_Ms = 0;
-
-    bool IsSent = SendCommand_Time_Ms(Command, &SendCommand_Duration_Ms);
-
-    if (!IsSent)
-      break;
-
-    TimePassed_Ms += SendCommand_Duration_Ms;
-  }
-
-  return TimePassed_Ms / NumMeasurementsDone;
-}
-
-// Send command and measure time.
-bool Motorboard::SendCommand_Time_Ms(const char * Command, uint32_t * TimeTaken_Ms)
-{
-  uint32_t StartTime_Ms = millis();
-  bool SendCommandResult = SendCommand(Command);
-  *TimeTaken_Ms = GetTimePassed_Ms(StartTime_Ms);
-
-  return SendCommandResult;
-}
-
-// SendCommand with time tracing and debug output.
-bool Motorboard::SendCommand_Trace(const char * Command)
-{
-  CommentStream.printf("SendCommand_Time_Ms(\"%s\"): ", Command);
-
-  uint32_t TimeTaken_Ms = 0;
-
-  bool SendCommandResult = SendCommand_Time_Ms(Command, &TimeTaken_Ms);
-
-  CommentStream.printf("%u\n", TimeTaken_Ms);
-
-  return SendCommandResult;
-}
-
-// ---
-
-bool Motorboard::SetupSoftwareSerial(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin)
-{
-  EspSoftwareSerial::Config ByteEncoding = SWSERIAL_8N1;
+  const EspSoftwareSerial::Config ByteEncoding = SWSERIAL_8N1;
 
   MotorboardStream.begin(
     Baud,
@@ -255,7 +132,7 @@ bool Motorboard::SetupSoftwareSerial(uint32_t Baud, uint8_t Receive_Pin, uint8_t
   return (bool) MotorboardStream;
 }
 
-bool Motorboard::WaitForReadySignal(uint16_t Timeout_Ms)
+bool MotorboardChannel::WaitForReadySignal(uint16_t Timeout_Ms)
 {
   /*
     Waiting for response.
@@ -290,6 +167,148 @@ bool Motorboard::WaitForReadySignal(uint16_t Timeout_Ms)
   }
 
   return false;
+}
+
+// -- Wrappers and side stuff
+
+// Profiling. Send command and measure time.
+bool Motorboard::Send_Time_Ms(
+  MotorboardChannel& MotorboardChannel_,
+  const char * Command,
+  uint32_t * TimeTaken_Ms
+)
+{
+  uint32_t StartTime_Ms = millis();
+
+  bool SendResult = MotorboardChannel_.Send(Command);
+
+  *TimeTaken_Ms = GetTimePassed_Ms(StartTime_Ms);
+
+  return SendResult;
+}
+
+// Tracing. Send command amd print measured duration (ms).
+bool Motorboard::Send_Trace(
+  MotorboardChannel& MotorboardChannel_,
+  const char * Command
+)
+{
+  CommentStream->printf("Send_Time_Ms(\"%s\"): ", Command);
+
+  uint32_t TimeTaken_Ms;
+
+  bool SendResult =
+    Send_Time_Ms(MotorboardChannel_, Command, &TimeTaken_Ms);
+
+  CommentStream->printf("%u\n", TimeTaken_Ms);
+
+  return SendResult;
+}
+
+// Exploration. Send commands to measure ping.
+uint16_t Motorboard::MeasurePing_Ms(
+  MotorboardChannel& MotorboardChannel_,
+  uint8_t NumMeasurements
+)
+{
+  // We don't even wanna talk about zero measurements case:
+  if (NumMeasurements == 0)
+    return 0;
+
+  const char Command[] = " ";
+
+  uint32_t TimePassed_Ms = 0;
+  uint8_t NumMeasurementsDone;
+
+  for (NumMeasurementsDone = 0; NumMeasurementsDone < NumMeasurements; ++NumMeasurementsDone)
+  {
+    uint32_t Send_Duration_Ms;
+    if (!Send_Time_Ms(MotorboardChannel_, Command, &Send_Duration_Ms))
+      break;
+    TimePassed_Ms += Send_Duration_Ms;
+  }
+
+  return TimePassed_Ms / NumMeasurementsDone;
+}
+
+/*
+  Generate command in general format.
+
+  The longer the command, the more time it will take to transfer.
+
+  Spaces in format string are for readability. But the last non-digit
+  symbol ensures that motorboard will not spend additional time waiting
+  digits for continuation of number.
+*/
+String Motorboard::GenerateCommand(
+  int8_t LeftMotor_Pc,
+  int8_t RightMotor_Pc,
+  uint16_t Duration_Ms
+)
+{
+  uint8_t MaxCommandSize = 32;
+  char Command[MaxCommandSize];
+
+  snprintf(
+    Command,
+    MaxCommandSize,
+    "L%d R%d D%d;",
+    LeftMotor_Pc,
+    RightMotor_Pc,
+    Duration_Ms
+  );
+
+  return String(Command);
+}
+
+/*
+  Send commands to motor board to briefly move motors.
+
+  Originally it was linear progression [0, 100, 0, -100, 0].
+  But it became too boring when I tested and debugged code.
+  So now its sine sweep. Motor power is sin([0, 360]).
+
+  Nonlinear acceleration as derivative of sine is not constant.
+*/
+void Motorboard::RunMotorsTest(MotorboardChannel & MotorboardChannel_)
+{
+  CommentStream->printf("Motors test.. ");
+
+  /*
+    Ideal test duration.
+
+    Actual test time will be longer as sending commands will take
+    additional time (~7 ms per command for 57600 baud).
+  */
+  const uint16_t TestDuration_Ms = 800;
+  const uint16_t NumCommands = 12;
+
+  const uint16_t CommandDuration_Ms = TestDuration_Ms / NumCommands;
+
+  const uint16_t NumAnglesInCircle = 360;
+  const uint16_t AngleIncerement = NumAnglesInCircle / NumCommands;
+  const uint8_t Amplitude = 100;
+
+  uint16_t Angle = 0;
+  while (1)
+  {
+    if (Angle > NumAnglesInCircle)
+      Angle = NumAnglesInCircle;
+
+    float Angle_Rad = (float) Angle / NumAnglesInCircle * (2 * M_PI);
+    int8_t MotorPower_Pc = Amplitude * sin(Angle_Rad);
+
+    MotorboardChannel_.Send(
+      GenerateCommand(MotorPower_Pc, MotorPower_Pc, CommandDuration_Ms).c_str()
+    );
+
+    if (Angle == NumAnglesInCircle)
+      break;
+
+    Angle += AngleIncerement;
+  }
+
+  CommentStream->printf("done.\n");
 }
 
 // ---

@@ -2,7 +2,7 @@
 
 /*
   Status: works
-  Version: 3
+  Version: 4
   Last mod.: 2023-11-14
 */
 
@@ -11,48 +11,71 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
-class Motorboard
+namespace Motorboard
 {
-  public:
-    // Setup motorboard communication channel and test connection.
-    bool SetupConnection(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin);
+  constexpr HardwareSerial *CommentStream = &Serial;
 
-    // Send given M-codes. Returns TRUE if got response.
-    bool SendCommand(const char * Commands, uint16_t Timeout_Ms = 5000);
+  // -- Core class:
+  class MotorboardChannel
+  {
+    public:
+      MotorboardChannel() {};
 
-    // Wrappers for ease of use and tracing:
+      // Setup motorboard communication channel and test connection.
+      bool Setup(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin);
 
-    // Generate command.
-    String GenerateCommand(int8_t LeftMotor_Pc, int8_t RightMotor_Pc, uint16_t Duration_Ms);
+      // Send given M-codes. Returns TRUE if got response.
+      bool Send(const char * Commands, uint16_t Timeout_Ms = 5000);
 
-    // Test connection by sending no-op command to motor board.
-    bool TestConnection();
+      // Wrappers for ease of use and tracing:
 
-    // Actually spin motors for some time.
-    void RunMotorsTest();
+      // Test connection by sending no-op command to motor board.
+      bool Test();
 
-    // Exploration. Send neutral command to measure ping.
-    uint16_t DetectPing_Ms(uint8_t NumMeasurements = 5);
+    private:
+      EspSoftwareSerial::UART MotorboardStream;
 
-    // Send command and measure time.
-    bool SendCommand_Time_Ms(const char * Command, uint32_t * TimeTaken_Ms);
+      // Time to transfer one character. Depends of baud. Set in SetupConnection().
+      uint8_t TimePerCharacter_Ms = 0;
 
-    // SendCommand with time tracing and debug output.
-    bool SendCommand_Trace(const char * Command);
+      // Maximum time to wait if we think that motorboard is printing help.
+      static const uint16_t ReadingMaxTime_Ms = 4000;
 
-  private:
-    HardwareSerial CommentStream = Serial;
-    EspSoftwareSerial::UART MotorboardStream;
+      bool SetupChannel(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin);
+      bool WaitForReadySignal(uint16_t Timeout_Ms);
+  };
 
-    // Time to transfer one character. Depends of baud. Set in SetupConnection().
-    uint8_t TimePerCharacter_Ms = 0;
+  // -- Some handy extensions:
 
-    // Maximum time to wait if we think that motorboard is printing help.
-    const uint16_t Motorboard_PrintHelpMaxTime_Ms = 4000;
+  // Send command and measure time.
+  bool Send_Time_Ms(
+    MotorboardChannel& MotorboardChannel_,
+    const char * Command,
+    uint32_t * TimeTaken_Ms
+  );
 
-    bool SetupSoftwareSerial(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pin);
-    bool WaitForReadySignal(uint16_t Timeout_Ms);
-};
+  // SendCommand with time tracing and debug output.
+  bool Send_Trace(
+    MotorboardChannel& MotorboardChannel_,
+    const char * Command
+  );
+
+  // Exploration. Send neutral command to measure ping.
+  uint16_t MeasurePing_Ms(
+    MotorboardChannel & MotorboardChannel_,
+    uint8_t NumMeasurements = 5
+  );
+
+  // Generate command.
+  String GenerateCommand(
+    int8_t LeftMotor_Pc,
+    int8_t RightMotor_Pc,
+    uint16_t Duration_Ms
+  );
+
+  // Actually spin motors for some time.
+  void RunMotorsTest(MotorboardChannel & MotorboardChannel_);
+}
 
 /*
   2023-11-12

@@ -58,7 +58,7 @@ namespace Overseer
 
   constexpr auto *CommentStream = &Serial;
 
-  Motorboard Motorboard_;
+  Motorboard::MotorboardChannel MotorboardStream;
 
   Ticker GyroPoll_Timer;
   Ticker Heartbeat_Timer;
@@ -97,7 +97,7 @@ void setup()
   );
 
   bool MotorboardIsConnected =
-    Motorboard_.SetupConnection(
+    MotorboardStream.Setup(
       Motorboard_Baud,
       Motorboard_Receive_Pin,
       Motorboard_Transmit_Pin
@@ -105,7 +105,12 @@ void setup()
 
   if (MotorboardIsConnected)
   {
-    Motorboard_.RunMotorsTest();
+    CommentStream->print("Measuring motorboard ping: ");
+    uint16_t PingValue_Ms = Motorboard::MeasurePing_Ms(MotorboardStream);
+    CommentStream->printf("%d ms\n", PingValue_Ms);
+
+    // WROOM-WROOM!
+    Motorboard::RunMotorsTest(MotorboardStream);
   }
 
   bool GyroIsConnected = SetupGyro();
