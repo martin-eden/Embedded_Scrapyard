@@ -17,9 +17,9 @@ bool me_Wifi::SetupWifi(
   uint16_t Timeout_S
 )
 {
-  Serial.printf("Setting-up WiFi: [\n");
+  CommentStream->printf("Setting-up WiFi: [\n");
 
-  Serial.printf(
+  CommentStream->printf(
     "  We are:\n"
     "    Name: %s\n"
     "    MAC: %s\n"
@@ -45,7 +45,7 @@ bool me_Wifi::SetupWifi(
   switch (ConnectionStatus)
   {
     case WL_CONNECTED:
-      Serial.printf(
+      CommentStream->printf(
         "  Connected:\n"
         "    Station:\n"
         "      MAC: %s\n"
@@ -61,29 +61,29 @@ bool me_Wifi::SetupWifi(
       break;
 
     case WL_NO_SSID_AVAIL:
-      Serial.printf("  Can't see station.\n");
+      CommentStream->printf("  Can't see station.\n");
       break;
 
     case WL_WRONG_PASSWORD:
-      Serial.printf("  Wrong password.\n");
+      CommentStream->printf("  Wrong password.\n");
       break;
 
     case WL_CONNECT_FAILED:
-      Serial.printf("  I see station but connection failed. Probably wrong password.\n");
+      CommentStream->printf("  I see station but connection failed. Probably wrong password.\n");
       break;
 
     case NA_STATE:
-      Serial.printf("  We finished too early. Connection was not established.\n");
+      CommentStream->printf("  We finished too early. Connection was not established.\n");
       break;
 
     default:
-      Serial.printf("  [debug] Uncovered case %d.\n", ConnectionStatus);
+      CommentStream->printf("  [debug] Uncovered case %d.\n", ConnectionStatus);
       break;
   }
 
-  Serial.printf("  Time taken (ms): %u\n", TimePassedMs);
+  CommentStream->printf("  Time taken (ms): %u\n", TimePassedMs);
 
-  Serial.printf("]\n\n");
+  CommentStream->printf("]\n\n");
 
   return (ConnectionStatus == WL_CONNECTED);
 }

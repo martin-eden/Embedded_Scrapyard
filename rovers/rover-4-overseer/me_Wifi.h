@@ -11,6 +11,8 @@
 
 namespace me_Wifi
 {
+  constexpr auto *CommentStream = &Serial;
+
   /*
     Terminology.
 

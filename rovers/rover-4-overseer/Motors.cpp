@@ -10,8 +10,8 @@
 
 #include <SoftwareSerial.h>
 
-auto & HardwareSerial_ = Serial;
-EspSoftwareSerial::UART SoftwareSerial_;
+constexpr auto *CommentStream = &Serial;
+EspSoftwareSerial::UART MotorboardStream;
 
 // ---
 
@@ -28,12 +28,12 @@ bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Tr
 {
   bool IsConnected = false;
 
-  HardwareSerial_.print("Motorboard initialization... ");
+  CommentStream->print("Motorboard initialization... ");
 
   if (!SetupSoftwareSerial(Baud, Receive_Pin, Transmit_Pin))
   {
     // This never happened in my experience.
-    HardwareSerial_.println("Software serial initialization failed.");
+    CommentStream->println("Software serial initialization failed.");
     return false;
   }
 
@@ -52,15 +52,15 @@ bool SetupMotorboardCommunication(uint32_t Baud, uint8_t Receive_Pin, uint8_t Tr
   }
 
   if (IsConnected)
-    HardwareSerial_.println("yep.");
+    CommentStream->println("yep.");
   else
-    HardwareSerial_.println("nah!");
+    CommentStream->println("nah!");
 
   if (IsConnected)
   {
-    HardwareSerial_.print("Measuring motorboard ping: ");
+    CommentStream->print("Measuring motorboard ping: ");
     uint16_t PingValue_Ms = DetectPing_Ms();
-    HardwareSerial_.printf("%d ms\n", PingValue_Ms);
+    CommentStream->printf("%d ms\n", PingValue_Ms);
   }
 
   return IsConnected;
@@ -95,7 +95,7 @@ bool WaitForReadySignal(uint16_t Timeout_Ms);
 */
 bool SendCommand(const char * Commands, uint16_t Timeout_Ms /* = ... */)
 {
-  if (SoftwareSerial_.available())
+  if (MotorboardStream.available())
   {
     /*
       Motorboard is sending something to us. Thats not typical.
@@ -108,7 +108,7 @@ bool SendCommand(const char * Commands, uint16_t Timeout_Ms /* = ... */)
       return false;
   }
 
-  SoftwareSerial_.write(Commands);
+  MotorboardStream.write(Commands);
 
   return WaitForReadySignal(Timeout_Ms);
 }
@@ -119,9 +119,9 @@ bool SetupSoftwareSerial(uint32_t Baud, uint8_t Receive_Pin, uint8_t Transmit_Pi
 {
   EspSoftwareSerial::Config ByteEncoding = SWSERIAL_8N1;
 
-  SoftwareSerial_.begin(Baud, ByteEncoding, Receive_Pin, Transmit_Pin);
+  MotorboardStream.begin(Baud, ByteEncoding, Receive_Pin, Transmit_Pin);
 
-  return (bool) SoftwareSerial_;
+  return (bool) MotorboardStream;
 }
 
 uint32_t GetTimePassed_Ms(uint32_t StartTime_Ms, uint32_t EndTime_Ms /* = 0 */)
@@ -147,18 +147,18 @@ bool WaitForReadySignal(uint16_t Timeout_Ms)
 
   while (GetTimePassed_Ms(StartTime_Ms) < Timeout_Ms)
   {
-    if (SoftwareSerial_.available())
+    if (MotorboardStream.available())
     {
       Chars[2] = Chars[1];
       Chars[1] = Chars[0];
-      Chars[0] = SoftwareSerial_.read();
+      Chars[0] = MotorboardStream.read();
 
       // Correct response is "\nG\n":
       if ((Chars[2] == '\n') && (Chars[1] == 'G') && (Chars[0] == '\n'))
       {
         delay(TimePerCharacter_Ms);
 
-        if (!SoftwareSerial_.available())
+        if (!MotorboardStream.available())
           return true;
       }
     }
@@ -182,13 +182,13 @@ bool SendCommand_Time_Ms(const char * Command, uint32_t * TimeTaken_Ms)
 // SendCommand with time tracing and debug output.
 bool SendCommand_Trace(const char * Command)
 {
-  HardwareSerial_.printf("SendCommand_Time_Ms(\"%s\"): ", Command);
+  CommentStream->printf("SendCommand_Time_Ms(\"%s\"): ", Command);
 
   uint32_t TimeTaken_Ms = 0;
 
   bool SendCommandResult = SendCommand_Time_Ms(Command, &TimeTaken_Ms);
 
-  HardwareSerial_.printf("%u\n", TimeTaken_Ms);
+  CommentStream->printf("%u\n", TimeTaken_Ms);
 
   return SendCommandResult;
 }
@@ -198,7 +198,7 @@ bool TestConnection()
 {
   uint16_t TestCommandTimeout_Ms = 3 * TimePerCharacter_Ms + 10;
   bool Result = SendCommand(" ", TestCommandTimeout_Ms);
-  // HardwareSerial_.printf("\nTestConnection(%u): %u\n", TestCommandTimeout_Ms, Result);
+  // CommentStream->printf("\nTestConnection(%u): %u\n", TestCommandTimeout_Ms, Result);
   return Result;
 }
 
@@ -253,7 +253,7 @@ uint16_t DetectPing_Ms(uint8_t NumMeasurements)
 */
 void HardwareMotorsTest()
 {
-  HardwareSerial_.print("Motors test.. ");
+  CommentStream->print("Motors test.. ");
 
   /*
     Ideal test duration.
@@ -289,7 +289,7 @@ void HardwareMotorsTest()
     Angle += AngleIncerement;
   }
 
-  HardwareSerial_.println("done.");
+  CommentStream->println("done.");
 }
 
 // ---

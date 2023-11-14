@@ -55,7 +55,7 @@ namespace Overseer
     HeartbeatInterval_S = 60,
     TickTime_Ms = 50;
 
-  auto & CommentStream = Serial;
+  constexpr auto *CommentStream = &Serial;
 
   Ticker GyroPoll_Timer;
   Ticker Heartbeat_Timer;
@@ -81,7 +81,7 @@ void setup()
 {
   {
     uint16_t SerialWarmup_Ms = 300;
-    Serial.begin(Serial_Baud);
+    CommentStream->begin(Serial_Baud);
     delay(SerialWarmup_Ms);
   }
 
@@ -89,7 +89,7 @@ void setup()
 
   PrintSettings();
 
-  CommentStream.printf(
+  CommentStream->printf(
     "--[ Setup\n"
   );
 
@@ -127,7 +127,7 @@ void setup()
 
   SetupHeartbeat(HeartbeatInterval_S);
 
-  CommentStream.printf(
+  CommentStream->printf(
     PSTR(
       "Modules\n"
       "\n"
@@ -141,7 +141,7 @@ void setup()
     WifiIsConnected
   );
 
-  CommentStream.printf(
+  CommentStream->printf(
     "--] Setup\n"
   );
 }
@@ -157,7 +157,7 @@ void loop()
 
 void Overseer::PrintLabel()
 {
-  CommentStream.printf(
+  CommentStream->printf(
     PSTR(
       "\n"
       "--------------------------------------\n"
@@ -170,7 +170,7 @@ void Overseer::PrintLabel()
 
 void Overseer::PrintSettings()
 {
-  CommentStream.printf(
+  CommentStream->printf(
     PSTR(
       "Settings\n"
       "\n"
@@ -200,7 +200,7 @@ void Overseer::HttpRootHandler_Callback()
 
   Http::SendString(GyroReadings_Str);
 
-  CommentStream.printf(
+  CommentStream->printf(
     "[%lu] Sent gyro readings to %s.\n",
     millis(),
     Http::GetClientIp().c_str()
@@ -225,7 +225,7 @@ void Overseer::SetupHeartbeat(uint32_t Interval_S)
 
 void Overseer::Heartbeat_Callback()
 {
-  CommentStream.printf(
+  CommentStream->printf(
     "[%lu] Still alive.\n",
     millis()
   );
