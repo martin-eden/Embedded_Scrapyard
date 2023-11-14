@@ -33,43 +33,55 @@
 #include "Gyro.h"
 #include "GyroHistory.h"
 
-#include "WiFi.h"
+#include "me_Wifi.h"
 #include "Http.h"
 
-const char
-  * StationName = "",
-  * StationPassword = "";
+namespace Overseer
+{
+  const char
+    * StationName = "",
+    * StationPassword = "";
 
-const uint32_t
-  Serial_Baud = 115200,
-  Motorboard_Baud = 57600; // 9600; 57600; 115200;
+  const uint32_t
+    Serial_Baud = 115200,
+    Motorboard_Baud = 57600; // 9600; 57600; 115200;
 
-const uint8_t
-  Motorboard_Receive_Pin = D7,
-  Motorboard_Transmit_Pin = D9;
+  const uint8_t
+    Motorboard_Receive_Pin = D7,
+    Motorboard_Transmit_Pin = D9;
 
-const uint32_t
-  GyroPollInterval_Ms = 1200,
-  HeartbeatInterval_Ms = 20000,
-  TickTime_Ms = 50;
+  const uint32_t
+    GyroPollInterval_Ms = 1200,
+    HeartbeatInterval_S = 60,
+    TickTime_Ms = 50;
+
+  auto & CommentStream = Serial;
+
+  Ticker GyroPoll_Timer;
+  Ticker Heartbeat_Timer;
+
+  void PrintLabel();
+  void PrintSettings();
+
+  void HttpRootHandler_Callback();
+  void HttpRootHandler_Callback();
+
+  void SetupGyroPoll(uint16_t Interval_Ms, Ticker::callback_function_t Callback);
+  void GyroPoll_IsrCallback();
+
+  void SetupHeartbeat(uint32_t Interval_S);
+  void Heartbeat_Callback();
+}
 
 // ---
 
-auto& CommentStream = Serial;
-
-Ticker GyroPoll_Timer;
-Ticker Heartbeat_Timer;
-
-void PrintLabel();
-void HttpRootHandler_Callback();
-
-// ---
+using namespace Overseer;
 
 void setup()
 {
   {
     uint16_t SerialWarmup_Ms = 300;
-    CommentStream.begin(Serial_Baud);
+    Serial.begin(Serial_Baud);
     delay(SerialWarmup_Ms);
   }
 
@@ -95,12 +107,12 @@ void setup()
 
   bool GyroIsConnected = SetupGyro();
 
-  uint16_t WifiConnectTimeout_Ms = 20000;
+  uint16_t WifiConnectTimeout_S = 20;
   bool WifiIsConnected =
-    me_WiFi::SetupWifi(
+    me_Wifi::SetupWifi(
       StationName,
       StationPassword,
-      WifiConnectTimeout_Ms
+      WifiConnectTimeout_S
     );
 
   if (WifiIsConnected)
@@ -110,10 +122,10 @@ void setup()
 
   if (GyroIsConnected)
   {
-    SetupGyroPoll();
+    SetupGyroPoll(GyroPollInterval_Ms, GyroPoll_IsrCallback);
   }
 
-  // SetupHeartbeat();
+  SetupHeartbeat(HeartbeatInterval_S);
 
   CommentStream.printf(
     PSTR(
@@ -143,7 +155,7 @@ void loop()
 
 // ---
 
-void PrintLabel()
+void Overseer::PrintLabel()
 {
   CommentStream.printf(
     PSTR(
@@ -156,7 +168,7 @@ void PrintLabel()
   );
 }
 
-void PrintSettings()
+void Overseer::PrintSettings()
 {
   CommentStream.printf(
     PSTR(
@@ -181,7 +193,7 @@ void PrintSettings()
   );
 }
 
-void HttpRootHandler_Callback()
+void Overseer::HttpRootHandler_Callback()
 {
   String GyroReadings_Str =
     SerializeGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
@@ -195,25 +207,23 @@ void HttpRootHandler_Callback()
   );
 }
 
-void GyroPoll_IsrCallback();
-
-void SetupGyroPoll()
+void Overseer::SetupGyroPoll(uint16_t Interval_Ms, Ticker::callback_function_t Callback)
 {
-  GyroPoll_Timer.attach_ms(GyroPollInterval_Ms, GyroPoll_IsrCallback);
+  GyroPoll_Timer.attach_ms(Interval_Ms, Callback);
 }
 
-void IRAM_ATTR GyroPoll_IsrCallback()
+void IRAM_ATTR Overseer::GyroPoll_IsrCallback()
 {
   UpdateGyroReadings();
   StoreGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
 }
 
-void SetupHeartbeat()
+void Overseer::SetupHeartbeat(uint32_t Interval_S)
 {
-  Heartbeat_Timer.attach_ms_scheduled(HeartbeatInterval_Ms, Heartbeat_Callback);
+  Heartbeat_Timer.attach_scheduled(Interval_S, Heartbeat_Callback);
 }
 
-void Heartbeat_Callback()
+void Overseer::Heartbeat_Callback()
 {
   CommentStream.printf(
     "[%lu] Still alive.\n",
