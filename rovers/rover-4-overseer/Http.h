@@ -16,13 +16,19 @@ namespace Http
 {
   typedef std::function<void (void)> THandlerFunction;
 
-  void Setup(THandlerFunction RootHandler_Callback);
+  void Setup();
+  void AddEndpoint(const char * EndpointPath, THandlerFunction CallbackFunc);
   void HandleEvents();
 
   void SendPlaintext(String DataString);
   void SendHtml(String DataString);
 
   String GetClientIp();
+
+  uint16_t Request_GetNumEntities();
+  String Request_GetEntityName(uint16_t EntityIndex);
+  String Request_GetEntityValueByName(String EntityName);
+  String Request_GetEntityValueByIndex(uint16_t EntityIndex);
 }
 
 /*

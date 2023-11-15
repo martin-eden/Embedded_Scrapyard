@@ -52,7 +52,6 @@ namespace Overseer
     Motorboard_Transmit_Pin = D9;
 
   const uint32_t
-    GyroPollInterval_Ms = 1200,
     HeartbeatInterval_S = 60,
     TickTime_Ms = 50;
 
@@ -66,10 +65,11 @@ namespace Overseer
   void PrintLabel();
   void PrintSettings();
 
-  void HttpRootHandler_Callback();
-  void HttpRootHandler_Callback();
+  void Http_Root_Callback();
+  void Http_SendCommand_Callback();
 
-  void SetupGyroPoll(uint16_t Interval_Ms, Ticker::callback_function_t Callback);
+  void StartGyroPolling(uint16_t Interval_Ms);
+  void StopGyroPolling();
   void GyroPoll_IsrCallback();
 
   void SetupHeartbeat(uint32_t Interval_S);
@@ -108,9 +108,6 @@ void setup()
     CommentStream->print("Measuring motorboard ping: ");
     uint16_t PingValue_Ms = Motorboard::MeasurePing_Ms(MotorboardStream);
     CommentStream->printf("%d ms\n", PingValue_Ms);
-
-    // WROOM-WROOM!
-    Motorboard::RunMotorsTest(MotorboardStream);
   }
 
   bool GyroIsConnected = SetupGyro();
@@ -125,12 +122,9 @@ void setup()
 
   if (WifiIsConnected)
   {
-    Http::Setup(HttpRootHandler_Callback);
-  }
-
-  if (GyroIsConnected)
-  {
-    SetupGyroPoll(GyroPollInterval_Ms, GyroPoll_IsrCallback);
+    Http::Setup();
+    Http::AddEndpoint("/", Http_Root_Callback);
+    Http::AddEndpoint("/SendCommand/", Http_SendCommand_Callback);
   }
 
   SetupHeartbeat(HeartbeatInterval_S);
@@ -152,6 +146,9 @@ void setup()
   CommentStream->printf(
     "--] Setup\n"
   );
+
+  // WROOM-WROOM!
+  Motorboard::RunMotorsTest(MotorboardStream);
 }
 
 void loop()
@@ -190,18 +187,15 @@ void Overseer::PrintSettings()
       "    Receive pin: %u\n"
       "    Transmit pin: %u\n"
       "\n"
-      "  Accelerometer poll interval (ms): %u\n"
-      "\n"
     ),
     Serial_Baud,
     Motorboard_Baud,
     Motorboard_Receive_Pin,
-    Motorboard_Transmit_Pin,
-    GyroPollInterval_Ms
+    Motorboard_Transmit_Pin
   );
 }
 
-void Overseer::HttpRootHandler_Callback()
+void Overseer::Http_Root_Callback()
 {
   static const char
     CommandPoint_Html[] PROGMEM =
@@ -219,16 +213,13 @@ void Overseer::HttpRootHandler_Callback()
       "  </head>\n"
       "  <body>\n"
       "    <form method=\"post\" enctype=\"application/x-www-form-urlencoded\" action=\"/SendCommand/\">\n"
-      "      <input type=\"text\" id=\"fCommands\" name=\"Commands\" value=\"L 100 R 100 D 500 \">\n"
-      "      <label for=\"fCommands\">&lt;- Commands -&gt;</label>\n"
+      "      <input type=\"text\" id=\"fCommand\" name=\"Command\" value=\"L 100 R 100 D 500 \">\n"
+      "      <label for=\"fCommands\">&lt;- Command -&gt;</label>\n"
       "      <input type=\"submit\" value=\"Send\">\n"
       "    </form>\n"
       "  </body>\n"
       "</html>\n"
       "\n";
-
-  // String GyroReadings_Str =
-  //   SerializeGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
 
   Http::SendHtml(CommandPoint_Html);
 
@@ -237,13 +228,51 @@ void Overseer::HttpRootHandler_Callback()
     millis(),
     Http::GetClientIp().c_str()
   );
-
-  Motorboard::RunMotorsTest(MotorboardStream);
 }
 
-void Overseer::SetupGyroPoll(uint16_t Interval_Ms, Ticker::callback_function_t Callback)
+void Overseer::Http_SendCommand_Callback()
 {
-  GyroPoll_Timer.attach_ms(Interval_Ms, Callback);
+  String FinalMessage;
+
+  uint8_t MaxMessageSize = 200;
+  char Message[MaxMessageSize];
+
+  String Command = Http::Request_GetEntityValueByName("Command");
+
+  StartGyroPolling(20);
+
+  uint32_t CommandStartTime_Ms = millis();
+
+  MotorboardStream.Send(Command.c_str());
+
+  uint32_t CommandEndTime_Ms = millis();
+
+  StopGyroPolling();
+
+  snprintf(
+    Message,
+    MaxMessageSize,
+    "[%u..%u] \"%s\"\n",
+    CommandStartTime_Ms,
+    CommandEndTime_Ms,
+    Command.c_str()
+  );
+  FinalMessage.concat(Message);
+
+  FinalMessage.concat(GetGyroHistory_Json());
+
+  CommentStream->print(FinalMessage);
+  Http::SendPlaintext(FinalMessage);
+}
+
+void Overseer::StartGyroPolling(uint16_t Interval_Ms)
+{
+  GyroPoll_Timer.attach_ms(Interval_Ms, GyroPoll_IsrCallback);
+}
+
+void Overseer::StopGyroPolling()
+{
+  GyroPoll_Timer.detach();
 }
 
 void IRAM_ATTR Overseer::GyroPoll_IsrCallback()
@@ -263,8 +292,6 @@ void Overseer::Heartbeat_Callback()
     "[%lu] Still alive.\n",
     millis()
   );
-
-  PrintGyroHistory();
 }
 
 /*

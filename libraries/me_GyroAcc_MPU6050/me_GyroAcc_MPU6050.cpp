@@ -2,8 +2,8 @@
 
 /*
   Status: works
-  Version: 3
-  Last mod.: 2023-11-04
+  Version: 4
+  Last mod.: 2023-11-15
 */
 
 #include "me_GyroAcc_MPU6050.h"
@@ -24,9 +24,9 @@ bool t_GyroAcc::Initialize()
   }
 
   GyroAcc.setAccelerometerRange(MPU6050_RANGE_2_G);
-  GyroAcc.setGyroRange(MPU6050_RANGE_250_DEG);
+  GyroAcc.setGyroRange(MPU6050_RANGE_500_DEG);
 
-  GyroAcc.setFilterBandwidth(MPU6050_BAND_94_HZ);
+  GyroAcc.setFilterBandwidth(MPU6050_BAND_260_HZ);
 
   return true;
 }
@@ -60,4 +60,5 @@ t_GyroAccReadings t_GyroAcc::GetReadings()
   2023-09-22
   2023-10-12
   2023-11-03
+  2023-11-15
 */

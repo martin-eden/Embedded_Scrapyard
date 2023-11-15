@@ -299,7 +299,7 @@ void Motorboard::RunMotorsTest(MotorboardChannel & MotorboardChannel_)
     int8_t MotorPower_Pc = Amplitude * sin(Angle_Rad);
 
     MotorboardChannel_.Send(
-      GenerateCommand(MotorPower_Pc, MotorPower_Pc, CommandDuration_Ms).c_str()
+      GenerateCommand(MotorPower_Pc, -MotorPower_Pc, CommandDuration_Ms).c_str()
     );
 
     if (Angle == NumAnglesInCircle)

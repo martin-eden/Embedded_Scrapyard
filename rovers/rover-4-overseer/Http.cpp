@@ -2,17 +2,15 @@
 
 /*
   Status: stable
-  Version: 2
-  Last mod.: 2023-11-13
+  Version: 3
+  Last mod.: 2023-11-15
 */
 
 #include "Http.h"
 
-ESP8266WebServer HttpServer;
-
 // ---
 
-using namespace Http;
+ESP8266WebServer HttpServer;
 
 const uint16_t Response_Ok = 200;
 const uint16_t Response_NotFound = 404;
@@ -20,16 +18,24 @@ const char
   Content_Plaintext[] = "text/plain",
   Content_Html[] = "text/html";
 
-
 void NotFoundHandler_Callback();
 
-// Start HTTP server with given callback function
-void Http::Setup(THandlerFunction RootHandler_Callback)
+// ---
+
+using namespace Http;
+
+// Start HTTP server
+void Http::Setup()
 {
-  HttpServer.on("/", RootHandler_Callback);
   HttpServer.onNotFound(NotFoundHandler_Callback);
 
   HttpServer.begin();
+}
+
+// Add endpoint handler
+void Http::AddEndpoint(const char * EndpointPath, THandlerFunction CallbackFunc)
+{
+  HttpServer.on(EndpointPath, CallbackFunc);
 }
 
 // Main loop handler
@@ -64,6 +70,27 @@ String Http::GetClientIp()
   return HttpServer.client().remoteIP().toString();
 }
 
+
+uint16_t Http::Request_GetNumEntities()
+{
+  return HttpServer.args();
+}
+
+String Http::Request_GetEntityName(uint16_t EntityIndex)
+{
+  return HttpServer.argName(EntityIndex);
+}
+
+String Http::Request_GetEntityValueByName(String EntityName)
+{
+  return HttpServer.arg(EntityName);
+}
+
+String Http::Request_GetEntityValueByIndex(uint16_t EntityIndex)
+{
+  return HttpServer.arg(EntityIndex);
+}
+
 // ---
 
 // "Not found" handler
@@ -82,4 +109,5 @@ void NotFoundHandler_Callback()
   2023-11-07
   2023-11-09
   2023-11-13
+  2023-11-15
 */

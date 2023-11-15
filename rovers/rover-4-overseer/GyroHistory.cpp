@@ -1,8 +1,16 @@
+// Gyro history management
+
+/*
+  Status: reworking
+  Version: 2
+  Last mod.: 2023-11-15
+*/
+
 #include "GyroHistory.h"
 
 #include <ArduinoJson.h>
 
-const uint16_t GyroHistoryCapacity = 5; // 150;
+const uint16_t GyroHistoryCapacity = 50; // 150;
 t_GyroHistoryRec GyroHistory[GyroHistoryCapacity];
 uint16_t GyroHistoryCursor = 0;
 
@@ -25,7 +33,6 @@ void StoreGyroReadings(MPU6050::t_GyroAccReadings Readings, uint32_t Timestamp_M
   GyroHistoryCursor = (GyroHistoryCursor + 1) % GyroHistoryCapacity;
 }
 
-
 /*
   Typical JSON is
 
@@ -39,17 +46,19 @@ String SerializeHistoryRec_Json(t_GyroHistoryRec HistoryRec)
 
   StaticJsonDocument<192> doc;
 
+  const uint8_t NumFractionalDigits = 2;
+
   doc["Timestamp_ms"] = HistoryRec.Timestamp_Ms;
 
   JsonObject Acceleration = doc.createNestedObject("Acceleration_G");
-  Acceleration["X"] = HistoryRec.Acceleration_G.x;
-  Acceleration["Y"] = HistoryRec.Acceleration_G.y;
-  Acceleration["Z"] = HistoryRec.Acceleration_G.z;
+  Acceleration["X"] = serialized(String(HistoryRec.Acceleration_G.x, NumFractionalDigits));
+  Acceleration["Y"] = serialized(String(HistoryRec.Acceleration_G.y, NumFractionalDigits));
+  Acceleration["Z"] = serialized(String(HistoryRec.Acceleration_G.z, NumFractionalDigits));
 
   JsonObject Rotation = doc.createNestedObject("Rotation_Dps");
-  Rotation["X"] = HistoryRec.Rotation_Dps.x;
-  Rotation["Y"] = HistoryRec.Rotation_Dps.y;
-  Rotation["Z"] = HistoryRec.Rotation_Dps.z;
+  Rotation["X"] = serialized(String(HistoryRec.Rotation_Dps.x));
+  Rotation["Y"] = serialized(String(HistoryRec.Rotation_Dps.y));
+  Rotation["Z"] = serialized(String(HistoryRec.Rotation_Dps.z));
 
   serializeJson(doc, Result);
 
@@ -79,18 +88,26 @@ String SerializeHistoryRec_Tsv(t_GyroHistoryRec GyroHistoryRec)
   return Result;
 }
 
-// Print history of gyro readings.
-void PrintGyroHistory()
+// Serialize history of gyro readings to TSV format
+String GetGyroHistory_Tsv()
 {
-  Serial.println(F("-----------------------------------------------------"));
+  String Result;
+
+  uint8_t RecordStrMaxSize = 200;
+  char RecordStr[RecordStrMaxSize];
+
   uint16_t PrintCursor = GyroHistoryCursor;
   while (true)
   {
-    Serial.printf(
+    snprintf(
+      RecordStr,
+      RecordStrMaxSize,
       "[%d]\t%s\n",
       PrintCursor,
       SerializeHistoryRec_Tsv(GyroHistory[PrintCursor]).c_str()
     );
+
+    Result.concat(RecordStr);
 
     PrintCursor = (PrintCursor + 1) % GyroHistoryCapacity;
 
@@ -99,5 +116,36 @@ void PrintGyroHistory()
       break;
     }
   }
-  Serial.println(F("====================================================="));
+
+  return Result;
 }
+
+// Serialize history of gyro readings to JSON format
+String GetGyroHistory_Json()
+{
+  String Result;
+
+  Result += "{\n";
+
+  uint16_t PrintCursor = GyroHistoryCursor;
+  do
+  {
+    Result.concat("  ");
+    Result.concat(SerializeHistoryRec_Json(GyroHistory[PrintCursor]));
+
+    PrintCursor = (PrintCursor + 1) % GyroHistoryCapacity;
+
+    if (PrintCursor != GyroHistoryCursor)
+      Result.concat(",");
+    Result.concat("\n");
+
+  } while (PrintCursor != GyroHistoryCursor);
+
+  Result += "}\n";
+
+  return Result;
+}
+
+/*
+  2023-11-15
+*/

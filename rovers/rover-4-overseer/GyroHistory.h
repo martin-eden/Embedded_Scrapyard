@@ -1,3 +1,11 @@
+// Gyro history management
+
+/*
+  Status: reworking
+  Version: 2
+  Last mod.: 2023-11-15
+*/
+
 #pragma once
 
 #include <Arduino.h>
@@ -28,4 +36,10 @@ struct t_GyroHistoryRec
 void StoreGyroReadings(MPU6050::t_GyroAccReadings Readings, uint32_t Timestamp_Ms);
 String SerializeHistoryRec_Json(t_GyroHistoryRec HistoryRec);
 String SerializeHistoryRec_Tsv(t_GyroHistoryRec GyroHistoryRec);
-void PrintGyroHistory();
+
+String GetGyroHistory_Tsv();
+String GetGyroHistory_Json();
+
+/*
+  2023-11-15
+*/
