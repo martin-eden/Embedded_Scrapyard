@@ -2,8 +2,8 @@
 
 /*
   Status: working base
-  Version: 10
-  Last mod.: 2023-11-14
+  Version: 11
+  Last mod.: 2023-11-15
 */
 
 /*
@@ -203,16 +203,42 @@ void Overseer::PrintSettings()
 
 void Overseer::HttpRootHandler_Callback()
 {
-  String GyroReadings_Str =
-    SerializeGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
+  static const char
+    CommandPoint_Html[] PROGMEM =
+      "<!DOCTYPE html>\n"
+      "\n"
+      "<html>\n"
+      "  <head>\n"
+      "    <title> Rover-4 Post Office </title>\n"
+      "    <style>\n"
+      "      body {font-family: Roboto Mono Medium; color: rgb(166, 226, 44); background-color: rgb(40, 41, 35)}\n"
+      "      input[type=text] {font-family: Roboto Mono Medium; color: rgb(248, 246, 226); background-color: rgb(40, 41, 35)}\n"
+      "      input[type=submit] {font-family: Roboto Mono Medium; color: rgb(103, 216, 239); background-color: rgb(40, 41, 35)}\n"
+      "      form {position: fixed; left: 40%; top: 40%}\n"
+      "    </style>\n"
+      "  </head>\n"
+      "  <body>\n"
+      "    <form method=\"post\" enctype=\"application/x-www-form-urlencoded\" action=\"/SendCommand/\">\n"
+      "      <input type=\"text\" id=\"fCommands\" name=\"Commands\" value=\"L 100 R 100 D 500 \">\n"
+      "      <label for=\"fCommands\">&lt;- Commands -&gt;</label>\n"
+      "      <input type=\"submit\" value=\"Send\">\n"
+      "    </form>\n"
+      "  </body>\n"
+      "</html>\n"
+      "\n";
 
-  Http::SendString(GyroReadings_Str);
+  // String GyroReadings_Str =
+  //   SerializeGyroReadings(GetLastGyroReadings(), GetLastGyroReadingsTime_Ms());
+
+  Http::SendHtml(CommandPoint_Html);
 
   CommentStream->printf(
-    "[%lu] Sent gyro readings to %s.\n",
+    "[%lu] Sent main page to %s.\n",
     millis(),
     Http::GetClientIp().c_str()
   );
+
+  Motorboard::RunMotorsTest(MotorboardStream);
 }
 
 void Overseer::SetupGyroPoll(uint16_t Interval_Ms, Ticker::callback_function_t Callback)
@@ -251,4 +277,5 @@ void Overseer::Heartbeat_Callback()
   2023-11-07
   2023-11-11
   2023-11-13
+  2023-11-15
 */
