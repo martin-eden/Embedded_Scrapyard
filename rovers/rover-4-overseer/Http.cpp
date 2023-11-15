@@ -12,9 +12,16 @@ ESP8266WebServer HttpServer;
 
 // ---
 
-void NotFoundHandler_Callback();
-
 using namespace Http;
+
+const uint16_t Response_Ok = 200;
+const uint16_t Response_NotFound = 404;
+const char
+  Content_Plaintext[] = "text/plain",
+  Content_Html[] = "text/html";
+
+
+void NotFoundHandler_Callback();
 
 // Start HTTP server with given callback function
 void Http::Setup(THandlerFunction RootHandler_Callback)
@@ -32,11 +39,21 @@ void Http::HandleEvents()
 }
 
 // Send string as plaintext
-void Http::SendString(String DataString)
+void Http::SendPlaintext(String DataString)
 {
   HttpServer.send(
     Response_Ok,
     Content_Plaintext,
+    DataString
+  );
+}
+
+// Send string as HTML
+void Http::SendHtml(String DataString)
+{
+  HttpServer.send(
+    Response_Ok,
+    Content_Html,
     DataString
   );
 }

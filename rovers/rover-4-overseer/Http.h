@@ -2,8 +2,8 @@
 
 /*
   Status: stable
-  Version: 2
-  Last mod.: 2023-11-13
+  Version: 3
+  Last mod.: 2023-11-15
 */
 
 #pragma once
@@ -14,16 +14,13 @@
 
 namespace Http
 {
-  const uint16_t Response_Ok = 200;
-  const uint16_t Response_NotFound = 404;
-  const char Content_Plaintext[] = "text/plain";
-
   typedef std::function<void (void)> THandlerFunction;
 
   void Setup(THandlerFunction RootHandler_Callback);
   void HandleEvents();
 
-  void SendString(String DataString);
+  void SendPlaintext(String DataString);
+  void SendHtml(String DataString);
 
   String GetClientIp();
 }
@@ -31,4 +28,5 @@ namespace Http
 /*
   2023-11-07
   2023-11-13
+  2023-11-15
 */
