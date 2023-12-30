@@ -2,8 +2,8 @@
 
 /*
   Status: reforming
-  Version: 3
-  Last mod.: 2023-12-28
+  Version: 4
+  Last mod.: 2023-12-30
 */
 
 #include "me_Wifi.h"
@@ -45,8 +45,7 @@ bool me_Wifi::Scan(uint8_t* NumStationsFound)
 */
 bool me_Wifi::GetStationInfo(
   uint8_t StationIndex,
-  TStation* Station,
-  TChannel* Channel
+  TStation* Station
 )
 {
   bool Inner_Result;
@@ -102,41 +101,46 @@ bool me_Wifi::GetStationInfo(
   // --
 
   // Channel.BandNumber
-  Channel->BandNumber = Inner_BandNumber;
+  Station->Channel.BandNumber = Inner_BandNumber;
 
   // Channel.SignalStrength
-  Channel->SignalStrength = Inner_Rssi;
+  Station->Channel.SignalStrength = Inner_Rssi;
 
   // Channel.SecurityProtocol
-  switch (Inner_Cipher)
   {
-    case ENC_TYPE_NONE:
-      Channel->SecurityProtocol = TSecurityProtocol::None;
-      break;
+    TSecurityProtocol SecurityProtocol;
+    switch (Inner_Cipher)
+    {
+      case ENC_TYPE_NONE:
+        SecurityProtocol = TSecurityProtocol::None;
+        break;
 
-    case ENC_TYPE_WEP:
-      Channel->SecurityProtocol = TSecurityProtocol::Wep;
-      break;
+      case ENC_TYPE_WEP:
+        SecurityProtocol = TSecurityProtocol::Wep;
+        break;
 
-    case ENC_TYPE_TKIP:
-      Channel->SecurityProtocol = TSecurityProtocol::Wpa;
-      break;
+      case ENC_TYPE_TKIP:
+        SecurityProtocol = TSecurityProtocol::Wpa;
+        break;
 
-    case ENC_TYPE_CCMP:
-      Channel->SecurityProtocol = TSecurityProtocol::Wpa2;
-      break;
+      case ENC_TYPE_CCMP:
+        SecurityProtocol = TSecurityProtocol::Wpa2;
+        break;
 
-    case ENC_TYPE_AUTO:
-      Channel->SecurityProtocol = TSecurityProtocol::AnyWpa;
-      break;
+      case ENC_TYPE_AUTO:
+        SecurityProtocol = TSecurityProtocol::AnyWpa;
+        break;
 
-    case 255: // They are returning -1 in uint8_t function in unhandled cases.
-      Channel->SecurityProtocol = TSecurityProtocol::Unknown;
-      break;
+      case 255: // They are returning -1 in uint8_t function in unhandled cases.
+        SecurityProtocol = TSecurityProtocol::Unknown;
+        break;
 
-    default:
-      CommentStream->printf("@ Unexpected security settings value: [%u]. Early exit.\n", Inner_Cipher);
-      return false;
+      default:
+        CommentStream->printf("@ Unexpected security settings value: [%u]. Early exit.\n", Inner_Cipher);
+        return false;
+    }
+
+    Station->Channel.SecurityProtocol = SecurityProtocol;
   }
 
   return true;
@@ -263,4 +267,5 @@ String me_Wifi::GetStationAddress()
   2023-11-13
   2023-11-14
   2023-12-28
+  2023-12-30
 */

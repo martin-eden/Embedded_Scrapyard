@@ -68,6 +68,7 @@ namespace me_Wifi
   struct TStation : TNode
   {
     bool IsHidden;
+    TChannel Channel;
   };
 
   /*
@@ -106,8 +107,7 @@ namespace me_Wifi
   // Get details about station.
   bool GetStationInfo(
     uint8_t StationIndex,
-    TStation* Station,
-    TChannel* Channel
+    TStation* Station
   );
 
   // Then we are trying to dock with named station with password.

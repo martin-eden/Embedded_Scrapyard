@@ -3,7 +3,7 @@
 /*
   Status: good base
   Version: 1
-  Last mod.: 2023-12-28
+  Last mod.: 2023-12-30
 */
 
 /*
@@ -12,10 +12,13 @@
 
 #include <me_Wifi.h>
 
-const
-  uint32_t SerialSpeed = 115200;
+const uint32_t
+  SerialSpeed = 115200;
 
-const uint16_t Message_MaxLength = 500;
+const uint32_t
+  ScanInterval_S = 1.5 * 60;
+
+const uint16_t Message_MaxLength = 3 * 256;
 char Message[Message_MaxLength];
 
 void setup()
@@ -33,7 +36,7 @@ void loop()
 {
   PrintStatus();
   DoScan();
-  delay(150 * 1000);
+  delay(ScanInterval_S * 1000);
 }
 
 void PrintGreeting()
@@ -67,11 +70,15 @@ void PrintStatus()
     Serial.println(Message);
   }
 
-  // Serial.println(me_Wifi::GetStationIp_Str());
+  snprintf(
+    Message,
+    Message_MaxLength,
+    "Rescan interval (s): %u",
+    ScanInterval_S
+  );
+  Serial.println(Message);
 
-  // Serial.println(me_Wifi::GetOurIp_Str());
-
-  // Serial.println(me_Wifi::GetStationMac_Str());
+  Serial.println();
 }
 
 void DoScan()
@@ -94,73 +101,76 @@ void DoScan()
 
   if (ScanResult)
   {
+    Serial.println();
     snprintf(Message, Message_MaxLength, "%u stations found.", NumStationsFound);
     Serial.println(Message);
+    Serial.println();
 
-    if (NumStationsFound > 0)
-      PrintHeader();
+    PrintHeader();
 
     for (uint8_t StationIndex = 0; StationIndex < NumStationsFound; ++StationIndex)
     {
       using namespace me_Wifi;
       TStation StationInfo;
-      TChannel OfferedChannel;
 
-      GetStationInfo(StationIndex, &StationInfo, &OfferedChannel);
+      GetStationInfo(StationIndex, &StationInfo);
 
-      PrintDetails(StationInfo, OfferedChannel);
+      PrintRow(StationInfo);
     }
 
-    if (NumStationsFound > 0)
-      PrintFooter();
+    PrintFooter();
   }
 }
 
 void PrintHeader()
 {
-  snprintf(
-    Message,
-    Message_MaxLength,
-    "+==========+                                    +==========+\n"
-    "| Stations |                                    | Channels |\n"
-    "+==============================================++======================================================+\n"
-    "|        Name          |        MAC        | H || RSSI | Ch |               Security                   |\n"
-    "|----------------------+-------------------+---||------+----+------------------------------------------|\n"
-  );
+  static const char Header[] PROGMEM =
+    "+==========+\n"
+    "| Stations |\n"
+    "+=====================================================================================================+\n"
+    "|                      |                   |   |                    Channel                           |\n"
+    "|                      |                   |   |------------------------------------------------------|\n"
+    "|        Name          |        MAC        | H | RSSI |  # |              Security                    |\n"
+    "|----------------------+-------------------+---+------+----+------------------------------------------|\n"
+    ;
+
+  snprintf(Message, Message_MaxLength, Header);
   Serial.print(Message);
 }
 
 void PrintFooter()
 {
-  snprintf(
-    Message,
-    Message_MaxLength,
-    "+==============================================++======================================================+\n"
-  );
+  static const char Footer[] PROGMEM =
+    "+=====================================================================================================+\n";
+
+  snprintf(Message, Message_MaxLength, Footer);
   Serial.print(Message);
 }
 
-void PrintDetails(me_Wifi::TStation Station, me_Wifi::TChannel Channel)
+void PrintRow(me_Wifi::TStation Station)
 {
+  static const char RowFmt[] PROGMEM =
+    "| %-20s | %s | %s | %4d | %2u | %-40s |\n";
+
   const uint8_t SecurityName_MaxLength = 40;
-  char SecurityName [SecurityName_MaxLength];
+  char SecurityProtocolName [SecurityName_MaxLength];
 
   GetSecurityName(
-    SecurityName,
+    SecurityProtocolName,
     SecurityName_MaxLength,
-    Channel.SecurityProtocol
+    Station.Channel.SecurityProtocol
   );
 
   snprintf(
     Message,
     Message_MaxLength,
-    "| %-20s | %s | %s || %4d | %2u | %-40s |\n",
+    RowFmt,
     Station.Name,
     Station.Id,
     Station.IsHidden ? "X" : "-",
-    Channel.SignalStrength,
-    Channel.BandNumber,
-    SecurityName
+    Station.Channel.SignalStrength,
+    Station.Channel.BandNumber,
+    SecurityProtocolName
   );
   Serial.print(Message);
 }
@@ -210,4 +220,5 @@ bool GetSecurityName(
 /*
   2023-12-26
   2023-12-28
+  2023-12-30
 */
