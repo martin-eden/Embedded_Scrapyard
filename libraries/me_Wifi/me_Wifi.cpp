@@ -1,9 +1,9 @@
 // Wi-Fi functions that I need
 
 /*
-  Status: reforming
+  Status: good except ConnectTo() output
   Version: 4
-  Last mod.: 2023-12-30
+  Last mod.: 2023-12-31
 */
 
 #include "me_Wifi.h"
@@ -20,11 +20,11 @@ using namespace me_Wifi;
   This routine returns number of stations found in output parameter.
   To get details about each station use GetStationInfo() later.
 */
-bool me_Wifi::Scan(uint8_t* NumStationsFound)
+TBool me_Wifi::Scan(TUint_1* NumStationsFound)
 {
-  int8_t Inner_ScanResult;
-  const bool Inner_AsyncScan = false;
-  const bool Inner_IncludeHidden = true;
+  TSint_1 Inner_ScanResult;
+  const TBool Inner_AsyncScan = false;
+  const TBool Inner_IncludeHidden = true;
 
   Inner_ScanResult = WiFi.scanNetworks(Inner_AsyncScan, Inner_IncludeHidden);
 
@@ -43,31 +43,32 @@ bool me_Wifi::Scan(uint8_t* NumStationsFound)
   of stations nearby. So you should scan first to get the number of
   stations nearby.
 */
-bool me_Wifi::GetStationInfo(
-  uint8_t StationIndex,
+TBool me_Wifi::GetStationInfo(
+  TUint_1 StationIndex,
   TStation* Station
 )
 {
   bool Inner_Result;
-  String Inner_StationName;
-  uint8_t Inner_Cipher;
+  String Inner_Ssid;
+  uint8_t Inner_EncType;
   int32_t Inner_Rssi;
-  uint8_t* Inner_Id;
-  int32_t Inner_BandNumber;
+  uint8_t* Inner_Bssid;
+  int32_t Inner_Channel;
   bool Inner_IsHidden;
 
-  const uint8_t Station_Id_MaxLength = TNode_Settings::Id_MaxLength;
-  char Station_Id [Station_Id_MaxLength];
+  const TUint_1 Station_Id_MaxLength = TNode_Settings::Id_MaxLength;
+  TChar Station_Id [Station_Id_MaxLength];
 
-  Inner_Result = WiFi.getNetworkInfo(
-    StationIndex,
-    Inner_StationName,
-    Inner_Cipher,
-    Inner_Rssi,
-    Inner_Id,
-    Inner_BandNumber,
-    Inner_IsHidden
-  );
+  Inner_Result =
+    WiFi.getNetworkInfo(
+      StationIndex,
+      Inner_Ssid,
+      Inner_EncType,
+      Inner_Rssi,
+      Inner_Bssid,
+      Inner_Channel,
+      Inner_IsHidden
+    );
 
   if (!Inner_Result)
   {
@@ -79,19 +80,19 @@ bool me_Wifi::GetStationInfo(
   // --
 
   // Station.Name
-  strncpy(Station->Name, Inner_StationName.c_str(), TNode_Settings::Name_MaxLength);
+  strncpy(Station->Name, Inner_Ssid.c_str(), TNode_Settings::Name_MaxLength);
 
   // Station.Id
   snprintf(
     Station_Id,
     Station_Id_MaxLength,
     "%02X:%02X:%02X:%02X:%02X:%02X",
-    Inner_Id[0],
-    Inner_Id[1],
-    Inner_Id[2],
-    Inner_Id[3],
-    Inner_Id[4],
-    Inner_Id[5]
+    Inner_Bssid[0],
+    Inner_Bssid[1],
+    Inner_Bssid[2],
+    Inner_Bssid[3],
+    Inner_Bssid[4],
+    Inner_Bssid[5]
   );
   strncpy(Station->Id, Station_Id, Station_Id_MaxLength);
 
@@ -101,7 +102,7 @@ bool me_Wifi::GetStationInfo(
   // --
 
   // Channel.BandNumber
-  Station->Channel.BandNumber = Inner_BandNumber;
+  Station->Channel.BandNumber = Inner_Channel;
 
   // Channel.SignalStrength
   Station->Channel.SignalStrength = Inner_Rssi;
@@ -109,7 +110,7 @@ bool me_Wifi::GetStationInfo(
   // Channel.SecurityProtocol
   {
     TSecurityProtocol SecurityProtocol;
-    switch (Inner_Cipher)
+    switch (Inner_EncType)
     {
       case ENC_TYPE_NONE:
         SecurityProtocol = TSecurityProtocol::None;
@@ -131,12 +132,12 @@ bool me_Wifi::GetStationInfo(
         SecurityProtocol = TSecurityProtocol::AnyWpa;
         break;
 
-      case 255: // They are returning -1 in uint8_t function in unhandled cases.
+      case 255: // They are returning -1 in TUint_1 function in unhandled cases.
         SecurityProtocol = TSecurityProtocol::Unknown;
         break;
 
       default:
-        CommentStream->printf("@ Unexpected security settings value: [%u]. Early exit.\n", Inner_Cipher);
+        CommentStream->printf("@ Unexpected security settings value: [%u]. Early exit.\n", Inner_EncType);
         return false;
     }
 
@@ -151,10 +152,10 @@ bool me_Wifi::GetStationInfo(
 
   Try to connect to given station with given password in given timeout.
 */
-bool me_Wifi::ConnectTo(
-  char const * StationName,
-  char const * StationPassword,
-  uint16_t Timeout_S
+TBool me_Wifi::ConnectByName(
+  TChar const * StationName,
+  TChar const * StationPassword,
+  TUint_1 Timeout_S
 )
 {
   CommentStream->printf("Setting-up WiFi: [\n");
@@ -172,15 +173,17 @@ bool me_Wifi::ConnectTo(
     Timeout_S
   );
 
-  uint32_t StartTimeMs = millis();
+  TUint_4 StartTimeMs = millis();
 
   WiFi.begin(StationName, StationPassword);
 
-  uint16_t Timeout_Ms = 1000 * Timeout_S;
-  int8_t ConnectionStatus = WiFi.waitForConnectResult(Timeout_Ms);
+  TUint_2 Timeout_Ms = 1000 * Timeout_S;
+  Serial.printf("Timeout_Ms = %u\n", Timeout_Ms);
 
-  uint32_t FinishTimeMs = millis();
-  uint32_t TimePassedMs = FinishTimeMs - StartTimeMs;
+  TSint_1 ConnectionStatus = WiFi.waitForConnectResult(Timeout_Ms);
+
+  TUint_4 FinishTimeMs = millis();
+  TUint_4 TimePassedMs = FinishTimeMs - StartTimeMs;
 
   switch (ConnectionStatus)
   {
@@ -222,7 +225,7 @@ bool me_Wifi::ConnectTo(
       break;
   }
 
-  CommentStream->printf("  Time taken (ms): %u\n", TimePassedMs);
+  CommentStream->printf("  Time taken (ms): %lu\n", TimePassedMs);
 
   CommentStream->printf("]\n\n");
 
@@ -246,7 +249,7 @@ String me_Wifi::GetOurAddress()
   return WiFi.localIP().toString();
 }
 
-int8_t me_Wifi::GetDistance_Dbm()
+TSint_1 me_Wifi::GetDistance_Dbm()
 {
   return WiFi.RSSI();
 }
@@ -268,4 +271,5 @@ String me_Wifi::GetStationAddress()
   2023-11-14
   2023-12-28
   2023-12-30
+  2023-12-31
 */
