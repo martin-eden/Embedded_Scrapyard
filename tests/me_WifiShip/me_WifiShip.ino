@@ -35,20 +35,22 @@ void setup()
 
   delay(SerialSetupDelay_Ms);
 
+  WifiShip.Init();
+
   Serial.println();
   Serial.println();
 
   PrintGreeting();
   PrintSettings();
+
+  PrintShipIds();
+  ReplaceShipIds();
 }
 
 void loop()
 {
   // static TBool IsConnected = false;
 
-  PrintShipIds();
-
-  ChangeShipIds();
   PrintShipIds();
 
   // WifiShip_Ui.PrintStations();
@@ -65,7 +67,7 @@ void loop()
 
 void PrintGreeting()
 {
-  Serial.println("Demo of <me_WifiShip_Ui.h> which uses <me_WifiShip.h>.");
+  Serial.println("Demo of <me_WifiShip.h> and <me_WifiShip_Ui.h>.");
   Serial.println();
 }
 
@@ -91,34 +93,25 @@ void PrintShipIds()
   }
 }
 
-void ChangeShipIds()
+void ReplaceShipIds()
 {
-  me_WifiShip::TCraftIds NewIds;
-  TBool NameIsChanged;
-  TBool IdIsChanged;
+  me_WifiShip::TCraftIds ShipIds;
+  TBool SetIds;
 
-  Serial.println("Trying to change ship id's...");
+  Serial.print("Trying to replace ship id's... ");
 
-  NewIds.Id[0] = 0xDE;
-  NewIds.Id[1] = 0xFA;
-  NewIds.Id[2] = 0xCE;
-  NewIds.Id[3] = 0xD0;
-  NewIds.Id[4] = 0x00;
-  NewIds.Id[5] = 0x00;
+  ShipIds.Id[0] = 0xDE;
+  ShipIds.Id[1] = 0xFA;
+  ShipIds.Id[2] = 0xCE;
+  ShipIds.Id[3] = 0xD0;
+  ShipIds.Id[4] = 0x00;
+  ShipIds.Id[5] = 0x00;
 
-  strcpy(NewIds.Name, "REBORN");
+  strcpy(ShipIds.Name, "REBORN");
 
-  IdIsChanged = WifiShip.SetShipId(NewIds.Id);
-  NameIsChanged = WifiShip.SetShipName(NewIds.Name);
+  SetIds = WifiShip.SetShipIds(ShipIds);
 
-  Serial.print("Id...");
-  if (IdIsChanged)
-    Serial.println("yep!");
-  else
-    Serial.println("nah.");
-
-  Serial.print("Name...");
-  if (NameIsChanged)
+  if (SetIds)
     Serial.println("yep!");
   else
     Serial.println("nah.");

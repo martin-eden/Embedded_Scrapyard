@@ -5,6 +5,11 @@
 
 using namespace me_WifiShip;
 
+void TWifiShip::Init()
+{
+  WiFi.enableSTA(true);
+}
+
 // -- Id
 
 TBool TWifiShip::GetShipId(TCraftId* ShipId)
@@ -27,9 +32,6 @@ TBool TWifiShip::GetShipId(TCraftId* ShipId)
 
 TBool TWifiShip::SetShipId(TCraftId ShipId)
 {
-  return false;
-
-  /*
   bool Inner_Result;
   const uint8 Inner_Role = 0;
   const TUint_1 Inner_Mac_Size = 6;
@@ -41,34 +43,31 @@ TBool TWifiShip::SetShipId(TCraftId ShipId)
 
   if (!Inner_Result)
   {
+    Serial.println("@SetShipId: Inner_Result is false.");
     return false;
   }
 
   return true;
-  */
 }
 
 // -- Name
 
 TBool TWifiShip::GetShipName(TCraftName* ShipName)
 {
-  strncpy(ShipName[0], WiFi.hostname().c_str(), TCraftName_Size);
+  strncpy(ShipName[0], wifi_station_get_hostname(), TCraftName_Size);
 
   return true;
 }
 
 TBool TWifiShip::SetShipName(TCraftName ShipName)
 {
-  return false;
-
-  /*
   TUint_1 Inner_Hostname_Size = 32;
   char Inner_Hostname[Inner_Hostname_Size];
   bool Inner_Result;
 
-  strncpy(Inner_Hostname, reinterpret_cast<const char*>(ShipName), Inner_Hostname_Size);
+  strncpy(Inner_Hostname, ShipName, Inner_Hostname_Size);
 
-  Inner_Result = wifi_station_set_hostname(reinterpret_cast<const char*>(Inner_Hostname));
+  Inner_Result = wifi_station_set_hostname(Inner_Hostname);
 
   if (!Inner_Result)
   {
@@ -76,7 +75,6 @@ TBool TWifiShip::SetShipName(TCraftName ShipName)
   }
 
   return true;
-  */
 }
 
 // -- Id + Name

@@ -64,7 +64,7 @@
         ScanWentFine = Ship.Scanner.Scan(&NumStations);
         if (ScanWentFine)
           for StationIndex = 0, NumStations - 1
-            GotStationInfo = Ship.Scanner.GetStationInfo(StationIndex, StationInfo)
+            GotStationInfo = Ship.Scanner.GetStationInfo(StationIndex, &StationInfo)
             if (GotStationInfo)
               print ("Name = $StationInfo.Name, ...")
 
@@ -140,6 +140,8 @@ namespace me_WifiShip
     public:
       // TWifiShip_Scanner Scanner;
       // TWifiShip_Docker Docker;
+
+      void Init();
 
       TBool GetShipId(TCraftId* ShipId);
       TBool SetShipId(TCraftId ShipId);
