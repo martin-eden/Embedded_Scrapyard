@@ -1,3 +1,5 @@
+// WifiShip core implementation.
+
 #include "me_WifiShip.h"
 
 #include <ESP8266WiFi.h> // ESP8266 official SDK

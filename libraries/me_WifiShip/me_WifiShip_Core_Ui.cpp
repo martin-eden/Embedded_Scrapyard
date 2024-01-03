@@ -1,4 +1,4 @@
-// Text representation of WiFi ship core.
+// Text representation of WiFi ship core. Implementation.
 
 /*
   Status: stable
@@ -10,6 +10,7 @@
 
 #include <cstdio> // for snprintf()
 
+// --( Represent Id (MAC) )--
 void me_WifiShip_Core_Ui::RepresentShipId(
   TChar* Message,
   TUint_2 Message_MaxLength,
@@ -29,6 +30,7 @@ void me_WifiShip_Core_Ui::RepresentShipId(
   );
 };
 
+// --( Represent Name (SSID) )--
 void me_WifiShip_Core_Ui::RepresentShipName(
   TChar* Message,
   TUint_2 Message_MaxLength,
@@ -44,6 +46,7 @@ void me_WifiShip_Core_Ui::RepresentShipName(
 };
 
 
+// --( Represent Id + Name )--
 void me_WifiShip_Core_Ui::RepresentShipIds(
   TChar* Message,
   TUint_2 Message_MaxLength,

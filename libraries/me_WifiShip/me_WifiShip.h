@@ -101,9 +101,9 @@
 
 #include <me_Types.h>
 
-#include <me_WifiShip_Core.h>
-#include <me_WifiShip_Scanner.h>
-#include <me_WifiShip_Docker.h>
+#include "me_WifiShip_Core.h"
+#include "me_WifiShip_Scanner.h"
+#include "me_WifiShip_Docker.h"
 
 namespace me_WifiShip
 {

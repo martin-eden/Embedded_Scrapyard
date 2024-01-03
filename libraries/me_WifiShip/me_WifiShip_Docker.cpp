@@ -1,4 +1,4 @@
-// WifiShip docker.
+// WifiShip docker implementation.
 
 #include "me_WifiShip_Docker.h"
 
@@ -132,6 +132,8 @@ TUint_1 TWifiShip_Docker::GetDockingTimeout_S()
 // --( Map inner result )--
 TDockingStatus TWifiShip_Docker::MapInnerStatus(TSint_1 aInnerStatus)
 {
+  // aInnerStatus - sint from WiFi.waitForConnectResult()
+
   /*
     Those guys are returning sint(-1) when timeout and returning uint(status)
     for other cases. Disgusting.

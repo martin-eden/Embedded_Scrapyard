@@ -1,3 +1,5 @@
+// WifiShip scanner implementation.
+
 #include "me_WifiShip_Scanner.h"
 
 #include <ESP8266WiFi.h> // ESP8266 official SDK

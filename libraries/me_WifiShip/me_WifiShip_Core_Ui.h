@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <me_WifiShip_Core.h>
-
 #include <me_Types.h>
+
+#include "me_WifiShip_Core.h"
 
 namespace me_WifiShip_Core_Ui
 {

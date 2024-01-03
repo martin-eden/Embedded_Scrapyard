@@ -19,10 +19,10 @@ const TUint_4
   SerialSpeed = 115200;
 
 const TUint_4
-  // Network rescan interval:
+  // Network rescan interval (s):
   RescanInterval_S = 1.5 * 60;
 
-// Just generic char buffer for text output:
+// Just a generic char buffer for text output:
 const TUint_2 Message_MaxLength = 2 * 256;
 TChar Message [Message_MaxLength];
 
@@ -50,6 +50,7 @@ void setup()
     return;
   }
 
+  // Get/set SSID and MAC test:
   PrintShipIds();
   SetShipIds();
   PrintShipIds();
@@ -64,7 +65,7 @@ void loop()
 
 void PrintGreeting()
 {
-  Serial.println("Demo of <me_WifiShip_Core.h> and <me_WifiShip_Core_Ui.h>.");
+  Serial.println("Demo of <me_WifiShip.h>.");
   Serial.println();
 }
 
@@ -93,10 +94,8 @@ void PrintShipIds()
 void SetShipIds()
 {
   me_WifiShip_Core::TShipIds ShipIds;
-  TBool Inner_Result;
 
-  Serial.print("Setting ship id's... ");
-
+  // New MAC:
   ShipIds.Id[0] = 0xDE;
   ShipIds.Id[1] = 0xFA;
   ShipIds.Id[2] = 0xCE;
@@ -104,11 +103,12 @@ void SetShipIds()
   ShipIds.Id[4] = 0x00;
   ShipIds.Id[5] = 0x00;
 
+  // New SSID:
   strcpy(ShipIds.Name, "REBORN");
 
-  Inner_Result = WifiShip.Core.SetShipIds(ShipIds);
+  Serial.print("Setting ship id's... ");
 
-  if (Inner_Result)
+  if (WifiShip.Core.SetShipIds(ShipIds))
     Serial.println("yep!");
   else
     Serial.println("nah.");

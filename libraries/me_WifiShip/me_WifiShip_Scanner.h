@@ -1,3 +1,5 @@
+// WifiShip scanner.
+
 /*
   Implementation terminology
 
@@ -39,18 +41,18 @@
 namespace me_WifiShip_Scanner
 {
   // Id:
-  const TUint_1 TShipId_Size = 6;
-  typedef TUint_1 TShipId[TShipId_Size];
+  const TUint_1 TCraftId_Size = 6;
+  typedef TUint_1 TCraftId[TCraftId_Size];
 
   // Name:
-  const TUint_1 TShipName_Size = 32 + 1;
-  typedef TChar TShipName[TShipName_Size];
+  const TUint_1 TCraftName_Size = 32 + 1;
+  typedef TChar TCraftName[TCraftName_Size];
 
   // Id + Name:
-  struct TShipIds
+  struct TCraftIds
   {
-    TShipId Id; // MAC
-    TShipName Name; // SSID
+    TCraftId Id; // MAC
+    TCraftName Name; // SSID
   };
 
   enum struct TSecurityProtocol
@@ -65,19 +67,20 @@ namespace me_WifiShip_Scanner
 
   /*
     Scanned channel info. We have a different set of fields for
-    describing channel of docked station. So no TChannel.
+    describing channel of docked station.
   */
-  struct TScannedChannel
+  struct TOfferedChannel
   {
     TUint_1 Band; // Channel Number
     TSint_1 Strength; // RSSI
     TSecurityProtocol SecurityProtocol;
   };
 
-  struct TScannedStation : TShipIds
+  struct TScannedStation
   {
+    TCraftIds Ids;
     TBool IsHidden;
-    TScannedChannel Channel;
+    TOfferedChannel Channel;
   };
 
   class TWifiShip_Scanner

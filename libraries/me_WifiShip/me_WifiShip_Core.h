@@ -7,13 +7,12 @@
 */
 
 /*
-  This modules provides functionality to get/set ship ids.
+  This module provides functionality to get/set ship ids.
 
   Id's are name (SSID) and id (MAC).
 
   Design
 
-    --( base )--
     Init(): bool
 
     --( Id )--
@@ -24,7 +23,7 @@
     GetShipName(): bool, Name
     SetShipName(Name): bool
 
-    --( Id + Name)--
+    --( Id + Name )--
     GetShipIds(): Id, Name
     SetShipIds(Id, Name): bool
 
