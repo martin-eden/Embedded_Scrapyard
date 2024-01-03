@@ -1,18 +1,18 @@
 // Connect to WiFi router
 
 /*
-  Status: redesigning
+  Status: redesigned
   Version: 5
-  Last mod.: 2023-12-31
+  Last mod.: 2024-01-03
 */
 
 /*
   System library interface is usually ugly.
 
-  System library needs to support backward compatibility and
-  provide access to new features. So it's names and structures
-  can remain at 1980 level or they can represent a weird mixture
-  of design solutions.
+  System library needs to support backward compatibility and provide
+  access to new features. So it's names and structures can remain flat
+  and at 1980 level or they can represent amazing mixture of design
+  solutions.
 
   I do not want that ugliness in my code.
 
@@ -84,7 +84,7 @@
       Scanner - <me_WifiShip_Scanner.h>
       Docker - <me_WifiShip_Docker.h>
 
-    All four classes have personal companion module:
+    All four classes have personal companion UI module:
 
       * Serial text interface for demo/test.
 
@@ -125,4 +125,5 @@ namespace me_WifiShip
   2023-12-28 -- code structural design, network scan
   2023-12-31 -- using <me_Types.h>
   2024-01-01 -- splat to three modules: ship = (frame, scanner, docker)
+  2024-01-03
 */
