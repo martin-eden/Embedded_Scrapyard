@@ -3,98 +3,61 @@
 #include <ESP8266WiFi.h> // ESP8266 official SDK
 // #include <Arduino.h> // Serial for debug
 
+/*
+  -- gift to scannner
+  Station(extends Craft) - router that we can try to connect
+
+    IsHidden - has no name, usually not something that welcomes connects
+
+    Channel - offered frequency band. See Channel.
+
+  Channel - radio band channel that is used for data transmission
+
+    Band - number of channel. Physically it describes range of radio
+      frequencies (band).
+
+    Strength - received signal strength indicator (RSSI).
+
+      Weird negative integer number that represents logarithm
+      of signal-to-noise-ratio.
+
+      Maybe I'll to convert internal representation to something
+      more useful.
+
+    SecurityProtocol - WEP, WPA 1, WPA 2 or (WPA 1 + WPA 2).
+
+        WEP - cracked
+        WPA 1 - deprecated
+        WPA 1 + WPA 2 - deprecated support
+        WPA 2 - normal router should use this
+
+    # Actually we can retrieve more channel details but I don't
+    # need them for my projects.
+
+  -- gift to docker
+  Connection(extends Channel) - we are connected and got IP
+
+    StationAddress - DNS IP. Something like 192.168.0.1.
+
+    ShipAddress - IP. Our IP in local network. Something like
+      192.168.0.208.
+*/
+
 using namespace me_WifiShip;
 
-void TWifiShip::Init()
+TBool TWifiShip::Init()
 {
   WiFi.enableSTA(true);
-}
 
-// -- Id
-
-TBool TWifiShip::GetShipId(TCraftId* ShipId)
-{
-  bool Inner_Result;
-  const uint8 Inner_Role = 0;
-  uint8 Inner_Mac[6];
-
-  Inner_Result = wifi_get_macaddr(Inner_Role, Inner_Mac);
-
-  if (!Inner_Result)
-  {
-    return false;
-  }
-
-  memcpy(ShipId, Inner_Mac, TCraftId_Size);
-
-  return true;
-}
-
-TBool TWifiShip::SetShipId(TCraftId ShipId)
-{
-  bool Inner_Result;
-  const uint8 Inner_Role = 0;
-  const TUint_1 Inner_Mac_Size = 6;
-  uint8 Inner_Mac[Inner_Mac_Size];
-
-  memcpy(Inner_Mac, ShipId, Inner_Mac_Size);
-
-  Inner_Result = wifi_set_macaddr(Inner_Role, Inner_Mac);
-
-  if (!Inner_Result)
-  {
-    Serial.println("@SetShipId: Inner_Result is false.");
-    return false;
-  }
-
-  return true;
-}
-
-// -- Name
-
-TBool TWifiShip::GetShipName(TCraftName* ShipName)
-{
-  strncpy(ShipName[0], wifi_station_get_hostname(), TCraftName_Size);
-
-  return true;
-}
-
-TBool TWifiShip::SetShipName(TCraftName ShipName)
-{
-  TUint_1 Inner_Hostname_Size = 32;
-  char Inner_Hostname[Inner_Hostname_Size];
-  bool Inner_Result;
-
-  strncpy(Inner_Hostname, ShipName, Inner_Hostname_Size);
-
-  Inner_Result = wifi_station_set_hostname(Inner_Hostname);
-
-  if (!Inner_Result)
-  {
-    return false;
-  }
-
-  return true;
-}
-
-// -- Id + Name
-
-TBool TWifiShip::GetShipIds(TCraftIds* ShipIds)
-{
   return
-    GetShipId(&ShipIds->Id) &&
-    GetShipName(&ShipIds->Name);
-}
-
-TBool TWifiShip::SetShipIds(TCraftIds ShipIds)
-{
-  return
-    SetShipId(ShipIds.Id) &&
-    SetShipName(ShipIds.Name);
+    Core.Init(); // &&
+    // Scanner.Init() &&
+    // Docker.Init();
 }
 
 // --
 
 /*
   2024-01-01
+  2024-01-03
 */

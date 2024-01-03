@@ -31,9 +31,6 @@
 
 #pragma once
 
-// #include <me_WifiShip_Scanner.h>
-// #include <me_WifiShip_Docker.h>
-
 #include <me_Types.h>
 
 /*
@@ -51,106 +48,54 @@
     | Name    | Name
     | Address | IP
 
-  Usage
+  Design
 
-    * You can connect to station if you know it's name and password:
+    This ship has three parts:
 
-        DockingResult = Ship.Docker.DockTo(StationName, StationPassword)
-        if (DockingResult == Docked)
-          print ("IP = $Ship.Docker.Connection.ShipAddress")
+      * Core
 
-    * You can scan for nearby stations to get their names:
+        Ship core is it's name and id. You can change them.
 
-        ScanWentFine = Ship.Scanner.Scan(&NumStations);
-        if (ScanWentFine)
-          for StationIndex = 0, NumStations - 1
-            GotStationInfo = Ship.Scanner.GetStationInfo(StationIndex, &StationInfo)
-            if (GotStationInfo)
-              print ("Name = $StationInfo.Name, ...")
+      * Scanner
 
-  Implementation terminology
+        Scanner scans for nearby stations. You need to call it's
+        Scan() to retrieve list of stations.
 
-    For implementation details I'm using these terms.
+      * Docker
 
-      Craft - any device in WiFi network with SSID and BSSID
+        Docker connects/disconnects to station. You need to know
+        station name and password. You can get names from scanner.
 
-        Name - name of device as it is seen in network. This is what
-          practically needed for connection.
+  Source files
 
-        Id - MAC address of device. That is what theoretically needed
-          for connection.
+    Core - <me_WifiShip_Core.h>
+    Scanner - <me_WifiShip_Scanner.h>
+    Docker - <me_WifiShip_Docker.h>
 
-          Internal Esplora API requires name for connection. So you
-          can't even try to connect to hidden network as it's name is
-          empty.
+  Classes
 
-      Station(extends Craft) - router that we can try to connect
+    @: TWifiShip
+      Core: TCore
+      Scanner: TScanner
+      Docker: TDocker
 
-        IsHidden - has no name, usually not something that welcomes connects
-
-        Channel - offered frequency band. See Channel.
-
-      Channel - radio band channel that is used for data transmission
-
-        Band - number of channel. Physically it describes range of radio
-          frequencies (band).
-
-        Strength - received signal strength indicator (RSSI).
-
-          Weird negative integer number that represents logarithm
-          of signal-to-noise-ratio.
-
-          Maybe I'll to convert internal representation to something
-          more useful.
-
-        SecurityProtocol - WEP, WPA 1, WPA 2 or (WPA 1 + WPA 2).
-
-            WEP - cracked
-            WPA 1 - deprecated
-            WPA 1 + WPA 2 - deprecated support
-            WPA 2 - normal router should use this
-
-        # Actually we can retrieve more channel details but I don't
-        # need them for my projects.
-
-      Connection(extends Channel) - we are connected and got IP
-
-        StationAddress - DNS IP. Something like 192.168.0.1.
-
-        ShipAddress - IP. Our IP in local network. Something like
-          192.168.0.208.
+      Init(): bool
 */
+
+#include <me_WifiShip_Core.h>
+// #include <me_WifiShip_Scanner.h>
+// #include <me_WifiShip_Docker.h>
 
 namespace me_WifiShip
 {
-  const TUint_1 TCraftId_Size = 6;
-  typedef TUint_1 TCraftId[TCraftId_Size];
-
-  const TUint_1 TCraftName_Size = 32 + 1;
-  typedef TChar TCraftName[TCraftName_Size];
-
-  struct TCraftIds
-  {
-    TCraftId Id; // MAC
-    TCraftName Name;
-  };
-
   class TWifiShip
   {
     public:
-      // TWifiShip_Scanner Scanner;
-      // TWifiShip_Docker Docker;
+      Core::TCore;
+      // Scanner::TScanner Scanner;
+      // TDocker Docker;
 
-      void Init();
-
-      TBool GetShipId(TCraftId* ShipId);
-      TBool SetShipId(TCraftId ShipId);
-
-      TBool GetShipName(TCraftName* ShipName);
-      TBool SetShipName(TCraftName ShipName);
-
-      TBool GetShipIds(TCraftIds* ShipIds);
-      TBool SetShipIds(TCraftIds ShipIds);
+      TBool Init();
   };
 }
 
