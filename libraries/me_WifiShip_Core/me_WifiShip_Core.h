@@ -55,7 +55,7 @@ namespace me_WifiShip_Core
   class TWifiShip_Core
   {
     public:
-      bool Init();
+      TBool Init();
 
       TBool GetShipId(TShipId* ShipId);
       TBool SetShipId(TShipId ShipId);

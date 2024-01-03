@@ -5,7 +5,7 @@
 
 using namespace me_WifiShip_Core;
 
-bool TWifiShip_Core::Init()
+TBool TWifiShip_Core::Init()
 {
   return true;
 }
