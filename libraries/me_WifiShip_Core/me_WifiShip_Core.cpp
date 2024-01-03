@@ -3,16 +3,16 @@
 #include <ESP8266WiFi.h> // ESP8266 official SDK
 // #include <Arduino.h> // Serial for debug
 
-using namespace me_WifiShip;
+using namespace me_WifiShip_Core;
 
-bool TWifiShip::Init()
+bool TWifiShip_Core::Init()
 {
   return true;
 }
 
-// -- Working with Id
+// -- Working with Id (MAC)
 
-TBool TWifiShip::GetShipId(TShipId* ShipId)
+TBool TWifiShip_Core::GetShipId(TShipId* ShipId)
 {
   bool Inner_Result;
   const uint8 Inner_Role = 0;
@@ -30,7 +30,7 @@ TBool TWifiShip::GetShipId(TShipId* ShipId)
   return true;
 }
 
-TBool TWifiShip::SetShipId(TShipId ShipId)
+TBool TWifiShip_Core::SetShipId(TShipId ShipId)
 {
   bool Inner_Result;
   const uint8 Inner_Role = 0;
@@ -50,16 +50,16 @@ TBool TWifiShip::SetShipId(TShipId ShipId)
   return true;
 }
 
-// -- Working with Name
+// -- Working with Name (SSID)
 
-TBool TWifiShip::GetShipName(TShipName* ShipName)
+TBool TWifiShip_Core::GetShipName(TShipName* ShipName)
 {
   strncpy(ShipName[0], wifi_station_get_hostname(), TShipName_Size);
 
   return true;
 }
 
-TBool TWifiShip::SetShipName(TShipName ShipName)
+TBool TWifiShip_Core::SetShipName(TShipName ShipName)
 {
   TUint_1 Inner_Hostname_Size = 32;
   char Inner_Hostname[Inner_Hostname_Size];
@@ -79,14 +79,14 @@ TBool TWifiShip::SetShipName(TShipName ShipName)
 
 // -- State port
 
-TBool TWifiShip::GetShipIds(TShipIds* ShipIds)
+TBool TWifiShip_Core::GetShipIds(TShipIds* ShipIds)
 {
   return
     GetShipId(&ShipIds->Id) &&
     GetShipName(&ShipIds->Name);
 }
 
-TBool TWifiShip::SetShipIds(TShipIds ShipIds)
+TBool TWifiShip_Core::SetShipIds(TShipIds ShipIds)
 {
   return
     SetShipId(ShipIds.Id) &&

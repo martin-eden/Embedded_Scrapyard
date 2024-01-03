@@ -66,20 +66,39 @@
         Docker connects/disconnects to station. You need to know
         station name and password. You can get names from scanner.
 
-  Source files
-
-    Core - <me_WifiShip_Core.h>
-    Scanner - <me_WifiShip_Scanner.h>
-    Docker - <me_WifiShip_Docker.h>
-
   Classes
 
-    @: TWifiShip
+    WifiShip: TWifiShip
       Core: TCore
       Scanner: TScanner
       Docker: TDocker
 
       Init(): bool
+
+  Source files
+
+    Parts
+
+      WifiShip - <me_WifiShip.h>
+      Core - <me_WifiShip_Core.h>
+      Scanner - <me_WifiShip_Scanner.h>
+      Docker - <me_WifiShip_Docker.h>
+
+    All four classes have personal companion module:
+
+      * Serial text interface for demo/test.
+
+        Filename suffix: "_Ui"
+        E.g.: <me_WifiShip_Core_Ui.h>
+
+        It prints class states nicely. And gets user input when needed
+        (ask name/password to connect).
+
+        Not really needed in production code but very welcome in development.
+
+    Demo/test
+
+      <me_WifiShip.ino>
 */
 
 #include <me_WifiShip_Core.h>
@@ -91,9 +110,9 @@ namespace me_WifiShip
   class TWifiShip
   {
     public:
-      Core::TCore;
-      // Scanner::TScanner Scanner;
-      // TDocker Docker;
+      me_WifiShip_Core::TWifiShip_Core Core;
+      // me_WifiShip::TWifiShip_Scanner Scanner;
+      // me_WifiShip::TWifiShip_Docker Docker;
 
       TBool Init();
   };

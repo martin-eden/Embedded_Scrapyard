@@ -1,9 +1,9 @@
-// <me_WifiShip_Ui.h> library test/demo.
+// <me_WifiShip.h> test/demo.
 
 /*
   Status: good base
-  Version: 3
-  Last mod.: 2024-01-01
+  Version: 4
+  Last mod.: 2024-01-03
 */
 
 /*
@@ -11,8 +11,7 @@
 */
 
 #include <me_WifiShip.h>
-
-#include <me_WifiShip_Ui.h>
+#include <me_WifiShip_Core_Ui.h>
 
 #include <me_Types.h>
 
@@ -20,54 +19,52 @@ const TUint_4
   SerialSpeed = 115200;
 
 const TUint_4
+  // Network rescan interval:
   RescanInterval_S = 1.5 * 60;
 
+// Just generic char buffer for text output:
 const TUint_2 Message_MaxLength = 2 * 256;
 TChar Message [Message_MaxLength];
 
+// Our WifiShip:
 me_WifiShip::TWifiShip WifiShip;
 
 void setup()
 {
-  const TUint_2 SerialSetupDelay_Ms = 500;
+  {
+    const TUint_2 SerialSetupDelay_Ms = 500;
 
-  Serial.begin(SerialSpeed);
-
-  delay(SerialSetupDelay_Ms);
-
-  WifiShip.Init();
-
-  Serial.println();
-  Serial.println();
+    Serial.begin(SerialSpeed);
+    delay(SerialSetupDelay_Ms);
+    Serial.println();
+    Serial.println();
+  }
 
   PrintGreeting();
+
   PrintSettings();
+
+  if (!WifiShip.Init())
+  {
+    Serial.println("@ Failed to init WifiShip. Early exit.");
+    return;
+  }
 
   PrintShipIds();
   ReplaceShipIds();
+  PrintShipIds();
 }
 
 void loop()
 {
-  // static TBool IsConnected = false;
+  delay(RescanInterval_S * 1000);
 
   PrintShipIds();
-
-  // WifiShip_Ui.PrintStations();
-
-  // IsConnected = WifiShip_Ui.Connect();
-
-  // if (IsConnected)
-  // {
-  //   Serial.println("Connected to station.");
-  // }
-
-  delay(RescanInterval_S * 1000);
 }
 
 void PrintGreeting()
 {
-  Serial.println("Demo of <me_WifiShip.h> and <me_WifiShip_Ui.h>.");
+  Serial.println("Demo of <me_WifiShip_Core.h> and <me_WifiShip_Core_Ui.h>.");
   Serial.println();
 }
 
@@ -84,21 +81,21 @@ void PrintSettings()
 
 void PrintShipIds()
 {
-  me_WifiShip::TCraftIds ShipIds;
+  me_WifiShip_Core::TShipIds ShipIds;
 
-  if (WifiShip.GetShipIds(&ShipIds))
+  if (WifiShip.Core.GetShipIds(&ShipIds))
   {
-    me_WifiShip_Ui::RepresentCraftIds(Message, Message_MaxLength, ShipIds);
+    me_WifiShip_Core_Ui::RepresentShipIds(Message, Message_MaxLength, ShipIds);
     Serial.println(Message);
   }
 }
 
 void ReplaceShipIds()
 {
-  me_WifiShip::TCraftIds ShipIds;
-  TBool SetIds;
+  me_WifiShip_Core::TShipIds ShipIds;
+  TBool Inner_Result;
 
-  Serial.print("Trying to replace ship id's... ");
+  Serial.print("Replacing ship id's... ");
 
   ShipIds.Id[0] = 0xDE;
   ShipIds.Id[1] = 0xFA;
@@ -109,9 +106,9 @@ void ReplaceShipIds()
 
   strcpy(ShipIds.Name, "REBORN");
 
-  SetIds = WifiShip.SetShipIds(ShipIds);
+  Inner_Result = WifiShip.Core.SetShipIds(ShipIds);
 
-  if (SetIds)
+  if (Inner_Result)
     Serial.println("yep!");
   else
     Serial.println("nah.");
