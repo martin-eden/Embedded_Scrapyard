@@ -3,19 +3,17 @@
 /*
   Status: stable
   Version: 2
-  Last mod.: 2024-01-03
+  Last mod.: 2024-01-04
 */
 
 #include "me_WifiShip_Core_Ui.h"
 
 #include <cstdio> // for snprintf()
 
-using namespace me_WifiShip_Core;
-
 void me_WifiShip_Core_Ui::RepresentShipId(
   TChar* Message,
   TUint_2 Message_MaxLength,
-  TShipId ShipId
+  me_WifiShip_Core::TShipId ShipId
 )
 {
   snprintf(
@@ -34,7 +32,7 @@ void me_WifiShip_Core_Ui::RepresentShipId(
 void me_WifiShip_Core_Ui::RepresentShipName(
   TChar* Message,
   TUint_2 Message_MaxLength,
-  TShipName ShipName
+  me_WifiShip_Core::TShipName ShipName
 )
 {
   snprintf(
@@ -49,7 +47,7 @@ void me_WifiShip_Core_Ui::RepresentShipName(
 void me_WifiShip_Core_Ui::RepresentShipIds(
   TChar* Message,
   TUint_2 Message_MaxLength,
-  TShipIds ShipIds
+  me_WifiShip_Core::TShipIds ShipIds
 )
 {
   static const TChar MessageFmt[] PROGMEM =
