@@ -1,22 +1,23 @@
 #include "me_WifiShip.h"
 
 #include <ESP8266WiFi.h> // ESP8266 official SDK
-// #include <Arduino.h> // Serial for debug
 
 using namespace me_WifiShip_Core;
 
+// --( Init )--
 TBool TWifiShip_Core::Init()
 {
   return true;
 }
 
-// -- Working with Id (MAC)
+// --( Get/set Id (MAC) )--
 
 TBool TWifiShip_Core::GetShipId(TShipId* ShipId)
 {
   bool Inner_Result;
   const uint8 Inner_Role = 0;
-  uint8 Inner_Mac[6];
+  const TUint_1 Inner_Mac_Size = 6;
+  uint8 Inner_Mac[Inner_Mac_Size];
 
   Inner_Result = wifi_get_macaddr(Inner_Role, Inner_Mac);
 
@@ -50,7 +51,7 @@ TBool TWifiShip_Core::SetShipId(TShipId ShipId)
   return true;
 }
 
-// -- Working with Name (SSID)
+// --( Get/set Name (SSID) )--
 
 TBool TWifiShip_Core::GetShipName(TShipName* ShipName)
 {
@@ -77,7 +78,7 @@ TBool TWifiShip_Core::SetShipName(TShipName ShipName)
   return true;
 }
 
-// -- State port
+// --( State import/export )--
 
 TBool TWifiShip_Core::GetShipIds(TShipIds* ShipIds)
 {

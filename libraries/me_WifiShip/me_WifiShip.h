@@ -1,4 +1,4 @@
-// Connect to WiFi router
+// WifiShip: Structured approach to base WiFi functionality.
 
 /*
   Status: redesigned
@@ -31,14 +31,13 @@
 
 #pragma once
 
-#include <me_Types.h>
-
 /*
   Interface terminology
 
-    I just imagining docking process in Elite: Odyssey where we are Ship
-    docking to another structure (Station). So for memorable interface
-    I'm using these terms:
+    I love to play games. And when we are talking about WiFi scanning
+    and connecting, I'm just imagining docking process in Elite:
+    Odyssey where we are Ship which is docking to Station. So for
+    memorable interface I'm using these terms:
 
     | Local   | Common
     +-----------------------------
@@ -54,17 +53,17 @@
 
       * Core
 
-        Ship core is it's name and id. You can change them.
+        Ship core is it's Name and Id (SSID and MAC). You can change them.
 
       * Scanner
 
-        Scanner scans for nearby stations. You need to call it's
-        Scan() to retrieve list of stations.
+        Scanner scans for nearby stations. Call Scan() to retrieve list of stations.
 
       * Docker
 
-        Docker connects/disconnects to station. You need to know
-        station name and password. You can get names from scanner.
+        Docker docks/undocks to station: DockTo(Name, Password).
+        When docked you have two-ended Channel with ShipAddress and
+        StationAddress (local IP and DNS IP).
 
   Classes
 
@@ -77,33 +76,34 @@
 
   Source files
 
-    Parts
+    * Parts
 
-      WifiShip - <me_WifiShip.h>
       Core - <me_WifiShip_Core.h>
       Scanner - <me_WifiShip_Scanner.h>
       Docker - <me_WifiShip_Docker.h>
 
-    All four classes have personal companion UI module:
+    * UI Modules
 
-      * Serial text interface for demo/test.
+      Ship - <me_WifiShip_Ui.h>
+      Core - <me_WifiShip_Core_Ui.h>
+      Scanner - <me_WifiShip_Scanner_Ui.h>
+      Docker - <me_WifiShip_Docker_Ui.h>
 
-        Filename suffix: "_Ui"
-        E.g.: <me_WifiShip_Core_Ui.h>
+      Text user interface via UART serial port. Useful in development
+      but not in production code. Used in demo part.
 
-        It prints class states nicely. And gets user input when needed
-        (ask name/password to connect).
-
-        Not really needed in production code but very welcome in development.
-
-    Demo/test
+    * Demo/test
 
       <me_WifiShip.ino>
+
+      Uses WifiShip and it's UI modules.
 */
 
+#include <me_Types.h>
+
 #include <me_WifiShip_Core.h>
-// #include <me_WifiShip_Scanner.h>
-// #include <me_WifiShip_Docker.h>
+#include <me_WifiShip_Scanner.h>
+#include <me_WifiShip_Docker.h>
 
 namespace me_WifiShip
 {
@@ -111,8 +111,8 @@ namespace me_WifiShip
   {
     public:
       me_WifiShip_Core::TWifiShip_Core Core;
-      // me_WifiShip::TWifiShip_Scanner Scanner;
-      // me_WifiShip::TWifiShip_Docker Docker;
+      me_WifiShip_Scanner::TWifiShip_Scanner Scanner;
+      me_WifiShip_Docker::TWifiShip_Docker Docker;
 
       TBool Init();
   };

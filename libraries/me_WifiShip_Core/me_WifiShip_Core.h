@@ -13,22 +13,25 @@
 
   Design
 
-    // --(init)
-    (bool) Init()
-    // --(id)
+    --( base )--
+    Init(): bool
+
+    --( Id )--
     GetShipId(): bool, Id
     SetShipId(Id): bool
-    // --(name)
+
+    --( Name )--
     GetShipName(): bool, Name
     SetShipName(Name): bool
-    // --(id + name)
+
+    --( Id + Name)--
     GetShipIds(): Id, Name
     SetShipIds(Id, Name): bool
 
   Implementation structures
 
-    ShipId: array[6] // MAC
-    ShipName: array[32] // SSID
+    ShipId: array[6] <-- MAC
+    ShipName: array[32] <-- SSID
     ShipIds:
       Id: ShipId
       Name: ShipName
@@ -40,18 +43,22 @@
 
 namespace me_WifiShip_Core
 {
+  // Id:
   const TUint_1 TShipId_Size = 6;
   typedef TUint_1 TShipId[TShipId_Size];
 
+  // Name:
   const TUint_1 TShipName_Size = 32 + 1;
   typedef TChar TShipName[TShipName_Size];
 
+  // Id + Name:
   struct TShipIds
   {
     TShipId Id; // MAC
     TShipName Name; // SSID
   };
 
+  // Core:
   class TWifiShip_Core
   {
     public:
