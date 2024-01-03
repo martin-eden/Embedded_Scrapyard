@@ -3,7 +3,7 @@
 /*
   Status: good base
   Version: 4
-  Last mod.: 2024-01-03
+  Last mod.: 2024-01-04
 */
 
 /*
@@ -51,7 +51,7 @@ void setup()
   }
 
   PrintShipIds();
-  ReplaceShipIds();
+  SetShipIds();
   PrintShipIds();
 }
 
@@ -90,12 +90,12 @@ void PrintShipIds()
   }
 }
 
-void ReplaceShipIds()
+void SetShipIds()
 {
   me_WifiShip_Core::TShipIds ShipIds;
   TBool Inner_Result;
 
-  Serial.print("Replacing ship id's... ");
+  Serial.print("Setting ship id's... ");
 
   ShipIds.Id[0] = 0xDE;
   ShipIds.Id[1] = 0xFA;
