@@ -15,19 +15,18 @@
 
 #include <me_Types.h>
 
-const TUint_4
-  SerialSpeed = 115200;
-
-const TUint_4
-  // Network rescan interval (s):
-  RescanInterval_S = 1.5 * 60;
-
-// Just a generic char buffer for text output:
-const TUint_2 Message_MaxLength = 2 * 256;
-TChar Message [Message_MaxLength];
-
 // Our WifiShip:
 me_WifiShip::TWifiShip WifiShip;
+
+// Serial speed (baud):
+const TUint_4 SerialSpeed = 115200;
+
+// Main loop interval (s):
+const TUint_4 MainLoopInterval_S = 1.5 * 60;
+
+// Just a generic buffer for text output:
+const TUint_2 Message_MaxLength = 2 * 256;
+TChar Message [Message_MaxLength];
 
 void setup()
 {
@@ -55,7 +54,7 @@ void setup()
 
 void loop()
 {
-  delay(RescanInterval_S * 1000);
+  delay(MainLoopInterval_S * 1000);
 
   PrintCoreState();
 }
@@ -68,23 +67,35 @@ void PrintGreeting()
 
 void PrintSettings()
 {
-  snprintf(
-    Message,
-    Message_MaxLength,
-    "Rescan interval (s): %lu",
-    RescanInterval_S
-  );
-  Serial.println(Message);
+  Serial.printf("Main loop interval (s): %lu\n", MainLoopInterval_S);
 }
 
 void TestCore()
 {
+  Serial.printf(
+    PSTR(
+      "\n"
+      "----------------------( Core test )------------------------------\n"
+      "Test of core module.\n"
+      "\n"
+      "We are getting ship's id and name, changing em and getting again:\n"
+      "\n"
+    )
+  );
+
   PrintCoreState();
 
   ChangeShipId();
   ChangeShipName();
 
   PrintCoreState();
+
+  Serial.printf(
+    PSTR(
+      "----------------------( Core test done )-------------------------\n"
+    )
+  );
+
 }
 
 void PrintCoreState()
