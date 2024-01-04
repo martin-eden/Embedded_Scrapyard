@@ -9,22 +9,30 @@
 /*
   Design
 
-    --( base )--
-    Init(): bool
+    Types
 
-    --( docking status )--
-    DockingStatus: (not docked, docked, failed: station not found, wrong password, ..., some other shit)
+      StationName: SSID : TChar[32]
+      Address: (IP address): TUint_1[4]
+      DockingStatus:
+        * Not docked
+        * Docked
+        * Failed:
+          * Station not found
+          * Wrong password
+          * Some other shit
 
-    --( docking )--
-    DockTo(StationName, StationPassword): DockingStatus
-    Undock() <-- post_assert: ship is not docked
+    Methods
 
-    --( channel )--
-    Address: (IP address)
+      --( base )--
+      Init(): bool
 
-    GetShipAddress(): bool, Address <-- local IP: 192.168.0.208
-    GetStationAddress(): bool, Address <-- DNS IP: 192.168.0.1
+      --( docking )--
+      DockTo(StationName, StationPassword): DockingStatus
+      Undock() <-- post_assert(DockingStatus == Not docked)
 
+      --( channel )--
+      GetShipAddress(): bool, Address <-- local IP: 192.168.0.208
+      GetStationAddress(): bool, Address <-- DNS IP: 192.168.0.1
 */
 
 #pragma once
