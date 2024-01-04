@@ -14,7 +14,7 @@ TBool TWifiShip_Core::Init()
 
 // --( Get/set Id (MAC) )--
 
-TBool TWifiShip_Core::GetShipId(TShipId* ShipId)
+TBool TWifiShip_Core::GetShipId(TCraftId* ShipId)
 {
   bool Inner_Result;
   const uint8 Inner_Role = 0;
@@ -28,12 +28,12 @@ TBool TWifiShip_Core::GetShipId(TShipId* ShipId)
     return false;
   }
 
-  memcpy(ShipId, Inner_Mac, TShipId_Size);
+  memcpy(ShipId, Inner_Mac, TCraftId_Size);
 
   return true;
 }
 
-TBool TWifiShip_Core::SetShipId(TShipId ShipId)
+TBool TWifiShip_Core::SetShipId(TCraftId ShipId)
 {
   bool Inner_Result;
   const uint8 Inner_Role = 0;
@@ -55,14 +55,14 @@ TBool TWifiShip_Core::SetShipId(TShipId ShipId)
 
 // --( Get/set Name (SSID) )--
 
-TBool TWifiShip_Core::GetShipName(TShipName* ShipName)
+TBool TWifiShip_Core::GetShipName(TCraftName* ShipName)
 {
-  strncpy(ShipName[0], wifi_station_get_hostname(), TShipName_Size);
+  strncpy(ShipName[0], wifi_station_get_hostname(), TCraftName_Size);
 
   return true;
 }
 
-TBool TWifiShip_Core::SetShipName(TShipName ShipName)
+TBool TWifiShip_Core::SetShipName(TCraftName ShipName)
 {
   TUint_1 Inner_Hostname_Size = 32;
   char Inner_Hostname[Inner_Hostname_Size];
@@ -82,18 +82,18 @@ TBool TWifiShip_Core::SetShipName(TShipName ShipName)
 
 // --( State import/export )--
 
-TBool TWifiShip_Core::GetShipIds(TShipIds* ShipIds)
+TBool TWifiShip_Core::GetModuleState(TModuleState* CoreState)
 {
   return
-    GetShipId(&ShipIds->Id) &&
-    GetShipName(&ShipIds->Name);
+    GetShipId(&CoreState->Id) &&
+    GetShipName(&CoreState->Name);
 }
 
-TBool TWifiShip_Core::SetShipIds(TShipIds ShipIds)
+TBool TWifiShip_Core::SetModuleState(TModuleState CoreState)
 {
   return
-    SetShipId(ShipIds.Id) &&
-    SetShipName(ShipIds.Name);
+    SetShipId(CoreState.Id) &&
+    SetShipName(CoreState.Name);
 }
 
 // --

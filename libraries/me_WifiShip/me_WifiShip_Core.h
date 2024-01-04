@@ -9,7 +9,7 @@
 /*
   This module provides functionality to get/set ship ids.
 
-  Id's are name (SSID) and id (MAC).
+  Id's are Name (SSID) and Id (MAC).
 
   Design
 
@@ -23,17 +23,9 @@
     GetShipName(): bool, Name
     SetShipName(Name): bool
 
-    --( Id + Name )--
-    GetShipIds(): Id, Name
-    SetShipIds(Id, Name): bool
-
-  Implementation structures
-
-    ShipId: array[6] <-- MAC
-    ShipName: array[32] <-- SSID
-    ShipIds:
-      Id: ShipId
-      Name: ShipName
+    --( State import/export )--
+    GetModuleState(): bool, Id, Name
+    SetModuleState(Id, Name): bool
 */
 
 #pragma once
@@ -42,35 +34,35 @@
 
 namespace me_WifiShip_Core
 {
-  // Id:
-  const TUint_1 TShipId_Size = 6;
-  typedef TUint_1 TShipId[TShipId_Size];
+  // Id (MAC):
+  const TUint_1 TCraftId_Size = 6;
+  typedef TUint_1 TCraftId[TCraftId_Size];
 
-  // Name:
-  const TUint_1 TShipName_Size = 32 + 1;
-  typedef TChar TShipName[TShipName_Size];
+  // Name (SSID):
+  const TUint_1 TCraftName_Size = 32 + 1;
+  typedef TChar TCraftName[TCraftName_Size];
 
-  // Id + Name:
-  struct TShipIds
+  // State:
+  struct TModuleState
   {
-    TShipId Id; // MAC
-    TShipName Name; // SSID
+    TCraftId Id;
+    TCraftName Name;
   };
 
-  // Core:
+  // Core module:
   class TWifiShip_Core
   {
     public:
       TBool Init();
 
-      TBool GetShipId(TShipId* ShipId);
-      TBool SetShipId(TShipId ShipId);
+      TBool GetShipId(TCraftId* ShipId);
+      TBool SetShipId(TCraftId ShipId);
 
-      TBool GetShipName(TShipName* ShipName);
-      TBool SetShipName(TShipName ShipName);
+      TBool GetShipName(TCraftName* ShipName);
+      TBool SetShipName(TCraftName ShipName);
 
-      TBool GetShipIds(TShipIds* ShipIds);
-      TBool SetShipIds(TShipIds ShipIds);
+      TBool GetModuleState(TModuleState* CoreState);
+      TBool SetModuleState(TModuleState CoreState);
   };
 }
 

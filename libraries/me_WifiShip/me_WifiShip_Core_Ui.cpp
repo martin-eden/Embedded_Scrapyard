@@ -14,7 +14,7 @@
 void me_WifiShip_Core_Ui::RepresentShipId(
   TChar* Message,
   TUint_2 Message_MaxLength,
-  me_WifiShip_Core::TShipId ShipId
+  me_WifiShip_Core::TCraftId ShipId
 )
 {
   snprintf(
@@ -34,7 +34,7 @@ void me_WifiShip_Core_Ui::RepresentShipId(
 void me_WifiShip_Core_Ui::RepresentShipName(
   TChar* Message,
   TUint_2 Message_MaxLength,
-  me_WifiShip_Core::TShipName ShipName
+  me_WifiShip_Core::TCraftName ShipName
 )
 {
   snprintf(
@@ -47,10 +47,10 @@ void me_WifiShip_Core_Ui::RepresentShipName(
 
 
 // --( Represent Id + Name )--
-void me_WifiShip_Core_Ui::RepresentShipIds(
+void me_WifiShip_Core_Ui::RepresentCoreState(
   TChar* Message,
   TUint_2 Message_MaxLength,
-  me_WifiShip_Core::TShipIds ShipIds
+  me_WifiShip_Core::TModuleState CoreState
 )
 {
   static const TChar MessageFmt[] PROGMEM =
@@ -69,8 +69,8 @@ void me_WifiShip_Core_Ui::RepresentShipIds(
   const TUint_1 ShipNameStr_Size = 3 * 16;
   TChar ShipNameStr[ShipNameStr_Size];
 
-  RepresentShipId(ShipIdStr, ShipIdStr_Size, ShipIds.Id);
-  RepresentShipName(ShipNameStr, ShipNameStr_Size, ShipIds.Name);
+  RepresentShipId(ShipIdStr, ShipIdStr_Size, CoreState.Id);
+  RepresentShipName(ShipNameStr, ShipNameStr_Size, CoreState.Name);
 
   snprintf(
     Message,

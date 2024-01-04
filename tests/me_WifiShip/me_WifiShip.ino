@@ -50,17 +50,14 @@ void setup()
     return;
   }
 
-  // Get/set SSID and MAC test:
-  PrintShipIds();
-  SetShipIds();
-  PrintShipIds();
+  TestCore();
 }
 
 void loop()
 {
   delay(RescanInterval_S * 1000);
 
-  PrintShipIds();
+  PrintCoreState();
 }
 
 void PrintGreeting()
@@ -80,38 +77,66 @@ void PrintSettings()
   Serial.println(Message);
 }
 
-void PrintShipIds()
+void TestCore()
 {
-  me_WifiShip_Core::TShipIds ShipIds;
+  PrintCoreState();
 
-  if (WifiShip.Core.GetShipIds(&ShipIds))
+  ChangeShipId();
+  ChangeShipName();
+
+  PrintCoreState();
+}
+
+void PrintCoreState()
+{
+  me_WifiShip_Core::TModuleState CoreState;
+
+  if (WifiShip.Core.GetModuleState(&CoreState))
   {
-    me_WifiShip_Core_Ui::RepresentShipIds(Message, Message_MaxLength, ShipIds);
+    me_WifiShip_Core_Ui::RepresentCoreState(Message, Message_MaxLength, CoreState);
     Serial.println(Message);
   }
 }
 
-void SetShipIds()
+TBool ChangeShipId()
 {
-  me_WifiShip_Core::TShipIds ShipIds;
+  me_WifiShip_Core::TCraftId ShipId;
+  TBool Result;
 
-  // New MAC:
-  ShipIds.Id[0] = 0xDE;
-  ShipIds.Id[1] = 0xFA;
-  ShipIds.Id[2] = 0xCE;
-  ShipIds.Id[3] = 0xD0;
-  ShipIds.Id[4] = 0x00;
-  ShipIds.Id[5] = 0x00;
+  // Get:
+  Result = WifiShip.Core.GetShipId(&ShipId);
+  if (Result)
+  {
+    // Change:
+    ShipId[0] = 0xDE;
+    ShipId[1] = 0xFA;
+    ShipId[2] = 0xCE;
+    ShipId[3] = 0xD0;
+    ShipId[4] = 0x00;
+    ShipId[5] = 0x00;
+    // Set:
+    Result = WifiShip.Core.SetShipId(ShipId);
+  }
 
-  // New SSID:
-  strcpy(ShipIds.Name, "REBORN");
+  return Result;
+}
 
-  Serial.print("Setting ship id's... ");
+TBool ChangeShipName()
+{
+  me_WifiShip_Core::TCraftName ShipName;
+  TBool Result;
 
-  if (WifiShip.Core.SetShipIds(ShipIds))
-    Serial.println("yep!");
-  else
-    Serial.println("nah.");
+  // Get:
+  Result = WifiShip.Core.GetShipName(&ShipName);
+  if (Result)
+  {
+    // Change:
+    strcpy(ShipName, "REBORN");
+    // Set:
+    Result = WifiShip.Core.SetShipName(ShipName);
+  }
+
+  return Result;
 }
 
 /*

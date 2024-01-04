@@ -17,18 +17,18 @@ namespace me_WifiShip_Core_Ui
   void RepresentShipId(
     TChar* Message,
     TUint_2 Message_MaxLength,
-    me_WifiShip_Core::TShipId ShipId
+    me_WifiShip_Core::TCraftId ShipId
   );
 
   void RepresentShipName(
     TChar* Message,
     TUint_2 Message_MaxLength,
-    me_WifiShip_Core::TShipName ShipName
+    me_WifiShip_Core::TCraftName ShipName
   );
 
-  void RepresentShipIds(
+  void RepresentCoreState(
     TChar* Message,
     TUint_2 Message_MaxLength,
-    me_WifiShip_Core::TShipIds ShipIds
+    me_WifiShip_Core::TModuleState CoreState
   );
 }
