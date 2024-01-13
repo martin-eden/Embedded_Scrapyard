@@ -3,7 +3,7 @@
 /*
   Status: good base
   Version: 4
-  Last mod.: 2024-01-04
+  Last mod.: 2024-01-13
 */
 
 /*
@@ -12,6 +12,7 @@
 
 #include <me_WifiShip.h>
 #include <me_WifiShip_Core_Ui.h>
+#include <me_WifiShip_Docker_Ui.h>
 
 #include <me_Types.h>
 
@@ -50,13 +51,12 @@ void setup()
   }
 
   TestCore();
+  TestDocker();
 }
 
 void loop()
 {
   delay(MainLoopInterval_S * 1000);
-
-  PrintCoreState();
 }
 
 void PrintGreeting()
@@ -95,7 +95,6 @@ void TestCore()
       "----------------------( Core test done )-------------------------\n"
     )
   );
-
 }
 
 void PrintCoreState()
@@ -105,7 +104,7 @@ void PrintCoreState()
   if (WifiShip.Core.GetModuleState(&CoreState))
   {
     me_WifiShip_Core_Ui::RepresentCoreState(Message, Message_MaxLength, CoreState);
-    Serial.println(Message);
+    Serial.print(Message);
   }
 }
 
@@ -150,10 +149,85 @@ TBool ChangeShipName()
   return Result;
 }
 
+void TestDocker()
+{
+  Serial.printf(
+    PSTR(
+      "\n"
+      "----------------------( Docker test )------------------------------\n"
+      "Test of docker module.\n"
+      "\n"
+      "We are trying to connect to preset station with preset password.\n"
+      "In case of success, we will print ship address and station address.\n"
+      "We will disconnect afterwards.\n"
+      "\n"
+    )
+  );
+
+  me_WifiShip_Docker::TStationName StationName = "YOUR ROUTER NAME";
+  me_WifiShip_Docker::TStationPassword StationPassword = "YOUR ROUTER PASSWORD";
+  me_WifiShip_Docker::TStatus DockingStatus;
+
+  Serial.printf(
+    PSTR(
+      "Station name: %s\n"
+      "Station password: %s\n"
+    ),
+    StationName,
+    StationPassword
+  );
+
+  DockingStatus = WifiShip.Docker.DockTo(StationName, StationPassword);
+
+  me_WifiShip_Docker_Ui::RepresentStatus(Message, Message_MaxLength, DockingStatus);
+  Serial.printf("Status: %s\n", Message);
+
+  {
+    me_WifiShip_Docker::TAddress ShipAddress;
+    TBool IsOk;
+
+    IsOk = WifiShip.Docker.GetShipAddress(ShipAddress);
+
+    if (IsOk)
+    {
+      me_WifiShip_Docker_Ui::RepresentAddress(Message, Message_MaxLength, ShipAddress);
+      Serial.printf("Ship address: %s\n", Message);
+    }
+  }
+
+  {
+    me_WifiShip_Docker::TAddress StationAddress;
+    TBool IsOk;
+
+    IsOk = WifiShip.Docker.GetStationAddress(StationAddress);
+
+    if (IsOk)
+    {
+      me_WifiShip_Docker_Ui::RepresentAddress(Message, Message_MaxLength, StationAddress);
+      Serial.printf("Station address: %s\n", Message);
+    }
+  }
+
+  WifiShip.Docker.Undock();
+
+  DockingStatus = WifiShip.Docker.GetStatus();
+
+  me_WifiShip_Docker_Ui::RepresentStatus(Message, Message_MaxLength, DockingStatus);
+  Serial.printf("Status: %s\n", Message);
+
+  Serial.printf(
+    PSTR(
+      "----------------------( Docker test done )-------------------------\n"
+    )
+  );
+}
+
 /*
   2023-12-26
   2023-12-28
   2023-12-30
   2023-12-31
   2024-01-01
+  2024-01-04
+  2024-01-13
 */

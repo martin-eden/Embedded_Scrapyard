@@ -1,4 +1,10 @@
-// WifiShip docker implementation.
+// WifiShip docker implementation
+
+/*
+  Status: done
+  Version: 1
+  Last mod.: 2024-01-14
+*/
 
 #include "me_WifiShip_Docker.h"
 
@@ -9,55 +15,49 @@ using namespace me_WifiShip_Docker;
 // --( Init )--
 TBool TWifiShip_Docker::Init()
 {
-  DockingStatus = TDockingStatus::Undocked;
+  Status = TStatus::Undocked;
 
-  {
-    const TUint_1 DefaultDockingTimeout_S = 30;
-    SetDockingTimeout_S(DefaultDockingTimeout_S);
-  }
+  SetDockingTimeout_S(DefaultDockingTimeout_S);
 
   return true;
 }
 
 // --( DockTo )--
-TDockingStatus TWifiShip_Docker::DockTo(
+TStatus TWifiShip_Docker::DockTo(
   TStationName StationName,
   TStationPassword StationPassword
 )
 {
-  // --( inner data )--
-  TUint_1 Inner_Ssid_Size = 32;
+  // --( Inner data )--
+  const TUint_1 Inner_Ssid_Size = 32;
   char Inner_Ssid[Inner_Ssid_Size];
 
-  TUint_1 Inner_Passphrase_Size = 64;
+  const TUint_1 Inner_Passphrase_Size = 64;
   char Inner_Passphrase[Inner_Passphrase_Size];
 
-  unsigned long Inner_TimeoutLength = DockingTimeout_S * 1000;
+  unsigned long Inner_TimeoutLength = GetDockingTimeout_S() * 1000;
 
-  wl_status_t Inner_Begin_Result;
   int8_t Inner_WaitForConnect_Result;
 
-  // --( fill data )--
+  // --( Fill data )--
   strncpy(Inner_Ssid, StationName, Inner_Ssid_Size);
 
   strncpy(Inner_Passphrase, StationPassword, Inner_Passphrase_Size);
 
-  // --( call )--
-  Inner_Begin_Result = WiFi.begin(Inner_Ssid, Inner_Passphrase);
-  Serial.printf("@DockTo.Inner_Begin_Result = %u\n", Inner_Begin_Result);
-
+  // --( Call )--
+  WiFi.begin(Inner_Ssid, Inner_Passphrase);
   Inner_WaitForConnect_Result = WiFi.waitForConnectResult(Inner_TimeoutLength);
 
-  // --( handle result )--
-  DockingStatus = MapInnerStatus(Inner_WaitForConnect_Result);
+  // --( Handle result )--
+  Status = MapInnerStatus(Inner_WaitForConnect_Result);
 
-  return GetDockingStatus();
+  return GetStatus();
 }
 
 // --( Undock )--
 void TWifiShip_Docker::Undock()
 {
-  if (DockingStatus == TDockingStatus::Docked)
+  if (Status == TStatus::Docked)
   {
     const bool Inner_Wifioff = false;
     const bool Innner_EraseCredentials = true;
@@ -71,76 +71,76 @@ void TWifiShip_Docker::Undock()
     }
   }
 
-  DockingStatus = TDockingStatus::Undocked;
+  Status = TStatus::Undocked;
 }
 
-// --( Get ship address )--
-TBool TWifiShip_Docker::GetShipAddress(TAddress* ShipAddress)
+// --( Status )--
+TStatus TWifiShip_Docker::GetStatus()
 {
-  IPAddress Inner_Result;
-
-  if (DockingStatus != TDockingStatus::Docked)
-    return false;
-
-  Inner_Result = WiFi.localIP();
-
-  *ShipAddress[0] = Inner_Result[0];
-  *ShipAddress[1] = Inner_Result[1];
-  *ShipAddress[2] = Inner_Result[2];
-  *ShipAddress[3] = Inner_Result[3];
-
-  return true;
+  return Status;
 }
 
 // --( Get station address )--
-TBool TWifiShip_Docker::GetStationAddress(TAddress* StationAddress)
+TBool TWifiShip_Docker::GetStationAddress(TAddress StationAddress)
 {
   IPAddress Inner_Result;
 
-  if (DockingStatus != TDockingStatus::Docked)
+  if (Status != TStatus::Docked)
     return false;
 
   Inner_Result = WiFi.dnsIP();
 
-  *StationAddress[0] = Inner_Result[0];
-  *StationAddress[1] = Inner_Result[1];
-  *StationAddress[2] = Inner_Result[2];
-  *StationAddress[3] = Inner_Result[3];
+  StationAddress[0] = Inner_Result[0];
+  StationAddress[1] = Inner_Result[1];
+  StationAddress[2] = Inner_Result[2];
+  StationAddress[3] = Inner_Result[3];
 
   return true;
 }
 
-// --( State management )--
-
-TDockingStatus TWifiShip_Docker::GetDockingStatus()
+// --( Get ship address )--
+TBool TWifiShip_Docker::GetShipAddress(TAddress ShipAddress)
 {
-  return DockingStatus;
+  IPAddress Inner_Result;
+
+  if (Status != TStatus::Docked)
+    return false;
+
+  Inner_Result = WiFi.localIP();
+
+  ShipAddress[0] = Inner_Result[0];
+  ShipAddress[1] = Inner_Result[1];
+  ShipAddress[2] = Inner_Result[2];
+  ShipAddress[3] = Inner_Result[3];
+
+  return true;
+}
+
+// --( Timeout )--
+TUint_1 TWifiShip_Docker::GetDockingTimeout_S()
+{
+  return DockingTimeout_S;
 }
 
 void TWifiShip_Docker::SetDockingTimeout_S(TUint_1 aDockingTimeout_S)
 {
   DockingTimeout_S = aDockingTimeout_S;
 }
-
-TUint_1 TWifiShip_Docker::GetDockingTimeout_S()
-{
-  return DockingTimeout_S;
-}
-
-// -- Implementation details
+// --()
 
 // --( Map inner result )--
-TDockingStatus TWifiShip_Docker::MapInnerStatus(TSint_1 aInnerStatus)
+/*
+  Convert result of WiFi.waitForConnectResult() to our status value.
+*/
+TStatus TWifiShip_Docker::MapInnerStatus(TSint_1 aInnerStatus)
 {
-  // aInnerStatus - sint from WiFi.waitForConnectResult()
-
   /*
     Those guys are returning sint(-1) when timeout and returning uint(status)
     for other cases. Disgusting.
   */
   if (aInnerStatus == -1)
   {
-    return TDockingStatus::Nah_TimeoutReached;
+    return TStatus::Nah_TimeoutReached;
   }
 
   wl_status_t InnerStatus = static_cast<wl_status_t>(aInnerStatus);
@@ -148,29 +148,34 @@ TDockingStatus TWifiShip_Docker::MapInnerStatus(TSint_1 aInnerStatus)
   switch (InnerStatus)
   {
     case WL_IDLE_STATUS:
-      return TDockingStatus::Undocked;
+      return TStatus::Undocked;
 
     case WL_DISCONNECTED:
-      return TDockingStatus::Undocked;
+      return TStatus::Undocked;
 
     case WL_CONNECTED:
-      return TDockingStatus::Docked;
+      return TStatus::Docked;
 
     case WL_NO_SSID_AVAIL:
-      return TDockingStatus::Nah_StationNotFound;
+      return TStatus::Nah_StationNotFound;
 
     case WL_WRONG_PASSWORD:
-      return TDockingStatus::Nah_WrongPassword;
+      return TStatus::Nah_WrongPassword;
 
     case WL_CONNECT_FAILED:
-      return TDockingStatus::Nah_Other;
+      return TStatus::Nah_Other;
 
     case WL_CONNECTION_LOST:
     case WL_SCAN_COMPLETED:
     case WL_NO_SHIELD:
     default:
-      return TDockingStatus::Nah_Other;
+      return TStatus::Nah_Other;
   }
 }
 
 // --
+
+/*
+  2024-01-03
+  2024-01-13
+*/

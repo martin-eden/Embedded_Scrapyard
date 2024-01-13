@@ -1,9 +1,9 @@
 // WifiShip docker module (connect/disconnect to station).
 
 /*
-  Status: in writing
-  Vesrion: 0
-  Last mod.: 2024-01-03
+  Status: done
+  Vesrion: 1
+  Last mod.: 2024-01-14
 */
 
 /*
@@ -11,9 +11,9 @@
 
     Types
 
-      StationName: SSID : TChar[32]
-      Address: (IP address): TUint_1[4]
-      DockingStatus:
+      StationName: TChar[32] // SSID
+      Address: TUint_1[4] // IP address
+      Status:
         * Not docked
         * Docked
         * Failed:
@@ -23,14 +23,17 @@
 
     Methods
 
-      --( base )--
+      --( inherited )--
       Init(): bool
 
-      --( docking )--
+      --( Status )--
+      GetStatus(): bool
+
+      --( Docking )--
       DockTo(StationName, StationPassword): DockingStatus
       Undock() <-- post_assert(DockingStatus == Not docked)
 
-      --( channel )--
+      --( Channel )--
       GetShipAddress(): bool, Address <-- local IP: 192.168.0.208
       GetStationAddress(): bool, Address <-- DNS IP: 192.168.0.1
 */
@@ -54,7 +57,7 @@ namespace me_WifiShip_Docker
   typedef TUint_1 TAddress[TAddress_Size];
 
   // Docking status:
-  enum struct TDockingStatus
+  enum struct TStatus
   {
     Undocked,
     Docked,
@@ -64,29 +67,40 @@ namespace me_WifiShip_Docker
     Nah_Other
   };
 
+  // Timeout
+  const TUint_1 DefaultDockingTimeout_S = 30;
+
   class TWifiShip_Docker
   {
     public:
       TBool Init();
 
-      TDockingStatus DockTo(
+      // Docking
+      TStatus DockTo(
         TStationName StationName,
         TStationPassword StationPassword
       );
       void Undock();
 
+      // Status
+      TStatus GetStatus();
+
+      // Timeout
       TUint_1 GetDockingTimeout_S();
       void SetDockingTimeout_S(TUint_1 aDockingTimeout_S);
-
-      TBool GetShipAddress(TAddress* ShipAddress);
-      TBool GetStationAddress(TAddress* StationAddress);
-
-      TDockingStatus GetDockingStatus();
+      // Address
+      TBool GetShipAddress(TAddress ShipAddress);
+      TBool GetStationAddress(TAddress StationAddress);
 
     private:
       TUint_1 DockingTimeout_S;
-      TDockingStatus DockingStatus;
+      TStatus Status;
 
-      TDockingStatus MapInnerStatus(TSint_1 aInnerStatus);
+      TStatus MapInnerStatus(TSint_1 aInnerStatus);
   };
 }
+
+/*
+  2024-01-03
+  2024-01-13
+*/
