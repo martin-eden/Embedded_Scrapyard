@@ -1,4 +1,10 @@
-// WifiShip scanner implementation.
+// WifiShip scanner implementation
+
+/*
+  Status: implemented
+  Version: 1
+  Last mod.: 2024-01-22
+*/
 
 #include "me_WifiShip_Scanner.h"
 
@@ -7,8 +13,12 @@
 using namespace me_WifiShip_Scanner;
 
 // --( Init )--
-TBool TWifiShip_Scanner::Init()
+TBool TScanner::Init()
 {
+  Stations_Length = 0;
+  Stations = NULL;
+  IncludeHidden = false;
+
   return true;
 }
 
@@ -16,41 +26,129 @@ TBool TWifiShip_Scanner::Init()
 /*
   Scan for nearby stations.
 
-  This routine returns number of stations found in output parameter.
-  To get details about each station use GetStationInfo() later.
+  This routine reallocates and fills <.Stations> array.
+  To get length of array use GetStations_Length().
 */
-TBool TWifiShip_Scanner::Scan(TUint_1* NumStationsFound)
+TBool TScanner::Scan()
 {
-  /*
-    WIP
-  */
+  // --( prepare )--
+  int8_t Inner_ScanResult;
+  const int8_t Inner_Async = false;
+  const bool Inner_ShowHidden = IncludeHidden;
 
-  *NumStationsFound = 0;
+  // --( call )--
+  Inner_ScanResult = WiFi.scanNetworks(Inner_Async, Inner_ShowHidden);
 
-  return false;
-
-  /*
-  TSint_1 Inner_ScanResult;
-  const TBool Inner_AsyncScan = false;
-  const TBool Inner_IncludeHidden = true;
-
-  Inner_ScanResult = WiFi.scanNetworks(Inner_AsyncScan, Inner_IncludeHidden);
-
-  if (Inner_ScanResult >= 0)
+  // --( process )--
+  TBool Result = (Inner_ScanResult >= 0);
+  if (Result)
   {
-    *NumStationsFound = Inner_ScanResult;
+    Stations_Length = Inner_ScanResult;
+
+    // --( memory allocation )--
+    if (Stations != NULL)
+      delete[] Stations;
+
+    Stations = new TStation[Stations_Length];
+    // --
+
+    for (TUint_1 ScanIndex = 0; ScanIndex < Stations_Length; ++ScanIndex)
+    {
+      FillStationInfo(&Stations[ScanIndex], ScanIndex);
+    }
   }
 
-  return (Inner_ScanResult >= 0);
-  */
+  return Result;
 }
 
-
-TBool TWifiShip_Scanner::Scan_GetStationInfo(TUint_1 StationIndex, TScannedStation* Station)
+TUint_1 TScanner::GetStations_Length()
 {
-  /*
-    WIP
-  */
-
-  return false;
+  return Stations_Length;
 }
+
+/*
+  Fill details about station.
+
+  Station is referenced by index. Index is zero-based, limited by number
+  of stations discovered by scan.
+*/
+void TScanner::FillStationInfo(TStation* Station, TUint_1 ScanIndex)
+{
+  // --( prepare )--
+  bool Inner_Result;
+  String Inner_StationName;
+  uint8_t Inner_Cipher;
+  int32_t Inner_Rssi;
+  uint8_t* Inner_Id;
+  int32_t Inner_BandNumber;
+  bool Inner_IsHidden;
+
+  // --( call )--
+  Inner_Result = WiFi.getNetworkInfo(
+    ScanIndex,
+    Inner_StationName,
+    Inner_Cipher,
+    Inner_Rssi,
+    Inner_Id,
+    Inner_BandNumber,
+    Inner_IsHidden
+  );
+
+  // --( process )--
+  if (!Inner_Result)
+  {
+    Serial.println("@ FillStationInfo(): bad inner result. Early exit.");
+    return;
+  }
+
+  // Station.Id
+  memcpy(Station->Id, Inner_Id, TStationId_Size);
+
+  // Station.Name
+  strncpy(Station->Name, Inner_StationName.c_str(), TStationName_Size);
+
+  // Station.IsHidden
+  Station->IsHidden = Inner_IsHidden;
+
+  // Station.Channel.Strength
+  Station->Channel.Strength = Inner_Rssi;
+
+  // Station.Channel.BandNumber
+  Station->Channel.Band = Inner_BandNumber;
+
+  // Station.Channel.Security
+  Station->Channel.Security = MapSecurityProtocol(Inner_Cipher);
+}
+
+TSecurityProtocol TScanner::MapSecurityProtocol(TUint_1 Inner_SecurityProtocol)
+{
+  switch (Inner_SecurityProtocol)
+  {
+    case ENC_TYPE_NONE:
+      return TSecurityProtocol::None;
+
+    case ENC_TYPE_WEP:
+      return TSecurityProtocol::Wep;
+
+    case ENC_TYPE_TKIP:
+      return TSecurityProtocol::Wpa;
+
+    case ENC_TYPE_CCMP:
+      return TSecurityProtocol::Wpa2;
+
+    case ENC_TYPE_AUTO:
+      return TSecurityProtocol::AnyWpa;
+
+    case 255: // They are returning -1 in uint8_t function in unhandled cases.
+      return TSecurityProtocol::Unknown;
+
+    default:
+      Serial.printf("@ Unexpected security protocol value: [%u]. Early exit.\n", Inner_SecurityProtocol);
+      return TSecurityProtocol::Unknown;
+  }
+}
+
+/*
+  2024-01-16
+  2024-01-22
+*/

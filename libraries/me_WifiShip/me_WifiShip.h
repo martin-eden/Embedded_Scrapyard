@@ -111,8 +111,8 @@ namespace me_WifiShip
   {
     public:
       me_WifiShip_Core::TWifiShip_Core Core;
-      me_WifiShip_Scanner::TWifiShip_Scanner Scanner;
       me_WifiShip_Docker::TWifiShip_Docker Docker;
+      me_WifiShip_Scanner::TScanner Scanner;
 
       TBool Init();
   };

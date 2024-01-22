@@ -3,7 +3,7 @@
 /*
   Status: good base
   Version: 4
-  Last mod.: 2024-01-13
+  Last mod.: 2024-01-22
 */
 
 /*
@@ -13,6 +13,7 @@
 #include <me_WifiShip.h>
 #include <me_WifiShip_Core_Ui.h>
 #include <me_WifiShip_Docker_Ui.h>
+#include <me_WifiShip_Scanner_Ui.h>
 
 #include <me_Types.h>
 
@@ -52,6 +53,7 @@ void setup()
 
   TestCore();
   TestDocker();
+  TestScanner();
 }
 
 void loop()
@@ -169,7 +171,7 @@ void TestDocker()
   me_WifiShip_Docker::TStatus DockingStatus;
 
   Serial.printf(
-    PSTR(
+    (
       "Station name: %s\n"
       "Station password: %s\n"
     ),
@@ -222,6 +224,76 @@ void TestDocker()
   );
 }
 
+TSint_1 CompareInts(TSint_1 A, TSint_1 B)
+{
+  if (A < B)
+    return -1;
+  else if (A > B)
+    return 1;
+  else
+    return 0;
+}
+
+int StationsComparator(
+  const void* A,
+  const void* B
+)
+{
+  me_WifiShip_Scanner::TStation StationA;
+  me_WifiShip_Scanner::TStation StationB;
+
+  StationA = *(const me_WifiShip_Scanner::TStation*) A;
+  StationB = *(const me_WifiShip_Scanner::TStation*) B;
+
+  return
+    -CompareInts(StationA.Channel.Strength, StationB.Channel.Strength);
+}
+
+void TestScanner()
+{
+  Serial.printf(
+    PSTR(
+      "\n"
+      "----------------------( Scanner test )---------------------------\n"
+      "We will scan ether for stations, sort them by signal strength and\n"
+      "display results.\n"
+      "\n"
+    )
+  );
+
+  TBool ScanResult;
+
+  ScanResult = WifiShip.Scanner.Scan();
+
+  if (!ScanResult)
+    Serial.println("Scan failed.");
+  else
+  {
+    // --( Sort scan result )--
+    qsort(
+      WifiShip.Scanner.Stations,
+      WifiShip.Scanner.GetStations_Length(),
+      sizeof(me_WifiShip_Scanner::TStation),
+      StationsComparator
+    );
+
+    me_WifiShip_Scanner_Ui::RepresentScanResult(
+      Message,
+      Message_MaxLength,
+      WifiShip.Scanner.Stations,
+      WifiShip.Scanner.GetStations_Length()
+    );
+
+    Serial.print(Message);
+  }
+
+  Serial.printf(
+    PSTR(
+      "----------------------( Scanner test done )----------------------\n"
+    )
+  );
+}
+
 /*
   2023-12-26
   2023-12-28
@@ -230,4 +302,6 @@ void TestDocker()
   2024-01-01
   2024-01-04
   2024-01-13
+  2024-01-16
+  2024-01-22
 */

@@ -1,37 +1,31 @@
-// WifiShip scanner.
+// WifiShip scanner
 
 /*
-  Implementation terminology
+  Status: redesigned
+  Version: 1
+  Last mod.: 2024-01-16
+*/
 
-  -- gift to scanner
-  Station(extends Craft) - router that we can try to connect
+/*
+  Design
 
-    IsHidden - has no name, usually not something that welcomes connects
+    Scanner
+      IncludeHidden: bool
+      Scan(): bool
+      Stations: array[] of Station
+      GetStations_Length(): uint
 
-    Channel - offered frequency band. See Channel.
-
-  Channel - radio band channel that is used for data transmission
-
-    Band - number of channel. Physically it describes range of radio
-      frequencies (band).
-
-    Strength - received signal strength indicator (RSSI).
-
-      Weird negative integer number that represents logarithm
-      of signal-to-noise-ratio.
-
-      Maybe I'll to convert internal representation to something
-      more useful.
-
-    SecurityProtocol - WEP, WPA 1, WPA 2 or (WPA 1 + WPA 2).
-
-        WEP - cracked
-        WPA 1 - deprecated
-        WPA 1 + WPA 2 - deprecated support
-        WPA 2 - normal router should use this
-
-    # Actually we can retrieve more channel details but I don't
-    # need them for my projects.
+    Station
+      Id: array[] uint // MAC
+      Name: array[] char // SSID
+      Channel:
+        Strength: int // RSSI
+        Band: uint // channel number
+        Security:
+          * WEP - cracked
+          * WPA 1 - deprecated
+          * WPA 1 + WPA 2 - deprecated support
+          * WPA 2 - ok
 */
 
 #pragma once
@@ -40,21 +34,15 @@
 
 namespace me_WifiShip_Scanner
 {
-  // Id:
-  const TUint_1 TCraftId_Size = 6;
-  typedef TUint_1 TCraftId[TCraftId_Size];
+  // Id (MAC)
+  const TUint_1 TStationId_Size = 6;
+  typedef TUint_1 TStationId[TStationId_Size];
 
-  // Name:
-  const TUint_1 TCraftName_Size = 32 + 1;
-  typedef TChar TCraftName[TCraftName_Size];
+  // Name (SSID)
+  const TUint_1 TStationName_Size = 32 + 1;
+  typedef TChar TStationName[TStationName_Size];
 
-  // Id + Name:
-  struct TCraftIds
-  {
-    TCraftId Id; // MAC
-    TCraftName Name; // SSID
-  };
-
+  // Security
   enum struct TSecurityProtocol
   {
     None,
@@ -65,32 +53,41 @@ namespace me_WifiShip_Scanner
     Unknown
   };
 
-  /*
-    Scanned channel info. We have a different set of fields for
-    describing channel of docked station.
-  */
-  struct TOfferedChannel
+  // Channel
+  struct TChannel
   {
-    TUint_1 Band; // Channel Number
     TSint_1 Strength; // RSSI
-    TSecurityProtocol SecurityProtocol;
+    TUint_1 Band; // channel number
+    TSecurityProtocol Security;
   };
 
-  struct TScannedStation
+  // Station
+  struct TStation
   {
-    TCraftIds Ids;
+    TStationId Id; // MAC
+    TStationName Name; // SSID
     TBool IsHidden;
-    TOfferedChannel Channel;
+    TChannel Channel;
   };
 
-  class TWifiShip_Scanner
+  // Scanner
+  class TScanner
   {
     public:
       TBool Init();
 
-      TBool Scan(TUint_1* NumStationsFound);
-      TBool Scan_GetStationInfo(TUint_1 StationIndex, TScannedStation* Station);
+      TBool IncludeHidden;
+      TBool Scan();
+      TUint_1 GetStations_Length();
+      TStation* Stations;
 
     private:
+      TUint_1 Stations_Length;
+      void FillStationInfo(TStation* Station, TUint_1 ScanIndex);
+      TSecurityProtocol MapSecurityProtocol(TUint_1 Inner_SecurityProtocol);
   };
 }
+
+/*
+  2024-01-16
+*/

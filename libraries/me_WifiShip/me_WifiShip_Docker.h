@@ -85,12 +85,13 @@ namespace me_WifiShip_Docker
       // Status
       TStatus GetStatus();
 
-      // Timeout
-      TUint_1 GetDockingTimeout_S();
-      void SetDockingTimeout_S(TUint_1 aDockingTimeout_S);
       // Address
       TBool GetShipAddress(TAddress ShipAddress);
       TBool GetStationAddress(TAddress StationAddress);
+
+      // Timeout
+      TUint_1 GetDockingTimeout_S();
+      void SetDockingTimeout_S(TUint_1 aDockingTimeout_S);
 
     private:
       TUint_1 DockingTimeout_S;
