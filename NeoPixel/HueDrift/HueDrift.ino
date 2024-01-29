@@ -1,3 +1,11 @@
+// Smooth color changes for 1 m NeoPixel strip
+
+/*
+  Status: style adjustments
+  Version: 2
+  Last mod.: 2024-01-29
+*/
+
 #include <FastLED.h>
 
 #define LED_TYPE WS2812
@@ -10,7 +18,7 @@ const int16_t
   LEDS_USED = NUM_LEDS - LEDS_OFFSET - 1,
   BRIGHTNESS = 128,
   MAX_CURRENT_MA = 150,
-  UPDATES_PER_MINUTE = 48;
+  UPDATES_PER_MINUTE = 2500;
 
 const uint8_t
   MAX_HUE_DISTANCE = 250;
@@ -123,3 +131,11 @@ void loop() {
   start_color.hue = start_color_hue;
   finish_color.hue = finish_color_hue;
 }
+
+/*
+  2020-05-15
+  2020-06-05
+  2020-08-06
+  2021-07-18
+  2024-01-29
+*/
