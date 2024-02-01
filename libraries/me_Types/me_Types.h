@@ -1,3 +1,10 @@
+// My nomenclature of type names
+
+/*
+  Version: 2
+  Last mod.: 2024-02-01
+*/
+
 #pragma once
 
 typedef signed char TSint_1;
@@ -13,3 +20,5 @@ typedef unsigned long long int TUint_8;
 typedef char TChar;
 
 typedef bool TBool;
+
+typedef float TFloat;
