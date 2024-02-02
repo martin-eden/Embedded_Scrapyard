@@ -3,7 +3,7 @@
 /*
   Status: good base
   Version: 4
-  Last mod.: 2024-01-22
+  Last mod.: 2024-02-03
 */
 
 /*
@@ -33,11 +33,11 @@ TChar Message [Message_MaxLength];
 void setup()
 {
   {
-    const TUint_2 SerialSetupDelay_Ms = 500;
+    const TUint_2 SerialSetupDelay_Ms = 5000;
 
     Serial.begin(SerialSpeed);
     delay(SerialSetupDelay_Ms);
-    Serial.println();
+    Serial.printf("\n\n");
     Serial.println();
   }
 
@@ -52,8 +52,8 @@ void setup()
   }
 
   TestCore();
-  TestDocker();
   TestScanner();
+  TestDocker();
 }
 
 void loop()
@@ -304,4 +304,5 @@ void TestScanner()
   2024-01-13
   2024-01-16
   2024-01-22
+  2024-02-03
 */
