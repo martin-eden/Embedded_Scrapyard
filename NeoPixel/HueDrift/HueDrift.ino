@@ -3,7 +3,7 @@
 /*
   Status: style adjustments
   Version: 2
-  Last mod.: 2024-01-29
+  Last mod.: 2024-02-03
 */
 
 #include <FastLED.h>
@@ -18,7 +18,7 @@ const int16_t
   LEDS_USED = NUM_LEDS - LEDS_OFFSET - 1,
   BRIGHTNESS = 128,
   MAX_CURRENT_MA = 150,
-  UPDATES_PER_MINUTE = 2500;
+  UPDATES_PER_MINUTE = 40;
 
 const uint8_t
   MAX_HUE_DISTANCE = 250;
@@ -83,12 +83,6 @@ float GetHueDistance(
 }
 
 void loop() {
-  static uint32_t last_millis = millis();
-  uint32_t cur_time = millis();
-  uint32_t time_passed = cur_time - last_millis;
-  last_millis = cur_time;
-  // Serial.println(time_passed);
-
   static CHSV
     start_color = CHSV(0, 255, 255),
     finish_color = CHSV(250, 255, 255);
