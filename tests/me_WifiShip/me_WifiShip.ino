@@ -28,7 +28,7 @@ const TUint_4 SerialSpeed = 115200;
 const TUint_4 MainLoopInterval_S = 1.5 * 60;
 
 // Just a generic buffer for text output:
-const TUint_2 Message_MaxLength = 2 * 256;
+const TUint_2 Message_MaxLength = 4 * 256;
 TChar Message [Message_MaxLength];
 
 void setup()
@@ -60,6 +60,8 @@ void setup()
 void loop()
 {
   delay(MainLoopInterval_S * 1000);
+
+  TestScanner();
 }
 
 void PrintGreeting()
@@ -188,6 +190,78 @@ TBool ChangeShipName()
   return Result;
 }
 
+TSint_1 CompareInts(TSint_1 A, TSint_1 B)
+{
+  if (A < B)
+    return -1;
+  else if (A > B)
+    return 1;
+  else
+    return 0;
+}
+
+int StationsComparator(
+  const void* A,
+  const void* B
+)
+{
+  me_WifiShip_Scanner::TStation StationA;
+  me_WifiShip_Scanner::TStation StationB;
+
+  StationA = *(const me_WifiShip_Scanner::TStation*) A;
+  StationB = *(const me_WifiShip_Scanner::TStation*) B;
+
+  return
+    -CompareInts(StationA.Channel.Strength, StationB.Channel.Strength);
+}
+
+void TestScanner()
+{
+  Serial.printf(
+    PSTR(
+      "\n"
+      "----------------------( Scanner test )---------------------------\n"
+      "We will scan ether for stations, sort them by signal strength and\n"
+      "display results.\n"
+      "\n"
+    )
+  );
+
+  WifiShip.Scanner.IncludeHidden = true;
+
+  TBool ScanResult;
+
+  ScanResult = WifiShip.Scanner.Scan();
+
+  if (!ScanResult)
+    Serial.println("Scan failed.");
+  else
+  {
+    // --( Sort scan result )--
+    qsort(
+      WifiShip.Scanner.Stations,
+      WifiShip.Scanner.GetStations_Length(),
+      sizeof(me_WifiShip_Scanner::TStation),
+      StationsComparator
+    );
+
+    me_WifiShip_Scanner_Ui::RepresentScanResult(
+      Message,
+      Message_MaxLength,
+      WifiShip.Scanner.Stations,
+      WifiShip.Scanner.GetStations_Length()
+    );
+
+    Serial.print(Message);
+  }
+
+  Serial.printf(
+    PSTR(
+      "----------------------( Scanner test done )----------------------\n"
+    )
+  );
+}
+
 void TestDocker()
 {
   Serial.printf(
@@ -257,76 +331,6 @@ void TestDocker()
   Serial.printf(
     PSTR(
       "----------------------( Docker test done )-------------------------\n"
-    )
-  );
-}
-
-TSint_1 CompareInts(TSint_1 A, TSint_1 B)
-{
-  if (A < B)
-    return -1;
-  else if (A > B)
-    return 1;
-  else
-    return 0;
-}
-
-int StationsComparator(
-  const void* A,
-  const void* B
-)
-{
-  me_WifiShip_Scanner::TStation StationA;
-  me_WifiShip_Scanner::TStation StationB;
-
-  StationA = *(const me_WifiShip_Scanner::TStation*) A;
-  StationB = *(const me_WifiShip_Scanner::TStation*) B;
-
-  return
-    -CompareInts(StationA.Channel.Strength, StationB.Channel.Strength);
-}
-
-void TestScanner()
-{
-  Serial.printf(
-    PSTR(
-      "\n"
-      "----------------------( Scanner test )---------------------------\n"
-      "We will scan ether for stations, sort them by signal strength and\n"
-      "display results.\n"
-      "\n"
-    )
-  );
-
-  TBool ScanResult;
-
-  ScanResult = WifiShip.Scanner.Scan();
-
-  if (!ScanResult)
-    Serial.println("Scan failed.");
-  else
-  {
-    // --( Sort scan result )--
-    qsort(
-      WifiShip.Scanner.Stations,
-      WifiShip.Scanner.GetStations_Length(),
-      sizeof(me_WifiShip_Scanner::TStation),
-      StationsComparator
-    );
-
-    me_WifiShip_Scanner_Ui::RepresentScanResult(
-      Message,
-      Message_MaxLength,
-      WifiShip.Scanner.Stations,
-      WifiShip.Scanner.GetStations_Length()
-    );
-
-    Serial.print(Message);
-  }
-
-  Serial.printf(
-    PSTR(
-      "----------------------( Scanner test done )----------------------\n"
     )
   );
 }

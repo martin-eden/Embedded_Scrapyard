@@ -1,4 +1,17 @@
-// WifiShip scanner UI
+// WifiShip scanner custom datatypes representation.
+
+/*
+  Status: redesigning
+  Version: 2
+  Last mod.: 2024-02-07
+*/
+
+/*
+  Design
+
+    RepresentSecurityProtocol
+      (Str, StrLen, Protocol_Enum)
+*/
 
 #pragma once
 
@@ -8,6 +21,12 @@
 
 namespace me_WifiShip_Scanner_Ui
 {
+  void RepresentSecurityProtocol(
+    TChar* Message,
+    TUint_2 Message_MaxLength,
+    me_WifiShip_Scanner::TSecurityProtocol MapSecurityProtocol
+  );
+
   void RepresentScanResult(
     TChar* Message,
     TUint_2 Message_MaxLength,
@@ -15,3 +34,7 @@ namespace me_WifiShip_Scanner_Ui
     TUint_1 NumStations
   );
 }
+
+/*
+  2024-02-07
+*/

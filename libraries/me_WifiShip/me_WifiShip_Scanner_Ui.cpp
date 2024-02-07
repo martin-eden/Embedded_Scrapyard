@@ -1,9 +1,59 @@
+// WifiShip scanner custom datatypes representation. Implementation.
+
+/*
+  Status: redesign
+  Version: 2
+  Last mod.: 2024-02-07
+*/
+
 #include "me_WifiShip_Scanner_Ui.h"
 
 #include <me_Types.h>
 
 #include <cstdio> // snprintf()
 #include <HardwareSerial.h> // Serial for debug
+
+#include "me_WifiShip_Common_CraftIdentity_Ui.h" // represent MAC
+
+void RepresentSecurityProtocol(
+  TChar* Message,
+  TUint_2 Message_MaxLength,
+  me_WifiShip_Scanner::TSecurityProtocol SecurityProtocol
+)
+{
+  using namespace me_WifiShip_Scanner;
+
+  switch (SecurityProtocol)
+  {
+    case TSecurityProtocol::None:
+      snprintf(Message, Message_MaxLength, "None");
+      break;
+
+    case TSecurityProtocol::Wep:
+      snprintf(Message, Message_MaxLength, "WEP");
+      break;
+
+    case TSecurityProtocol::Wpa:
+      snprintf(Message, Message_MaxLength, "WPA");
+      break;
+
+    case TSecurityProtocol::Wpa2:
+      snprintf(Message, Message_MaxLength, "WPA2");
+      break;
+
+    case TSecurityProtocol::AnyWpa:
+      snprintf(Message, Message_MaxLength, "WPA1/2");
+      break;
+
+    case TSecurityProtocol::Unknown:
+      snprintf(Message, Message_MaxLength, "Unknown");
+      break;
+
+    default:
+      snprintf(Message, Message_MaxLength, "@(Not covered)");
+  }
+
+}
 
 // Helper function to represent one station found by scan
 void RepesentStation(TChar* Message, TUint_2 Message_MaxLength, me_WifiShip_Scanner::TStation Station);
@@ -27,8 +77,8 @@ void me_WifiShip_Scanner_Ui::RepresentScanResult(
     RowStr,
     RowStr_Size,
     PSTR(
-      "Signal | Name \n"
-      "-------+-----------------------------------------------\n"
+      "Signal | Protocol |        Id         |           Name\n"
+      "-------+----------+-------------------+---------------------------------\n"
     )
   );
   strlcat(Message, RowStr, Message_MaxLength);
@@ -43,7 +93,7 @@ void me_WifiShip_Scanner_Ui::RepresentScanResult(
     RowStr,
     RowStr_Size,
     PSTR(
-      "-------------------------------------------------------\n"
+      "------------------------------------------------------------------------\n"
       "%u stations\n"
     ),
     NumStations
@@ -58,11 +108,23 @@ void RepesentStation(
   me_WifiShip_Scanner::TStation Station
 )
 {
+  const TUint_1 ProtocolName_Size = 20;
+  TChar ProtocolName[ProtocolName_Size];
+
+  RepresentSecurityProtocol(ProtocolName, ProtocolName_Size, Station.Channel.Security);
+
+  const TUint_1 IdStr_Size = 20;
+  TChar IdStr[IdStr_Size];
+
+  me_WifiShip_Common_CraftIdentity_Ui::RepresentCratfId(IdStr, IdStr_Size, Station.Id);
+
   snprintf(
     Message,
     Message_MaxLength,
-    "%6d | %s \n",
+    "%6d | %-8s | %17s | %s \n",
     Station.Channel.Strength,
+    ProtocolName,
+    IdStr,
     Station.Name
   );
 }

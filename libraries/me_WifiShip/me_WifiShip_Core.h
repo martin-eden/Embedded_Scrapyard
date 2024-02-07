@@ -38,7 +38,6 @@ namespace me_WifiShip_Core
   */
   // (
   typedef me_WifiShip_Common_CraftIdentity::TCraftId TShipId;
-
   typedef me_WifiShip_Common_CraftIdentity::TCraftName TShipName;
   // )
 
