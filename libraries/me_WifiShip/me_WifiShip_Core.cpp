@@ -1,5 +1,11 @@
 // WifiShip core implementation.
 
+/*
+  Status: stable
+  Version: 2
+  Last mod.: 2024-02-07
+*/
+
 #include "me_WifiShip.h"
 
 #include <ESP8266WiFi.h> // ESP8266 official SDK
@@ -7,6 +13,7 @@
 using namespace me_WifiShip_Core;
 
 // --( Init )--
+
 TBool TWifiShip_Core::Init()
 {
   return true;
@@ -14,7 +21,7 @@ TBool TWifiShip_Core::Init()
 
 // --( Get/set Id (MAC) )--
 
-TBool TWifiShip_Core::GetShipId(TCraftId* ShipId)
+TBool TWifiShip_Core::GetShipId(TShipId* ShipId)
 {
   bool Inner_Result;
   const uint8 Inner_Role = 0;
@@ -28,12 +35,12 @@ TBool TWifiShip_Core::GetShipId(TCraftId* ShipId)
     return false;
   }
 
-  memcpy(ShipId, Inner_Mac, TCraftId_Size);
+  memcpy(ShipId, Inner_Mac, TShipId_Size);
 
   return true;
 }
 
-TBool TWifiShip_Core::SetShipId(TCraftId ShipId)
+TBool TWifiShip_Core::SetShipId(TShipId ShipId)
 {
   bool Inner_Result;
   const uint8 Inner_Role = 0;
@@ -55,14 +62,14 @@ TBool TWifiShip_Core::SetShipId(TCraftId ShipId)
 
 // --( Get/set Name (SSID) )--
 
-TBool TWifiShip_Core::GetShipName(TCraftName* ShipName)
+TBool TWifiShip_Core::GetShipName(TShipName* ShipName)
 {
-  strncpy(ShipName[0], wifi_station_get_hostname(), TCraftName_Size);
+  strncpy(ShipName[0], wifi_station_get_hostname(), TShipName_Size);
 
   return true;
 }
 
-TBool TWifiShip_Core::SetShipName(TCraftName ShipName)
+TBool TWifiShip_Core::SetShipName(TShipName ShipName)
 {
   TUint_1 Inner_Hostname_Size = 32;
   char Inner_Hostname[Inner_Hostname_Size];
@@ -80,25 +87,10 @@ TBool TWifiShip_Core::SetShipName(TCraftName ShipName)
   return true;
 }
 
-// --( State import/export )--
-
-TBool TWifiShip_Core::GetModuleState(TModuleState* CoreState)
-{
-  return
-    GetShipId(&CoreState->Id) &&
-    GetShipName(&CoreState->Name);
-}
-
-TBool TWifiShip_Core::SetModuleState(TModuleState CoreState)
-{
-  return
-    SetShipId(CoreState.Id) &&
-    SetShipName(CoreState.Name);
-}
-
 // --
 
 /*
   2024-01-01
   2024-01-03
+  2024-02-07
 */

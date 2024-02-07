@@ -2,14 +2,14 @@
 
 /*
   Status: good
-  Version: 7
-  Last mod.: 2024-01-03
+  Version: 8
+  Last mod.: 2024-01-07
 */
 
 /*
-  This module provides functionality to get/set ship ids.
+  This module provides functionality to get/set ship identity.
 
-  Id's are Name (SSID) and Id (MAC).
+  Identity is Name (SSID) and Id (MAC).
 
   Design
 
@@ -22,32 +22,27 @@
     --( Name )--
     GetShipName(): bool, Name
     SetShipName(Name): bool
-
-    --( State import/export )--
-    GetModuleState(): bool, Id, Name
-    SetModuleState(Id, Name): bool
 */
 
 #pragma once
 
 #include <me_Types.h>
 
+#include "me_WifiShip_Common_CraftIdentity.h"
+
 namespace me_WifiShip_Core
 {
-  // Id (MAC):
-  const TUint_1 TCraftId_Size = 6;
-  typedef TUint_1 TCraftId[TCraftId_Size];
+  /*
+    Import Craft.. Name and Id types from CraftIdentity.h and rebrand
+    them under Ship.. prefix.
+  */
+  // (
+  const TUint_1 TShipId_Size = me_WifiShip_Common_CraftIdentity::TCraftId_Size;
+  typedef me_WifiShip_Common_CraftIdentity::TCraftId TShipId;
 
-  // Name (SSID):
-  const TUint_1 TCraftName_Size = 32 + 1;
-  typedef TChar TCraftName[TCraftName_Size];
-
-  // State:
-  struct TModuleState
-  {
-    TCraftId Id;
-    TCraftName Name;
-  };
+  const TUint_1 TShipName_Size = me_WifiShip_Common_CraftIdentity::TCraftName_Size;
+  typedef me_WifiShip_Common_CraftIdentity::TCraftName TShipName;
+  // )
 
   // Core module:
   class TWifiShip_Core
@@ -55,14 +50,11 @@ namespace me_WifiShip_Core
     public:
       TBool Init();
 
-      TBool GetShipId(TCraftId* ShipId);
-      TBool SetShipId(TCraftId ShipId);
+      TBool GetShipId(TShipId* ShipId);
+      TBool SetShipId(TShipId ShipId);
 
-      TBool GetShipName(TCraftName* ShipName);
-      TBool SetShipName(TCraftName ShipName);
-
-      TBool GetModuleState(TModuleState* CoreState);
-      TBool SetModuleState(TModuleState CoreState);
+      TBool GetShipName(TShipName* ShipName);
+      TBool SetShipName(TShipName ShipName);
   };
 }
 
@@ -74,4 +66,5 @@ namespace me_WifiShip_Core
   2023-12-31 -- using <me_Types.h>
   2024-01-01 -- splat to three modules: ship = (frame, scanner, docker)
   2024-01-03
+  2024-02-07
 */

@@ -2,7 +2,7 @@
 
 /*
   Status: stable
-  Version: 1
+  Version: 2
   Last mod.: 2024-01-03
 */
 
@@ -17,18 +17,17 @@ namespace me_WifiShip_Core_Ui
   void RepresentShipId(
     TChar* Message,
     TUint_2 Message_MaxLength,
-    me_WifiShip_Core::TCraftId ShipId
+    me_WifiShip_Core::TShipId ShipId
   );
 
   void RepresentShipName(
     TChar* Message,
     TUint_2 Message_MaxLength,
-    me_WifiShip_Core::TCraftName ShipName
-  );
-
-  void RepresentCoreState(
-    TChar* Message,
-    TUint_2 Message_MaxLength,
-    me_WifiShip_Core::TModuleState CoreState
+    me_WifiShip_Core::TShipName ShipName
   );
 }
+
+/*
+  2024-01-03
+  2024-02-07
+*/

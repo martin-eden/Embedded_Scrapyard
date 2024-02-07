@@ -2,8 +2,8 @@
 
 /*
   Status: good base
-  Version: 4
-  Last mod.: 2024-02-03
+  Version: 5
+  Last mod.: 2024-02-07
 */
 
 /*
@@ -11,6 +11,7 @@
 */
 
 #include <me_WifiShip.h>
+
 #include <me_WifiShip_Core_Ui.h>
 #include <me_WifiShip_Docker_Ui.h>
 #include <me_WifiShip_Scanner_Ui.h>
@@ -78,8 +79,6 @@ void TestCore()
     PSTR(
       "\n"
       "----------------------( Core test )------------------------------\n"
-      "Test of core module.\n"
-      "\n"
       "We are getting ship's id and name, changing em and getting again:\n"
       "\n"
     )
@@ -89,6 +88,8 @@ void TestCore()
 
   ChangeShipId();
   ChangeShipName();
+
+  Serial.println();
 
   PrintCoreState();
 
@@ -101,18 +102,54 @@ void TestCore()
 
 void PrintCoreState()
 {
-  me_WifiShip_Core::TModuleState CoreState;
+  RepresentCore(Message, Message_MaxLength, WifiShip.Core);
+  Serial.print(Message);
+}
 
-  if (WifiShip.Core.GetModuleState(&CoreState))
+void RepresentCore(
+  TChar* Message,
+  TUint_2 Message_MaxLength,
+  me_WifiShip_Core::TWifiShip_Core Core
+)
+{
+  me_WifiShip_Core::TShipId ShipId;
+  me_WifiShip_Core::TShipName ShipName;
+
+  // Get data
   {
-    me_WifiShip_Core_Ui::RepresentCoreState(Message, Message_MaxLength, CoreState);
-    Serial.print(Message);
+    Core.GetShipId(&ShipId);
+    Core.GetShipName(&ShipName);
   }
+
+  TUint_1 IdStr_MaxLength = 20;
+  TChar IdStr[IdStr_MaxLength];
+
+  TUint_1 NameStr_MaxLength = 40;
+  TChar NameStr[NameStr_MaxLength];
+
+  // Serialize parts
+  {
+    using namespace me_WifiShip_Core_Ui;
+
+    RepresentShipId(IdStr, IdStr_MaxLength, ShipId);
+    RepresentShipName(NameStr, NameStr_MaxLength, ShipName);
+  }
+
+  snprintf(
+    Message,
+    Message_MaxLength,
+    PSTR(
+      "Id: %s\n"
+      "Name: %s\n"
+    ),
+    IdStr,
+    NameStr
+  );
 }
 
 TBool ChangeShipId()
 {
-  me_WifiShip_Core::TCraftId ShipId;
+  me_WifiShip_Core::TShipId ShipId;
   TBool Result;
 
   // Get:
@@ -135,7 +172,7 @@ TBool ChangeShipId()
 
 TBool ChangeShipName()
 {
-  me_WifiShip_Core::TCraftName ShipName;
+  me_WifiShip_Core::TShipName ShipName;
   TBool Result;
 
   // Get:
@@ -305,4 +342,5 @@ void TestScanner()
   2024-01-16
   2024-01-22
   2024-02-03
+  2024-02-07
 */
