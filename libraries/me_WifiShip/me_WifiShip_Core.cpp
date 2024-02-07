@@ -35,7 +35,7 @@ TBool TWifiShip_Core::GetShipId(TShipId* ShipId)
     return false;
   }
 
-  memcpy(ShipId, Inner_Mac, TShipId_Size);
+  memcpy(ShipId, Inner_Mac, sizeof(TShipId));
 
   return true;
 }
@@ -64,7 +64,7 @@ TBool TWifiShip_Core::SetShipId(TShipId ShipId)
 
 TBool TWifiShip_Core::GetShipName(TShipName* ShipName)
 {
-  strncpy(ShipName[0], wifi_station_get_hostname(), TShipName_Size);
+  strncpy(ShipName[0], wifi_station_get_hostname(), sizeof(TShipName));
 
   return true;
 }

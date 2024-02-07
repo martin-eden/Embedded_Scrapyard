@@ -1,23 +1,28 @@
 // WifiShip scanner
 
 /*
-  Status: redesigned
-  Version: 1
-  Last mod.: 2024-01-16
+  Status: stable
+  Version: 2
+  Last mod.: 2024-02-07
 */
 
 /*
   Design
 
     Scanner
+      // Optional parameters
       IncludeHidden: bool
+
+      // Action
       Scan(): bool
+
+      // Result
       Stations: array[] of Station
       GetStations_Length(): uint
 
     Station
-      Id: array[] uint // MAC
-      Name: array[] char // SSID
+      Id == Common_CraftIdentity.CraftId // MAC
+      Name == Common_CraftIdentity.CraftName // SSID
       Channel:
         Strength: int // RSSI
         Band: uint // channel number
@@ -32,15 +37,15 @@
 
 #include <me_Types.h>
 
+#include "me_WifiShip_Common_CraftIdentity.h"
+
 namespace me_WifiShip_Scanner
 {
-  // Id (MAC)
-  const TUint_1 TStationId_Size = 6;
-  typedef TUint_1 TStationId[TStationId_Size];
+  // Station id (MAC)
+  typedef me_WifiShip_Common_CraftIdentity::TCraftId TStationId;
 
-  // Name (SSID)
-  const TUint_1 TStationName_Size = 32 + 1;
-  typedef TChar TStationName[TStationName_Size];
+  // Station name (SSID)
+  typedef me_WifiShip_Common_CraftIdentity::TCraftName TStationName;
 
   // Security
   enum struct TSecurityProtocol
@@ -64,8 +69,8 @@ namespace me_WifiShip_Scanner
   // Station
   struct TStation
   {
-    TStationId Id; // MAC
-    TStationName Name; // SSID
+    TStationId Id;
+    TStationName Name;
     TBool IsHidden;
     TChannel Channel;
   };
@@ -90,4 +95,5 @@ namespace me_WifiShip_Scanner
 
 /*
   2024-01-16
+  2024-02-07
 */

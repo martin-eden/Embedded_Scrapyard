@@ -42,6 +42,7 @@ void me_WifiShip_Docker_Ui::RepresentStatus(
   }
 }
 
+// Represent IP address
 void me_WifiShip_Docker_Ui::RepresentAddress(
   TChar* Message,
   TUint_2 Message_MaxLength,

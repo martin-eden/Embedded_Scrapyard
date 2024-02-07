@@ -1,9 +1,9 @@
 // WifiShip scanner implementation
 
 /*
-  Status: implemented
+  Status: stable
   Version: 1
-  Last mod.: 2024-01-22
+  Last mod.: 2024-02-07
 */
 
 #include "me_WifiShip_Scanner.h"
@@ -102,10 +102,10 @@ void TScanner::FillStationInfo(TStation* Station, TUint_1 ScanIndex)
   }
 
   // Station.Id
-  memcpy(Station->Id, Inner_Id, TStationId_Size);
+  memcpy(Station->Id, Inner_Id, sizeof(TStationId));
 
   // Station.Name
-  strncpy(Station->Name, Inner_StationName.c_str(), TStationName_Size);
+  strncpy(Station->Name, Inner_StationName.c_str(), sizeof(TStationName));
 
   // Station.IsHidden
   Station->IsHidden = Inner_IsHidden;
@@ -151,4 +151,5 @@ TSecurityProtocol TScanner::MapSecurityProtocol(TUint_1 Inner_SecurityProtocol)
 /*
   2024-01-16
   2024-01-22
+  2024-02-07
 */

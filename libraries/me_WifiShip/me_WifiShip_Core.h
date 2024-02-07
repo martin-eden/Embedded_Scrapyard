@@ -37,10 +37,8 @@ namespace me_WifiShip_Core
     them under Ship.. prefix.
   */
   // (
-  const TUint_1 TShipId_Size = me_WifiShip_Common_CraftIdentity::TCraftId_Size;
   typedef me_WifiShip_Common_CraftIdentity::TCraftId TShipId;
 
-  const TUint_1 TShipName_Size = me_WifiShip_Common_CraftIdentity::TCraftName_Size;
   typedef me_WifiShip_Common_CraftIdentity::TCraftName TShipName;
   // )
 

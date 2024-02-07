@@ -1,18 +1,16 @@
 // WifiShip docker module (connect/disconnect to station).
 
 /*
-  Status: done
-  Vesrion: 1
-  Last mod.: 2024-01-14
+  Status: stable
+  Version: 2
+  Last mod.: 2024-02-07
 */
 
 /*
   Design
 
-    Types
+    Data structures
 
-      StationName: TChar[32] // SSID
-      Address: TUint_1[4] // IP address
       Status:
         * Not docked
         * Docked
@@ -21,40 +19,53 @@
           * Wrong password
           * Some other shit
 
+      StationName == Common.CraftName // SSID
+      StationPassword: TChar[64]
+
+      // IP addresses when connected:
+      ( Address = TUint_1[4] )
+      ShipAddress: Address
+      StationAddress: Address
+
     Methods
 
       --( inherited )--
-      Init(): bool
+      Init: bool
 
       --( Status )--
-      GetStatus(): bool
+      GetStatus: bool
 
       --( Docking )--
-      DockTo(StationName, StationPassword): DockingStatus
-      Undock() <-- post_assert(DockingStatus == Not docked)
+      DockTo: DockingStatus
+        (StationName, StationPassword)
+
+      Undock
+        // post_assert(DockingStatus == Not docked)
 
       --( Channel )--
-      GetShipAddress(): bool, Address <-- local IP: 192.168.0.208
-      GetStationAddress(): bool, Address <-- DNS IP: 192.168.0.1
+      GetShipAddress: bool, Address
+        // local IP: 192.168.0.208
+
+      GetStationAddress: bool, Address
+        // Gateway IP: 192.168.0.1
 */
 
 #pragma once
 
 #include <me_Types.h>
 
+#include "me_WifiShip_Common_CraftIdentity.h"
+
 namespace me_WifiShip_Docker
 {
   // StationName (SSID)
-  const TUint_1 TStationName_Size = 32 + 1;
-  typedef TChar TStationName[TStationName_Size];
+  typedef me_WifiShip_Common_CraftIdentity::TCraftName TStationName;
 
   // StationPassword (Password)
-  const TUint_1 TStationPassword_Size = 64 + 1;
-  typedef TChar TStationPassword[TStationPassword_Size];
+  typedef TChar TStationPassword[64 + 1];
 
   // Address (IP)
-  const TUint_1 TAddress_Size = 4;
-  typedef TUint_1 TAddress[TAddress_Size];
+  typedef TUint_1 TAddress[4];
 
   // Docking status:
   enum struct TStatus
@@ -75,15 +86,15 @@ namespace me_WifiShip_Docker
     public:
       TBool Init();
 
+      // Status
+      TStatus GetStatus();
+
       // Docking
       TStatus DockTo(
         TStationName StationName,
         TStationPassword StationPassword
       );
       void Undock();
-
-      // Status
-      TStatus GetStatus();
 
       // Address
       TBool GetShipAddress(TAddress ShipAddress);
@@ -104,4 +115,5 @@ namespace me_WifiShip_Docker
 /*
   2024-01-03
   2024-01-13
+  2024-02-07
 */

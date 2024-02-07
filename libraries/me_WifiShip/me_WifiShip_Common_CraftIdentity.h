@@ -20,12 +20,10 @@
 namespace me_WifiShip_Common_CraftIdentity
 {
   // Id (MAC):
-  const TUint_1 TCraftId_Size = 6;
-  typedef TUint_1 TCraftId[TCraftId_Size];
+  typedef TUint_1 TCraftId[6];
 
   // Name (SSID):
-  const TUint_1 TCraftName_Size = 32 + 1;
-  typedef TChar TCraftName[TCraftName_Size];
+  typedef TChar TCraftName[32 + 1];
 }
 
 /*
