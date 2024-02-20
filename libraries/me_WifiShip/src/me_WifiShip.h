@@ -1,7 +1,7 @@
 // WifiShip: Structured approach to base WiFi functionality.
 
 /*
-  Status: redesigned
+  Status: nice
   Version: 5
   Last mod.: 2024-02-20
 */
@@ -78,19 +78,20 @@
 
     * Parts
 
-      Core - <me_WifiShip_Core.h>
-      Scanner - <me_WifiShip_Scanner.h>
-      Docker - <me_WifiShip_Docker.h>
+      Core - <Core/Interface.h>
+      Scanner - <Scanner/Interface.h>
+      Docker - <Docker/Interface.h>
 
     * UI Modules
 
-      Ship - <me_WifiShip_Ui.h>
-      Core - <me_WifiShip_Core_Ui.h>
-      Scanner - <me_WifiShip_Scanner_Ui.h>
-      Docker - <me_WifiShip_Docker_Ui.h>
+      Core - <Core/Ui/Interface.h>
+      Scanner - <Scanner/Ui/Interface.h>
+      Docker - <Docker/Ui/Interface.h>
 
-      Text user interface via UART serial port. Useful in development
-      but not in production code. Used in demo part.
+      Routines there provide text representation of relative data
+      structures. They have common design of snprintf():
+
+        void (TChar* Message, TUint_2 Message_MaxLength, ...)
 
     * Demo/test
 
@@ -124,4 +125,5 @@ namespace me_WifiShip
   2023-12-31 -- using <me_Types.h>
   2024-01-01 -- splat to three modules: ship = (frame, scanner, docker)
   2024-01-03
+  2024-02-20 -- standalone repo on GitHub
 */
