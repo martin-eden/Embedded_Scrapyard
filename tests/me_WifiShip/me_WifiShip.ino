@@ -277,8 +277,8 @@ void TestDocker()
     )
   );
 
-  me_WifiShip_Docker::TStationName StationName = "YOUR ROUTER NAME";
-  me_WifiShip_Docker::TStationPassword StationPassword = "YOUR ROUTER PASSWORD";
+  me_WifiShip_Docker::TStationName StationName = "WhiteTortoise";
+  me_WifiShip_Docker::TStationPassword StationPassword = "Toronto12";
   me_WifiShip_Docker::TStatus DockingStatus;
 
   Serial.printf(

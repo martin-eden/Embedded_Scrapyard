@@ -1,4 +1,4 @@
-# Specify filepatterns you want git to ignore.
+# Specify file patterns you want git to ignore.
 
 libraries/*
 !libraries/me_*
