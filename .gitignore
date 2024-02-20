@@ -4,3 +4,5 @@ libraries/*
 !libraries/me_*
 !libraries/rover/
 !libraries/joystick/
+libraries/me_Types/
+libraries/me_WifiShip/
