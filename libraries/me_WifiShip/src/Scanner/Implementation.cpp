@@ -3,10 +3,10 @@
 /*
   Status: stable
   Version: 1
-  Last mod.: 2024-02-07
+  Last mod.: 2024-02-20
 */
 
-#include "me_WifiShip_Scanner.h"
+#include "Scanner/Interface.h"
 
 #include <ESP8266WiFi.h> // ESP8266 official SDK
 

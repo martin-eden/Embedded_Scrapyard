@@ -1,6 +1,6 @@
-#include "me_WifiShip_Docker_Ui.h"
+// Last mod.: 2024-02-20
 
-#include <me_Types.h>
+#include "Docker/Ui/Interface.h"
 
 #include <cstdio> // snprintf()
 
@@ -52,7 +52,7 @@ void me_WifiShip_Docker_Ui::RepresentAddress(
   snprintf(
     Message,
     Message_MaxLength,
-    "%03d.%03d.%03d.%03d",
+    "%u.%u.%u.%u",
     Address[0],
     Address[1],
     Address[2],

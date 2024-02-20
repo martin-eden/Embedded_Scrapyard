@@ -3,14 +3,12 @@
 /*
   Status: stable
   Version: 2
-  Last mod.: 2024-01-03
+  Last mod.: 2024-02-20
 */
 
 #pragma once
 
-#include <me_Types.h>
-
-#include "me_WifiShip_Core.h"
+#include "Core/Interface.h"
 
 namespace me_WifiShip_Core_Ui
 {

@@ -3,12 +3,10 @@
 /*
   Status: stable
   Version: 1
-  Last mod.: 2024-02-06
+  Last mod.: 2024-02-20
 */
 
-#include "me_WifiShip_Common_CraftIdentity_Ui.h"
-
-#include <me_Types.h>
+#include "Common/CraftIdentity/Ui/Interface.h"
 
 #include <cstdio> // snprintf()
 

@@ -1,8 +1,8 @@
+// Last mod.: 2024-02-20
+
 #pragma once
 
-#include <me_Types.h>
-
-#include "me_WifiShip_Docker.h"
+#include "Docker/Interface.h"
 
 namespace me_WifiShip_Docker_Ui
 {

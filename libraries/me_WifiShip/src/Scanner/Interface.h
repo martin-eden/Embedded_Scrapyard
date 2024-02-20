@@ -3,7 +3,7 @@
 /*
   Status: stable
   Version: 2
-  Last mod.: 2024-02-07
+  Last mod.: 2024-02-20
 */
 
 /*
@@ -35,9 +35,7 @@
 
 #pragma once
 
-#include <me_Types.h>
-
-#include "me_WifiShip_Common_CraftIdentity.h"
+#include "Common/CraftIdentity/Interface.h"
 
 namespace me_WifiShip_Scanner
 {

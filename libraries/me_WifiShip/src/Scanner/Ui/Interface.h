@@ -3,7 +3,7 @@
 /*
   Status: redesigning
   Version: 2
-  Last mod.: 2024-02-07
+  Last mod.: 2024-02-20
 */
 
 /*
@@ -15,9 +15,7 @@
 
 #pragma once
 
-#include <me_Types.h>
-
-#include "me_WifiShip_Scanner.h"
+#include "Scanner/Interface.h"
 
 namespace me_WifiShip_Scanner_Ui
 {

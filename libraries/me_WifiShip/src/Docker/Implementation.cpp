@@ -3,17 +3,17 @@
 /*
   Status: done
   Version: 1
-  Last mod.: 2024-01-14
+  Last mod.: 2024-02-20
 */
 
-#include "me_WifiShip_Docker.h"
+#include "Docker/Interface.h"
 
 #include <ESP8266WiFi.h> // ESP8266 official SDK
 
 using namespace me_WifiShip_Docker;
 
 // --( Init )--
-TBool TWifiShip_Docker::Init()
+TBool TDocker::Init()
 {
   Status = TStatus::Undocked;
 
@@ -23,7 +23,7 @@ TBool TWifiShip_Docker::Init()
 }
 
 // --( DockTo )--
-TStatus TWifiShip_Docker::DockTo(
+TStatus TDocker::DockTo(
   TStationName StationName,
   TStationPassword StationPassword
 )
@@ -55,7 +55,7 @@ TStatus TWifiShip_Docker::DockTo(
 }
 
 // --( Undock )--
-void TWifiShip_Docker::Undock()
+void TDocker::Undock()
 {
   if (Status == TStatus::Docked)
   {
@@ -75,20 +75,20 @@ void TWifiShip_Docker::Undock()
 }
 
 // --( Status )--
-TStatus TWifiShip_Docker::GetStatus()
+TStatus TDocker::GetStatus()
 {
   return Status;
 }
 
 // --( Get station address )--
-TBool TWifiShip_Docker::GetStationAddress(TAddress StationAddress)
+TBool TDocker::GetStationAddress(TAddress StationAddress)
 {
   IPAddress Inner_Result;
 
   if (Status != TStatus::Docked)
     return false;
 
-  Inner_Result = WiFi.dnsIP();
+  Inner_Result = WiFi.gatewayIP();
 
   StationAddress[0] = Inner_Result[0];
   StationAddress[1] = Inner_Result[1];
@@ -99,7 +99,7 @@ TBool TWifiShip_Docker::GetStationAddress(TAddress StationAddress)
 }
 
 // --( Get ship address )--
-TBool TWifiShip_Docker::GetShipAddress(TAddress ShipAddress)
+TBool TDocker::GetShipAddress(TAddress ShipAddress)
 {
   IPAddress Inner_Result;
 
@@ -117,12 +117,12 @@ TBool TWifiShip_Docker::GetShipAddress(TAddress ShipAddress)
 }
 
 // --( Timeout )--
-TUint_1 TWifiShip_Docker::GetDockingTimeout_S()
+TUint_1 TDocker::GetDockingTimeout_S()
 {
   return DockingTimeout_S;
 }
 
-void TWifiShip_Docker::SetDockingTimeout_S(TUint_1 aDockingTimeout_S)
+void TDocker::SetDockingTimeout_S(TUint_1 aDockingTimeout_S)
 {
   DockingTimeout_S = aDockingTimeout_S;
 }
@@ -132,7 +132,7 @@ void TWifiShip_Docker::SetDockingTimeout_S(TUint_1 aDockingTimeout_S)
 /*
   Convert result of WiFi.waitForConnectResult() to our status value.
 */
-TStatus TWifiShip_Docker::MapInnerStatus(TSint_1 aInnerStatus)
+TStatus TDocker::MapInnerStatus(TSint_1 aInnerStatus)
 {
   /*
     Those guys are returning sint(-1) when timeout and returning uint(status)
@@ -178,4 +178,5 @@ TStatus TWifiShip_Docker::MapInnerStatus(TSint_1 aInnerStatus)
 /*
   2024-01-03
   2024-01-13
+  2024-01-14
 */

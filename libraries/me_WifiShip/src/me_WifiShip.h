@@ -3,7 +3,7 @@
 /*
   Status: redesigned
   Version: 5
-  Last mod.: 2024-01-03
+  Last mod.: 2024-02-20
 */
 
 /*
@@ -99,19 +99,17 @@
       Uses WifiShip and it's UI modules.
 */
 
-#include <me_Types.h>
-
-#include "me_WifiShip_Core.h"
-#include "me_WifiShip_Scanner.h"
-#include "me_WifiShip_Docker.h"
+#include "Core/Interface.h"
+#include "Scanner/Interface.h"
+#include "Docker/Interface.h"
 
 namespace me_WifiShip
 {
   class TWifiShip
   {
     public:
-      me_WifiShip_Core::TWifiShip_Core Core;
-      me_WifiShip_Docker::TWifiShip_Docker Docker;
+      me_WifiShip_Core::TCore Core;
+      me_WifiShip_Docker::TDocker Docker;
       me_WifiShip_Scanner::TScanner Scanner;
 
       TBool Init();

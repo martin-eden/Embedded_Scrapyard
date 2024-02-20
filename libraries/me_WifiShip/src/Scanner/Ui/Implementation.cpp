@@ -3,17 +3,15 @@
 /*
   Status: redesign
   Version: 2
-  Last mod.: 2024-02-07
+  Last mod.: 2024-02-20
 */
 
-#include "me_WifiShip_Scanner_Ui.h"
-
-#include <me_Types.h>
+#include "Scanner/Ui/Interface.h"
 
 #include <cstdio> // snprintf()
 #include <HardwareSerial.h> // Serial for debug
 
-#include "me_WifiShip_Common_CraftIdentity_Ui.h" // represent MAC
+#include "Common/CraftIdentity/Ui/Interface.h" // Represent CraftId
 
 void RepresentSecurityProtocol(
   TChar* Message,
@@ -128,3 +126,7 @@ void RepesentStation(
     Station.Name
   );
 }
+
+/*
+  2024-02-07
+*/

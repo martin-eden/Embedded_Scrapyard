@@ -3,12 +3,12 @@
 /*
   Status: stable
   Version: 3
-  Last mod.: 2024-02-07
+  Last mod.: 2024-02-20
 */
 
-#include "me_WifiShip_Core_Ui.h"
+#include "Core/Ui/Interface.h"
 
-#include "me_WifiShip_Common_CraftIdentity_Ui.h"
+#include "Common/CraftIdentity/Ui/Interface.h" // Represent CraftId, CraftName
 
 void me_WifiShip_Core_Ui::RepresentShipId(
   TChar* Message,
