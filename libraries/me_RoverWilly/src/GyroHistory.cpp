@@ -1,9 +1,8 @@
 // Gyro history management
 
 /*
-  Status: reworking
   Version: 2
-  Last mod.: 2023-11-15
+  Last mod.: 2024-02-26
 */
 
 #include "GyroHistory.h"
@@ -33,29 +32,22 @@ void StoreGyroReadings(MPU6050::t_GyroAccReadings Readings, uint32_t Timestamp_M
   GyroHistoryCursor = (GyroHistoryCursor + 1) % GyroHistoryCapacity;
 }
 
-/*
-  Typical JSON is
-
-    {"Timestamp_ms":17815,"Acceleration_G":{"X":0.01,"Y":0.02,"Z":1.06},"Rotation_dps":{"X":-1.18,"Y":0.39,"Z":-0.85},"Temperature_C":27.75}
-
-  Use it for StaticJsonDocument memory allocation.
-*/
 String SerializeHistoryRec_Json(t_GyroHistoryRec HistoryRec)
 {
   String Result = "";
 
-  StaticJsonDocument<192> doc;
+  JsonDocument doc;
 
   const uint8_t NumFractionalDigits = 2;
 
   doc["Timestamp_ms"] = HistoryRec.Timestamp_Ms;
 
-  JsonObject Acceleration = doc.createNestedObject("Acceleration_G");
+  JsonObject Acceleration = doc["Acceleration_G"].to<JsonObject>();
   Acceleration["X"] = serialized(String(HistoryRec.Acceleration_G.x, NumFractionalDigits));
   Acceleration["Y"] = serialized(String(HistoryRec.Acceleration_G.y, NumFractionalDigits));
   Acceleration["Z"] = serialized(String(HistoryRec.Acceleration_G.z, NumFractionalDigits));
 
-  JsonObject Rotation = doc.createNestedObject("Rotation_Dps");
+  JsonObject Rotation = doc["Rotation_Dps"].to<JsonObject>();
   Rotation["X"] = serialized(String(HistoryRec.Rotation_Dps.x));
   Rotation["Y"] = serialized(String(HistoryRec.Rotation_Dps.y));
   Rotation["Z"] = serialized(String(HistoryRec.Rotation_Dps.z));
@@ -148,4 +140,5 @@ String GetGyroHistory_Json()
 
 /*
   2023-11-15
+  2024-02-26
 */

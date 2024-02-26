@@ -1,3 +1,10 @@
+// Handling IMU MPU-6050
+
+/*
+  Version: 1
+  Last mod.: 2024-02-26
+*/
+
 #include "Gyro.h"
 
 #include <ArduinoJson.h>
@@ -110,7 +117,7 @@ String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t T
   const uint8_t NumFractionalDigits = 2;
 
   String Result = "";
-  StaticJsonDocument<300> doc;
+  JsonDocument doc;
 
   doc["Timestamp_ms"] = Time;
 
@@ -138,12 +145,12 @@ String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t T
     So I have to keep this low-entropy code.
   */
 
-  JsonObject Acceleration = doc.createNestedObject("Acceleration_G");
+  JsonObject Acceleration = doc["Acceleration_G"].to<JsonObject>();
   Acceleration["X"] = serialized(String(GyroReadings.Acceleration_G.x, NumFractionalDigits));
   Acceleration["Y"] = serialized(String(GyroReadings.Acceleration_G.y, NumFractionalDigits));
   Acceleration["Z"] = serialized(String(GyroReadings.Acceleration_G.z, NumFractionalDigits));
 
-  JsonObject Rotation = doc.createNestedObject("Rotation_dps");
+  JsonObject Rotation = doc["Rotation_dps"].to<JsonObject>();
   Rotation["X"] = serialized(String(GyroReadings.Rotation_Dps.x, NumFractionalDigits));
   Rotation["Y"] = serialized(String(GyroReadings.Rotation_Dps.y, NumFractionalDigits));
   Rotation["Z"] = serialized(String(GyroReadings.Rotation_Dps.z, NumFractionalDigits));
@@ -154,3 +161,7 @@ String SerializeGyroReadings(MPU6050::t_GyroAccReadings GyroReadings, uint32_t T
 
   return Result;
 }
+
+/*
+  2024-02-26 Migrated to <ArduinoJson> v7
+*/
