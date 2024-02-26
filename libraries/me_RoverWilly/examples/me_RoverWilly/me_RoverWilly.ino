@@ -1,17 +1,14 @@
-// Firmware for my Rover v4.
+// Firmware for Willy rover
 
 /*
-  Status: working base
   Version: 11
-  Last mod.: 2023-11-15
+  Last mod.: 2024-02-26
 */
 
 /*
-  2: Overseer
-
-    Board: WeMos D1 R1
-    Processor: ESP8266
-    Accelerometer: MPU6050 (I2C)
+  Board: WeMos D1 R1
+  Processor: ESP8266
+  Accelerometer: MPU6050 (I2C)
 */
 
 /*
@@ -59,6 +56,10 @@ namespace Overseer
 
   Motorboard::MotorboardChannel MotorboardStream;
 
+  bool MotorboardIsConnected;
+  bool GyroIsConnected;
+  bool WifiIsConnected;
+
   Ticker GyroPoll_Timer;
   Ticker Heartbeat_Timer;
 
@@ -96,7 +97,7 @@ void setup()
     "--[ Setup\n"
   );
 
-  bool MotorboardIsConnected =
+  MotorboardIsConnected =
     MotorboardStream.Setup(
       Motorboard_Baud,
       Motorboard_Receive_Pin,
@@ -110,10 +111,11 @@ void setup()
     CommentStream->printf("%d ms\n", PingValue_Ms);
   }
 
-  bool GyroIsConnected = SetupGyro();
+  GyroIsConnected = SetupGyro();
 
+  me_Wifi::Init();
   uint16_t WifiConnectTimeout_S = 20;
-  bool WifiIsConnected =
+  WifiIsConnected =
     me_Wifi::SetupWifi(
       StationName,
       StationPassword,
@@ -135,7 +137,7 @@ void setup()
       "\n"
       "  Motorboard = %u\n"
       "  Gyro = %u\n"
-      "  Wi-Fi = %u\n"
+      "  WiFi = %u\n"
       "\n"
     ),
     MotorboardIsConnected,
@@ -147,13 +149,19 @@ void setup()
     "--] Setup\n"
   );
 
-  // WROOM-WROOM!
-  Motorboard::RunMotorsTest(MotorboardStream);
+  if (MotorboardIsConnected)
+  {
+    // WROOM-WROOM!
+    Motorboard::RunMotorsTest(MotorboardStream);
+  }
 }
 
 void loop()
 {
-  Http::HandleEvents();
+  if (WifiIsConnected)
+  {
+    Http::HandleEvents();
+  }
 
   delay(TickTime_Ms);
 }
@@ -305,4 +313,5 @@ void Overseer::Heartbeat_Callback()
   2023-11-11
   2023-11-13
   2023-11-15
+  2024-02-26
 */
