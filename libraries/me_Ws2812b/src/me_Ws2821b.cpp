@@ -122,6 +122,12 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
       So "andi <r>, 0xFF" is a new nop. Until those jerks will
       "optimize" it.
     */
+    /*
+      To do: main problem is interbyte delay.
+        Remove <DataCounter>
+        Decrement <Length> until zero (sbiw).
+        Rename <Length> to <RemainedLength>.
+    */
     asm volatile
     (
       R"(
@@ -154,7 +160,7 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
 
         # 8 bits in byte
         cpi %[BitCounter], 8
-        brsh BiLtoop_End
+        brsh BitLoop_End
 
       # For both zero and one bit we first set pin HIGH:
         sbi 0x08, 0
