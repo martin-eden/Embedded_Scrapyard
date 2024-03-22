@@ -1,29 +1,24 @@
-// Send bytes array according to WS2821B specs. (LED stripe)
+// Send bytes array according to WS2821B (LED stripe) specs
 
 /*
   Status
 
-    Correct in specific cases.
+    I believe it's correct.
 
     Viewed compiled code with disassembler.
 
-    Tested pin state changes with oscilloscope.
+    Verified timings with oscilloscope.
 
-    So core part is done. But it receives <Length> in byte. <Length>
-    should be word. So it can send up to 200 bytes, not 2k. Need to
-    fix it.
-
-    2024-03-17
+    Observed effects on LED stripe.
 */
 
 // Author: Martin Eden
-// Last mod.: 2024-03-19
+// Last mod.: 2024-03-22
 
 #include "me_Ws2812b.h"
 
 #include <stdio.h> // debug print
-#include <Arduino.h> // delayMicroseconds()
-
+#include <Arduino.h> // delayMicroseconds() for SendLatch()
 
 /*
   Protocol
@@ -54,12 +49,10 @@
         line(LOW)
         wait_ns(350)
 
-      // 800 kBits rate
+      // 1250 ns / bit == 800 kBits rate
 
   Thoughts about implementation design are at the end of file.
 */
-
-// using namespace me_Ws2821b;
 
 // Forward declarations (
 void SendLatch();
@@ -76,16 +69,11 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
   }
   */
 
-  /*
-  for (TUint_1 Index = 0; Index < Length; ++Index)
   {
-    TUint_1 Value = Bytes[Index];
-    SendByte(Value);
-  }
-  */
-  {
-    // For initial test we will use Led13. For next test we will use A0.
-    // Led13: Port B, Bit 5
+    if (Length == 0)
+      return;
+
+    // For test we will use A0.
     // A0: Port C, Bit 0 == I/O register 0x08, bit 0
 
     TUint_1 Pin = A0;
@@ -93,9 +81,15 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
     pinMode(Pin, OUTPUT);
     digitalWrite(Pin, LOW);
 
-    TUint_2 DataCounter;
     TUint_1 DataByte;
     TUint_1 BitCounter;
+
+    /*
+      We are disabling interrupts. Or some thing in happening every
+      1024 us with a duration near 6 us. Our signal level is freezed
+      that time.
+    */
+    TUint_1 OrigSreg = SREG;
 
     /*
       Double "for" in GNU asm.
@@ -106,50 +100,52 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
       For each bit we do
 
         SetPin(HIGH)
-        Delays_ns[BitValue].AfterHigh
+        Delays_ns[BitValue].AfterHigh  // 0: 350, 1: 900
         SetPin(LOW)
-        Delays_ns[BitValue].AfterLow
+        Delays_ns[BitValue].AfterLow  // 0: 900, 1: 350
 
-      In implementation we can "SetPin(HIGH)" early.
+      In implementation:
+        * We "SetPin(HIGH)" early
+        * We increment bit loop inside "if"s. We have time slots there.
       --
       Thank you Richard Stallman and ArduinoIDE guys for "-Os"
       default option that removes successive "nop"'s from "asm" code.
-
       Code is so tiny and fast now!
 
       LED stripe is not controlled but who cares?
 
-      So "andi <r>, 0xFF" is a new nop. Until those jerks will
-      "optimize" it.
-    */
-    /*
-      To do: main problem is interbyte delay.
-        Remove <DataCounter>
-        Decrement <Length> until zero (sbiw).
-        Rename <Length> to <RemainedLength>.
+      So "andi <r>, 0xFF" is our new nop.
+      --
+      GNU asm is funny.
+
+      When specifying "x" to hold data in X register pair (registers r26,
+      r27) it generates code that uses that registers. But if other
+      data is marked as "r" (any register), it can freely use r26 for it.
+      Despite it's busy. So GCC gives a warning about undefined code.
+      Generated bad code is "ld r26, X+". Yeah, just loading data to
+      register that's holding pointer to that data.
+
+      So I used even more cryptic "la" for data. It means two alternatives:
+      place in "l" category or in "a" category. "l" is r0 .. r15,
+      "a" is r16 .. r23.
+
+      Also my GNU asm does not support "y" for Y register. "x" and "z"
+      are fine but not "y".
+
+      2024-03-22
     */
     asm volatile
     (
       R"(
         # Weird instructions to locate this place in disassembly
-        ldi %[DataCounter], 0xA9
+        ldi %[BitCounter], 0xA9
         ldi %[BitCounter], 0xAA
 
+        cli
+
         # DataLoop: Init
-        clr %A[DataCounter]
-        clr %B[DataCounter]
 
       DataLoop_Start:
-
-        # DataLoop: Check low byte
-        cp %A[DataCounter], %A[Length]
-        brne DataLoop_Body_Start
-
-        # DataLoop: Check high byte
-        cp %B[DataCounter], %B[Length]
-        breq DataLoop_End
-
-      DataLoop_Body_Start:
 
         ld %[DataByte], %a[Bytes]+
 
@@ -157,10 +153,6 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
         clr %[BitCounter]
 
       BitLoop_Start:
-
-        # 8 bits in byte
-        cpi %[BitCounter], 8
-        brsh BitLoop_End
 
       # For both zero and one bit we first set pin HIGH:
         sbi 0x08, 0
@@ -185,40 +177,47 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
       # Bit is zero. Write LOW, wait ~12 tacts.
       IsZero:
 
-        # andi r20, 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
 
         cbi 0x08, 0
 
-        # andi r20, 0xFF
-        # andi r20, 0xFF
-        # andi r20, 0xFF
-        # andi r20, 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
 
-        # andi r20, 0xFF
-        # andi r20, 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
 
-        rjmp BitLoop_Next
+        inc %[BitCounter]
+        cpi %[BitCounter], 8
+
+        brsh BitLoop_End
+
+        rjmp BitLoop_Start
 
       # Bit is one. Wait ~8 tacts, write LOW, wait ~4 tacts.
       IsOne:
 
-        # andi r20, 0xFF
-        # andi r20, 0xFF
-        # andi r20, 0xFF
-        # andi r20, 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
 
-        # andi r20, 0xFF
-        # andi r20, 0xFF
-        # andi r20, 0xFF
-        # andi r20, 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
+        andi %[BitCounter], 0xFF
 
-        # andi r20, 0xFF
+        inc %[BitCounter]
+        cpi %[BitCounter], 8
 
         cbi 0x08, 0
 
-      BitLoop_Next:
+        andi %[BitCounter], 0xFF
 
-        inc %[BitCounter]
+        brsh BitLoop_End
 
         rjmp BitLoop_Start
 
@@ -226,29 +225,22 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
 
       DataLoop_Next:
 
-        # DataLoop: Increment low byte
-        inc %A[DataCounter]
-        brne DataLoop_Body_End
-
-        #DataLoop: Increment high byte
-        inc %B[DataCounter]
-
-      DataLoop_Body_End:
-
-        rjmp DataLoop_Start
+        sbiw %[RemainedLength], 1
+        brne DataLoop_Start
 
       DataLoop_End:
       )"
       :
       // temporary memory
-      [DataCounter] "=r" (DataCounter),
-      [DataByte] "=r" (DataByte),
-      [BitCounter] "=r" (BitCounter)
+      [RemainedLength] "+w" (Length),
+      [DataByte] "=la" (DataByte),
+      [BitCounter] "=a" (BitCounter)
       :
-      // Pointer to byte array in X register. (X is a register pair r27:r26.)
-      [Bytes] "x" (Bytes),
-      [Length] "r" (Length)
+      // Pointer to byte array in some auto-incremented register
+      [Bytes] "x" (Bytes)
     );
+
+    SREG = OrigSreg;
   }
 
   SendLatch();
@@ -256,12 +248,6 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
 
 void SendLatch()
 {
-  /*
-  {
-    printf("SendLatch()\n");
-  }
-  //*/
-
   const TUint_2 LatchDuration_us = 50;
 
   delayMicroseconds(LatchDuration_us);
@@ -280,7 +266,7 @@ void SendLatch()
       return from send_bit()
       return from send_byte()
       fetch next data byte
-      calling set_byte()
+      call set_byte()
 
   2. Chill windows
 
@@ -288,19 +274,19 @@ void SendLatch()
 
     Transfer 0:
 
-      1 1, set 1
-      2 1/0, set 0
-      3 0, can chill here
-      4 0, can chill here
-      5 0, return
+      1. set 1
+      2. set 0
+      3. can chill here
+      4. can chill here
+      5. return
 
     Transfer 1:
 
-      1 1, set 1
-      2 1, can chill here
-      3 1, can chill here
-      4 1/0, set 0
-      5 0, return
+      1. set 1
+      2. can chill here
+      3. can chill here
+      4. set 0
+      5. return
 
     So we have at least 8 ticks to do some fancy stuff like dithering in
     FastLED. But we won't.
