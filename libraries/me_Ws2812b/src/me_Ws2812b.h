@@ -4,5 +4,5 @@
 
 namespace me_Ws2821b
 {
-  void SendPacket(TBytes Bytes, TUint_2 Length);
+  void SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin);
 }

@@ -13,12 +13,13 @@
 */
 
 // Author: Martin Eden
-// Last mod.: 2024-03-22
+// Last mod.: 2024-03-23
 
 #include "me_Ws2812b.h"
 
 #include <stdio.h> // debug print
 #include <Arduino.h> // delayMicroseconds() for SendLatch()
+#include <me_ArduinoUno.h> // PinToIoRegisterAndBit()
 
 /*
   Protocol
@@ -58,7 +59,7 @@
 void SendLatch();
 // )
 
-void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
+void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
 {
   /*
   printf("Whew! Got your data.\nLength: %u\n", Length);
@@ -69,14 +70,22 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
   }
   */
 
+  TUint_1 PortRegister;
+  TUint_1 PortBit;
+  TBool IsOk;
+  IsOk = me_ArduinoUno::PinToIoRegisterAndBit(Pin, &PortRegister, &PortBit);
+  if (!IsOk)
+  {
+    printf("me_Ws2821b: Can't figure out port register for pin %d.\n", Pin);
+    return;
+  }
+
   {
     if (Length == 0)
       return;
 
     // For test we will use A0.
     // A0: Port C, Bit 0 == I/O register 0x08, bit 0
-
-    TUint_1 Pin = A0;
 
     pinMode(Pin, OUTPUT);
     digitalWrite(Pin, LOW);
@@ -155,7 +164,7 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
       BitLoop_Start:
 
       # For both zero and one bit we first set pin HIGH:
-        sbi 0x08, 0
+        sbi %[PortRegister], %[PortBit]
 
       # Get bit
         /*
@@ -180,7 +189,7 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
         andi %[BitCounter], 0xFF
         andi %[BitCounter], 0xFF
 
-        cbi 0x08, 0
+        cbi %[PortRegister], %[PortBit]
 
         andi %[BitCounter], 0xFF
         andi %[BitCounter], 0xFF
@@ -213,7 +222,7 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
         inc %[BitCounter]
         cpi %[BitCounter], 8
 
-        cbi 0x08, 0
+        cbi %[PortRegister], %[PortBit]
 
         andi %[BitCounter], 0xFF
 
@@ -236,6 +245,8 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length)
       [DataByte] "=la" (DataByte),
       [BitCounter] "=a" (BitCounter)
       :
+      [PortRegister] "i" (PortRegister),
+      [PortBit] "i" (PortBit),
       // Pointer to byte array in some auto-incremented register
       [Bytes] "x" (Bytes)
     );
