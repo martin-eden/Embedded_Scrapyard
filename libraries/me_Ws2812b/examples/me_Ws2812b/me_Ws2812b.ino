@@ -2,7 +2,7 @@
   Board: Arduino Uno
 */
 
-// Last mod.: 2024-03-23
+// Last mod.: 2024-03-25
 
 #include <me_Types.h>
 #include <me_Uart.h>
@@ -28,12 +28,15 @@ void loop()
 {
   const TUint_2 LoopDelay_Ms = 30;
 
-  SendTestPacket();
+  // Test_SendPacket();
+  Test_SendPixels();
 
   delay(LoopDelay_Ms);
 }
 
-void SendTestPacket()
+const TUint_1 LedStripePin = A1;
+
+void Test_SendPacket()
 {
   const TUint_2 NumLeds = 3 * 60;
   TUint_1 TestPacket[NumLeds];
@@ -73,11 +76,68 @@ void SendTestPacket()
     };
   */
 
-  me_Ws2821b::SendPacket(TestPacket, TestPacket_Size, A1);
+  me_Ws2821b::SendPacket(TestPacket, TestPacket_Size, LedStripePin);
+}
+
+TUint_1 MapColorComponent(
+  TUint_1 PixelIdx,
+  TUint_2 NumPixels,
+  TUint_1 StartColorValue,
+  TUint_1 EndColorValue
+)
+{
+  return
+    map(
+      PixelIdx,
+      0,
+      NumPixels - 1,
+      StartColorValue,
+      EndColorValue
+    );
+}
+
+me_Ws2821b::TColor MapColor(
+  TUint_1 PixelIdx,
+  TUint_2 NumPixels,
+  me_Ws2821b::TColor StartColor,
+  me_Ws2821b::TColor EndColor
+)
+{
+  me_Ws2821b::TColor Result;
+
+  Result.Red =
+    MapColorComponent(PixelIdx, NumPixels, StartColor.Red, EndColor.Red);
+  Result.Green =
+    MapColorComponent(PixelIdx, NumPixels, StartColor.Green, EndColor.Green);
+  Result.Blue =
+    MapColorComponent(PixelIdx, NumPixels, StartColor.Blue, EndColor.Blue);
+
+  return Result;
+}
+
+void Test_SendPixels()
+{
+  using namespace me_Ws2821b;
+
+  TColor StartColor = { .Green = 255, .Red = 192, .Blue = 0, };
+  TColor EndColor = { .Green = 32, .Red = 0, .Blue = 255, };
+
+  const TUint_2 NumPixels = 60;
+  TPixel Pixels[NumPixels];
+
+  for (TUint_1 PixelIdx = 0; PixelIdx < NumPixels; ++PixelIdx)
+  {
+    Pixels[PixelIdx] = MapColor(PixelIdx, NumPixels, StartColor, EndColor);
+  }
+
+  SendPixels(Pixels, NumPixels, LedStripePin);
+
+  delay(5000);
 }
 
 /*
   2024-03-12
   2024-03-22
   2024-03-23
+  2024-03-25
 */

@@ -28,8 +28,8 @@
 
       while has_over_three_bytes(buf)
         send_byte(green = get_byte(buf))
-        send_byte(blue = get_byte(buf))
         send_byte(red = get_byte(buf))
+        send_byte(blue = get_byte(buf))
 
     send_byte(byte)
 
@@ -59,7 +59,7 @@
 void SendLatch();
 // )
 
-void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
+TBool me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
 {
   /*
   printf("Whew! Got your data.\nLength: %u\n", Length);
@@ -77,12 +77,11 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
   if (!IsOk)
   {
     printf("me_Ws2821b: Can't figure out port register for pin %d.\n", Pin);
-    return;
+    return false;
   }
 
+  if (Length > 0)
   {
-    if (Length == 0)
-      return;
 
     // For test we will use A0.
     // A0: Port C, Bit 0 == I/O register 0x08, bit 0
@@ -255,6 +254,8 @@ void me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
   }
 
   SendLatch();
+
+  return true;
 }
 
 void SendLatch()
@@ -281,25 +282,30 @@ void SendLatch()
 
   2. Chill windows
 
-    1250 ns is 5 * 250 ns time slots.
+    1250 ns is 5 * 250 ns time slots. Let's introduce "basic operation"
+    which we can implement in five ticks.
+
+      * (Line LOW) (Line HIGH)
+      * Fetch next bit or end
+      * Goto Transfer(bit)
 
     Transfer 0:
 
-      1. set 1
-      2. set 0
-      3. can chill here
-      4. can chill here
-      5. return
+      1. Line HIGH
+      2. Line LOW
+      3. <can chill here>
+      4. Fetch next bit or end
+      5. Goto Transfer(bit)
 
     Transfer 1:
 
-      1. set 1
-      2. can chill here
-      3. can chill here
-      4. set 0
-      5. return
+      1. Line HIGH
+      2. <can chill here>
+      3. Fetch next bit or end
+      4. Line LOW
+      5. Goto Transfer(bit)
 
-    So we have at least 8 ticks to do some fancy stuff like dithering in
+    So we have at least 4 ticks to do some fancy stuff like dithering in
     FastLED. But we won't.
 
   3. Actually we have more time
@@ -321,11 +327,11 @@ void SendLatch()
       instructions. 10 instructions is like 20 bytes or 160 bits.
       So expansion factor is 160.
 
-      2KiB memory in bits: 2*2^10 * 2^3 == 2^14
-      LED data in bits: (3 bytes) 3 * 2^3 == 1.5 * 2^4
-      Expansion factor 160 in bits: 10 * 16 == 10 * 2^4 == ... == 1.25 * 2^7
+      2KiB memory: 2*2^10 * 2^3 == 2^14 == 16386 bits
+      LED data: (3 bytes) 3 * 2^3 == 1.5 * 2^4 == 24 bits
+      Expansion factor 160: 10 * 2^4 == 1.25 * 2^7 == 160 bits
 
-      So in 2KiB you can fit 682 LEDs. Or just 4 LEDs if you generate
+      So in 2KiB you can describe 682 LEDs. Or just 4 LEDs if you generate
       direct code.
 
       Higher clock speeds will increase expansion factor.
@@ -337,4 +343,22 @@ void SendLatch()
 
     We can, but it expand memory again. Let's not create additional
     buffers and just read data. We need assembly level.
+*/
+
+/*
+  Wrapper for sending array of RGB colors.
+*/
+TBool me_Ws2821b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
+{
+  TBytes * Bytes;
+  Bytes = (TBytes*) Pixels;
+
+  TUint_2 BytesLength;
+  BytesLength = Length * sizeof(TPixel);
+
+  return SendPacket(*Bytes, BytesLength, Pin);
+}
+
+/*
+  2024-03 Core
 */
