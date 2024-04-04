@@ -341,7 +341,7 @@ void SendLatch()
     Can we encode level switches and waits in artificial instructions
     and interpret them fast?
 
-    We can, but it expand memory again. Let's not create additional
+    We can, but it will expand memory again. Let's not create additional
     buffers and just read data. We need assembly level.
 */
 
