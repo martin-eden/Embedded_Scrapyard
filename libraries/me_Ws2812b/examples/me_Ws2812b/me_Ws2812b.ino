@@ -18,7 +18,7 @@
 
   Author: Martin Eden
   Development: 2024-02/2024-04
-  Last mod.: 2024-04-04
+  Last mod.: 2024-04-09
 */
 
 #include <me_Types.h>
@@ -66,12 +66,25 @@ void loop()
 */
 void Test_ObserveBitsTiming()
 {
+  /*
+    I want to see timings between bits. And between bytes.
+
+    So I need bit transitions 00, 01, 11, 10 (Gray codes huh).
+    "00110" is okay.
+
+    And same transitions when bits are between bytes.
+  */
   TUint_1 TestPacket[] =
     {
-      B00000000,
-      B1111111,
-      // I want to see bit transitions 00, 01, 11, 10 (Gray codes huh):
-      B0011010,
+      // Byte bit timings:
+      B00110000,
+
+      // Interbyte bit timings:
+      0x00,
+      0x00,
+      0xFF,
+      0xFF,
+      0x00,
     };
 
   me_Ws2821b::SendPacket(TestPacket, sizeof(TestPacket), LedStripePin);
@@ -84,10 +97,10 @@ void Test_ObserveBitsTiming()
 /*
   Send bytes to observe colors order in stripe.
 
-  Core function is just transmitting bytes, not colors. Well, triples
+  Core function is transmitting bytes, not colors. Okay, triples
   of bytes. But color ordering is some permutation of RGB.
 
-  So we will send (0xFF, 0, 0) to first pixel and (0, 0, 0xFF) to
+  So we will send (0xFF, 0, 0) to first pixel and (0, 0, 0xFF) to the
   last pixel. Observe two colors. Can deduce remained color component
   from them.
 */
@@ -186,14 +199,14 @@ TUint_1 MapColorComponent(
     );
 }
 
-me_Ws2821b::TColor MapColor(
+me_Ws2821b::TPixel MapColor(
   TUint_1 PixelIdx,
   TUint_2 NumPixels,
-  me_Ws2821b::TColor StartColor,
-  me_Ws2821b::TColor EndColor
+  me_Ws2821b::TPixel StartColor,
+  me_Ws2821b::TPixel EndColor
 )
 {
-  me_Ws2821b::TColor Result;
+  me_Ws2821b::TPixel Result;
 
   Result.Red =
     MapColorComponent(PixelIdx, NumPixels, StartColor.Red, EndColor.Red);
@@ -206,14 +219,14 @@ me_Ws2821b::TColor MapColor(
 }
 
 /*
-  Smooth transition from <StartColor> to <EndColor> and send it.
+  Send smooth transition from <StartColor> to <EndColor>.
 */
 void Test_ColorSmoothing()
 {
   using namespace me_Ws2821b;
 
-  TColor StartColor = { .Green = 255, .Red = 192, .Blue = 0, };
-  TColor EndColor = { .Green = 32, .Red = 0, .Blue = 255, };
+  TPixel StartColor = { .Green = 255, .Red = 192, .Blue = 0, };
+  TPixel EndColor = { .Green = 32, .Red = 0, .Blue = 255, };
 
   TPixel Pixels[NumPixels];
 
@@ -235,4 +248,5 @@ void Test_ColorSmoothing()
   2024-03-23
   2024-03-25
   2024-04-04
+  2024-04-09
 */

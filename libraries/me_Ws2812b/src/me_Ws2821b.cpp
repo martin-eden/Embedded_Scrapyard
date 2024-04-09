@@ -1,19 +1,57 @@
-// Send bytes array according to WS2821B (LED stripe) specs
-
-/*
-  Status
-
-    I believe it's correct.
-
-    Viewed compiled code with disassembler.
-
-    Verified timings with oscilloscope.
-
-    Observed effects on LED stripe.
-*/
+// Transmit bytes to LED stripe WS2812B
 
 // Author: Martin Eden
-// Last mod.: 2024-03-23
+// Last mod.: 2024-04-09
+
+/*
+  Protocol
+
+    Summary
+
+      Color
+        Three bytes
+        Order is GRB
+
+      Packet
+        Sequence of colors
+        Delay >= 50 us after sending packet
+
+      Bits
+        Sent from highest to lowest
+        Bit rate 800 kBits (1250 ns per bit)
+        Temporal encoding (embroidered clock)
+          0: 1, 0, 0
+          1: 1, 1, 0
+
+    Pseudo-code
+
+      SendBuffer (Buffer)
+      ~~~~~~~~~~~~~~~~~~~
+
+        WHILE (Buffer.BytesRemained >= 3)
+
+          SendByte(Buffer.GetByte())  // green
+          SendByte(Buffer.GetByte())  // red
+          SendByte(Buffer.GetByte())  // blue
+
+        Wait_us(50)
+
+
+      SendByte (Byte)
+      ~~~~~~~~~~~~~~~
+
+        FOR BitIndex in (7 downto 0)
+
+          Bit = Byte.GetBit(BitIndex)
+
+          Line.SetHigh()
+          Wait_ns(Bit == 0: 350, Bit == 1: 900)
+          Line.SetLow()
+          Wait_ns(Bit == 0: 900, Bit == 1: 350)
+
+
+  Thoughts about implementation design are at the end of file.
+*/
 
 #include "me_Ws2812b.h"
 
@@ -21,126 +59,83 @@
 #include <Arduino.h> // delayMicroseconds() for SendLatch()
 #include <me_ArduinoUno.h> // PinToIoRegisterAndBit()
 
-/*
-  Protocol
-
-    send_buffer(buf)
-
-      while has_over_three_bytes(buf)
-        send_byte(green = get_byte(buf))
-        send_byte(red = get_byte(buf))
-        send_byte(blue = get_byte(buf))
-
-    send_byte(byte)
-
-      for bit_idx = 7, 0
-        send_bit(get_bit(byte, bit_idx))
-
-    send_bit(bit)
-
-      (bit == 0):
-        line(HIGH)
-        wait_ns(350)
-        line(LOW)
-        wait_ns(900)
-
-      (bit == 1):
-        line(HIGH)
-        wait_ns(900)
-        line(LOW)
-        wait_ns(350)
-
-      // 1250 ns / bit == 800 kBits rate
-
-  Thoughts about implementation design are at the end of file.
-*/
-
-// Forward declarations (
-void SendLatch();
-// )
-
 TBool me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
 {
-  /*
-  printf("Whew! Got your data.\nLength: %u\n", Length);
-  for (TUint_1 Key = 0; Key < Length; ++Key)
-  {
-    TUint_1 Value = Bytes[Key];
-    printf("[%u] = %u\n", Key, Value);
-  }
-  */
-
   TUint_1 PortRegister;
   TUint_1 PortBit;
-  TBool IsOk;
-  IsOk = me_ArduinoUno::PinToIoRegisterAndBit(Pin, &PortRegister, &PortBit);
-  if (!IsOk)
+
   {
-    printf("me_Ws2821b: Can't figure out port register for pin %d.\n", Pin);
-    return false;
+    TBool IsOk =
+      me_ArduinoUno::PinToIoRegisterAndBit(Pin, &PortRegister, &PortBit);
+
+    if (!IsOk)
+    {
+      printf("me_Ws2821b: Can't figure out port register for pin %d.\n", Pin);
+      return false;
+    }
   }
+
+  pinMode(Pin, OUTPUT);
+  digitalWrite(Pin, LOW);
 
   if (Length > 0)
   {
-
-    // For test we will use A0.
-    // A0: Port C, Bit 0 == I/O register 0x08, bit 0
-
-    pinMode(Pin, OUTPUT);
-    digitalWrite(Pin, LOW);
-
     TUint_1 DataByte;
     TUint_1 BitCounter;
 
     /*
-      We are disabling interrupts. Or some thing in happening every
-      1024 us with a duration near 6 us. Our signal level is freezed
-      that time.
+      Disable interrupts while sending packet. Or something will happen
+      every 1024 us with a duration near 6 us and spoil our signal.
+
+      Interrupt state is stored among other things in SREG.
+
+      1 ms == 100 bytes
+      60 leds per meter  => 1.8 ms per meter (~ 500 m/s)
+      3 byte per LED
     */
     TUint_1 OrigSreg = SREG;
+    cli();
 
     /*
       Double "for" in GNU asm.
 
-      We iterate over byte array and over 8 bits in byte. From highest
-      bit to lowest.
-
-      For each bit we do
-
-        SetPin(HIGH)
-        Delays_ns[BitValue].AfterHigh  // 0: 350, 1: 900
-        SetPin(LOW)
-        Delays_ns[BitValue].AfterLow  // 0: 900, 1: 350
-
-      In implementation:
-        * We "SetPin(HIGH)" early
-        * We increment bit loop inside "if"s. We have time slots there.
       --
-      Thank you Richard Stallman and ArduinoIDE guys for "-Os"
-      default option that removes successive "nop"'s from "asm" code.
-      Code is so tiny and fast now!
 
-      LED stripe is not controlled but who cares?
+      Implementation details
 
-      So "andi <r>, 0xFF" is our new nop.
-      --
-      GNU asm is funny.
+        --
 
-      When specifying "x" to hold data in X register pair (registers r26,
-      r27) it generates code that uses that registers. But if other
-      data is marked as "r" (any register), it can freely use r26 for it.
-      Despite it's busy. So GCC gives a warning about undefined code.
-      Generated bad code is "ld r26, X+". Yeah, just loading data to
-      register that's holding pointer to that data.
+        We increment bit loop inside "if"s. We have time slots there.
 
-      So I used even more cryptic "la" for data. It means two alternatives:
-      place in "l" category or in "a" category. "l" is r0 .. r15,
-      "a" is r16 .. r23.
+        --
 
-      Also my GNU asm does not support "y" for Y register. "x" and "z"
-      are fine but not "y".
+        Thank you Richard Stallman and ArduinoIDE guys for "-Os" default
+        option that removes successive "nop"'s from "asm" code. Code is
+        so tiny and fast now!
 
-      2024-03-22
+        LED stripe is not controlled but who cares?
+
+        So "andi <r>, 0xFF" is our new nop.
+
+        --
+
+        GNU asm is funny.
+
+        When specifying "x" to hold data in X register pair
+        (registers r26, r27) it generates code that uses that
+        registers. But if other data is marked as "r" (any register),
+        it can freely use r26 for it. Despite it's busy.
+
+        GCC will give warning about undefined code. Generated bad code
+        is "ld r26, X+". Yeah, just loading data to register that's
+        holding pointer to that data.
+
+        So I've used even more cryptic "la" for data. It means two
+        alternatives: place in "l" category or in "a" category.
+        "l" is r0 .. r15, "a" is r16 .. r23.
+
+        Also my GNU asm does not support "y" for Y register. "x" and "z"
+        are fine but not "y".
     */
     asm volatile
     (
@@ -148,8 +143,6 @@ TBool me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
         # Weird instructions to locate this place in disassembly
         ldi %[BitCounter], 0xA9
         ldi %[BitCounter], 0xAA
-
-        cli
 
         # DataLoop: Init
 
@@ -167,13 +160,11 @@ TBool me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
 
       # Get bit
         /*
-          We can't get bit from the register using variable index.
+          We don't have instruction to get bit from the register using
+          variable index.
 
-          That is why in C variable is ANDed with 1 and then shifted
-          right.
-
-          But we need to go from highest bit to lowest, so we will
-          get highest bit and shift left.
+          So as we need bits from highest to lowest, we can AND with
+          0x80 and shift left. But there is better option.
 
           "lsl" (Logical Shift Left) shifts left and stores high bit
           in carry flag. Actually it translates to "add <x>, <x>".
@@ -253,68 +244,49 @@ TBool me_Ws2821b::SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
     SREG = OrigSreg;
   }
 
-  SendLatch();
+  {
+    const TUint_2 LatchDuration_us = 50;
+
+    delayMicroseconds(LatchDuration_us);
+  }
 
   return true;
-}
-
-void SendLatch()
-{
-  const TUint_2 LatchDuration_us = 50;
-
-  delayMicroseconds(LatchDuration_us);
 }
 
 /*
   Thoughts
 
-  1. Naive implementation won't work
+  1. Naive implementation
+
+    for bytes
+      for bits
+        if 0
+          ..
+        if 1
+          ..
+
+    most likely won't work because of inter-bit and inter-byte delays
+    will be over 350 ns. Even if it will, we have no time control on
+    C level, generating code for if's and for's is compiler's job.
 
     250 ns is 4 tacts on 16MHz.
 
-    and we need to do these actions in these 4 tacts:
-
-      return from wait_ns()
-      return from send_bit()
-      return from send_byte()
-      fetch next data byte
-      call set_byte()
-
   2. Chill windows
 
-    1250 ns is 5 * 250 ns time slots. Let's introduce "basic operation"
-    which we can implement in five ticks.
+    1250 ns per bit is 20 ticks.
 
-      * (Line LOW) (Line HIGH)
-      * Fetch next bit or end
-      * Goto Transfer(bit)
+    We can squeeze fancy stuff like scaling and dithering in FastLED
+    in that tacts.
 
-    Transfer 0:
-
-      1. Line HIGH
-      2. Line LOW
-      3. <can chill here>
-      4. Fetch next bit or end
-      5. Goto Transfer(bit)
-
-    Transfer 1:
-
-      1. Line HIGH
-      2. <can chill here>
-      3. Fetch next bit or end
-      4. Line LOW
-      5. Goto Transfer(bit)
-
-    So we have at least 4 ticks to do some fancy stuff like dithering in
-    FastLED. But we won't.
+    But we won't. It is space-limited and ruins design.
 
   3. Actually we have more time
 
-    Client is calling send_buffer(). Not send_bit().
+    Client is calling SendPacket(), not SendBit().
 
     We can spend arbitrary long time drinking coffee and preparing
-    to send buffer, sending it real fast and smoking cigarette
-    afterwards.
+    to send data. Then send it real fast. And smoke cigarette and
+    do cleanup afterwards.
 
   3.1 Prepare direct code
 
@@ -335,6 +307,8 @@ void SendLatch()
       direct code.
 
       Higher clock speeds will increase expansion factor.
+    3. But it's paramount in performance. No comparisons, no jumps.
+      2 MB per second.
 
   3.2 Prepare intermediate code
 
@@ -350,15 +324,27 @@ void SendLatch()
 */
 TBool me_Ws2821b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
 {
-  TBytes * Bytes;
-  Bytes = (TBytes*) Pixels;
+  TBytes* Bytes = (TBytes*) Pixels;
 
-  TUint_2 BytesLength;
-  BytesLength = Length * sizeof(TPixel);
+  const TUint_2 MaxLength = 0xFFFF;
+  TUint_2 MaxPixelsLength = MaxLength / sizeof(TPixel);
+
+  if (Length > MaxPixelsLength)
+  {
+    printf(
+      "SendPixels(): <Length> is %u and is too long. Max value is %u.\n",
+      Length,
+      MaxPixelsLength
+    );
+    return false;
+  }
+
+  TUint_2 BytesLength = Length * sizeof(TPixel);
 
   return SendPacket(*Bytes, BytesLength, Pin);
 }
 
 /*
   2024-03 Core
+  2024-04 Cleanup
 */
