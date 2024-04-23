@@ -18,7 +18,7 @@
 
   Author: Martin Eden
   Development: 2024-02/2024-04
-  Last mod.: 2024-04-09
+  Last mod.: 2024-04-23
 */
 
 #include <me_Types.h>
@@ -30,7 +30,7 @@
 
 // --
 
-const TUint_1 LedStripePin = A1;
+const TUint_1 LedStripePin = A0;
 
 const TUint_1 NumPixels = 60;
 
@@ -132,8 +132,6 @@ void Test_ObserveColorsOrder()
 */
 void Test_WhiteSine()
 {
-  const TUint_2 Delay_Ms = 20;
-
   using namespace me_Ws2821b;
 
   TPixel Pixels[NumPixels];
@@ -177,7 +175,7 @@ void Test_WhiteSine()
 
   SendPixels(Pixels, NumPixels, LedStripePin);
 
-  delay(Delay_Ms);
+  delay(20);
 }
 
 // --
