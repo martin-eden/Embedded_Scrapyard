@@ -87,7 +87,7 @@ void Test_ObserveBitsTiming()
       0x00,
     };
 
-  me_Ws2821b::SendPacket(TestPacket, sizeof(TestPacket), LedStripePin);
+  me_Ws2821b::SendBytes(TestPacket, sizeof(TestPacket), LedStripePin);
 
   delay(5000);
 }
@@ -120,7 +120,7 @@ void Test_ObserveColorsOrder()
   TestPacket[TestPacket_Size - 2] = 0x00;
   TestPacket[TestPacket_Size - 1] = 0xFF;
 
-  me_Ws2821b::SendPacket(TestPacket, TestPacket_Size, LedStripePin);
+  me_Ws2821b::SendBytes(TestPacket, TestPacket_Size, LedStripePin);
 
   delay(5000);
 }

@@ -1,20 +1,22 @@
 // Send data to WS2812B LED stripe
 
-// Author: Martin Eden
-// Last mod.: 2024-04-09
+/*
+  Author: Martin Eden
+  Last mod.: 2024-04-23
+*/
 
 /*
   SendPacket
 
     Send bytes. Up to 64 KiB.
 
-    (ui1 Bytes[], ui2 Length, ui1 OutputPin) -> bool
+    (u1 Bytes[], u2 Length, u1 OutputPin) -> bool
 
   SendPixels
 
     Send pixels. Up to ~21K.
 
-    ((3*ui1) Pixels[], ui2 Length, ui1 OutputPin) -> bool
+    ((3*u1) Pixels[], u2 Length, u1 OutputPin) -> bool
 */
 
 #pragma once
@@ -23,7 +25,7 @@
 
 namespace me_Ws2821b
 {
-  TBool SendPacket(TBytes Bytes, TUint_2 Length, TUint_1 Pin);
+  TBool SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin);
 
   struct TPixel
   {
