@@ -148,8 +148,10 @@ void Test_WhiteSine()
       ByteFloor = 0,
       ByteCeil = 120;
 
+    // Map sine range [-1, 1] to byte range [0, 255]:
     TUint_1 ByteSine = (sin(DegToRad(Angle_Deg)) + 1) / 2 * 255;
 
+    // Map byte to floor-ceiling range:
     TUint_1 EtherValue = map(ByteSine, 0, 255, ByteFloor, ByteCeil);
 
     /*
