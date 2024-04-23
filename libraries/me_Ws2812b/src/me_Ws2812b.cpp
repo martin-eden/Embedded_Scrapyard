@@ -135,19 +135,23 @@ void EmitBytes(
 
     Implementation details
 
+      Data bytes counter and bits counter are decremented till zero.
+      Cleaner assembly code.
+
       --
 
-      We increment bit loop inside "if"s. We have time slots there.
+      Bits counter is decremented inside "if"s. We have time slots there.
 
       --
 
-      Thank you Richard Stallman and ArduinoIDE guys for "-Os" default
-      option that removes successive "nop"'s from "asm" code. Code is
-      so tiny and fast now!
+      Thank you Richard Stallman and ArduinoIDE guys for "-Os"
+      (optimize for size) default compiler option that removes
+      successive "nop"'s from "asm" code. Code is so tiny and
+      fast now!
 
       LED stripe is not controlled but who cares?
 
-      So "andi <r>, 0xFF" is our new nop.
+      So "mov <r>, <r>" is our new "nop".
 
       --
 
@@ -183,7 +187,7 @@ void EmitBytes(
       ld %[DataByte], %a[Bytes]+
 
       # BitLoop: Init
-      clr %[BitCounter]
+      ldi %[BitCounter], 8
 
     BitLoop_Start:
 
@@ -208,48 +212,44 @@ void EmitBytes(
     # Bit is zero. Write LOW, wait ~12 tacts.
     IsZero:
 
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
 
       cbi %[PortRegister], %[PortBit]
 
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
 
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
 
-      inc %[BitCounter]
-      cpi %[BitCounter], 8
-
-      brsh BitLoop_End
-
+      dec %[BitCounter]
+      breq BitLoop_End
       rjmp BitLoop_Start
 
     # Bit is one. Wait ~8 tacts, write LOW, wait ~4 tacts.
     IsOne:
 
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
 
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
-      andi %[BitCounter], 0xFF
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
+      mov %[BitCounter], %[BitCounter]
 
-      inc %[BitCounter]
-      cpi %[BitCounter], 8
+      mov %[BitCounter], %[BitCounter]
 
       cbi %[PortRegister], %[PortBit]
 
-      andi %[BitCounter], 0xFF
-
-      brsh BitLoop_End
-
+      dec %[BitCounter]
+      breq BitLoop_End
       rjmp BitLoop_Start
 
     BitLoop_End:
