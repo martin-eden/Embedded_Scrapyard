@@ -55,8 +55,8 @@ void loop()
 
   // Test_ObserveBitsTiming();
   // Test_ObserveColorsOrder();
-  Test_WhiteSine();
-  // Test_ColorSmoothing();
+  Test_ColorSmoothing();
+  // Test_WhiteSine();
 }
 
 // --
@@ -225,8 +225,8 @@ void Test_ColorSmoothing()
 {
   using namespace me_Ws2821b;
 
-  TPixel StartColor = { .Green = 255, .Red = 192, .Blue = 0, };
-  TPixel EndColor = { .Green = 32, .Red = 0, .Blue = 255, };
+  TPixel StartColor = { .Green = 32, .Red = 96, .Blue = 0, };
+  TPixel EndColor = { .Green = 32, .Red = 64, .Blue = 64, };
 
   TPixel Pixels[NumPixels];
 
