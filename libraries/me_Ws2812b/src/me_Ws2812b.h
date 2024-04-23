@@ -23,7 +23,7 @@
 
 #include <me_Types.h>
 
-namespace me_Ws2821b
+namespace me_Ws2812b
 {
   TBool SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin);
 

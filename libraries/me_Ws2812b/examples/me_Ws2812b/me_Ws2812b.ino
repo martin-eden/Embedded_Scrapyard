@@ -1,4 +1,4 @@
-// Test of [me_Ws2821b] library.
+// Test of [me_Ws2812b] library.
 
 /*
   This library provides two functions:
@@ -87,7 +87,7 @@ void Test_ObserveBitsTiming()
       0x00,
     };
 
-  me_Ws2821b::SendBytes(TestPacket, sizeof(TestPacket), LedStripePin);
+  me_Ws2812b::SendBytes(TestPacket, sizeof(TestPacket), LedStripePin);
 
   delay(5000);
 }
@@ -120,7 +120,7 @@ void Test_ObserveColorsOrder()
   TestPacket[TestPacket_Size - 2] = 0x00;
   TestPacket[TestPacket_Size - 1] = 0xFF;
 
-  me_Ws2821b::SendBytes(TestPacket, TestPacket_Size, LedStripePin);
+  me_Ws2812b::SendBytes(TestPacket, TestPacket_Size, LedStripePin);
 
   delay(5000);
 }
@@ -132,7 +132,7 @@ void Test_ObserveColorsOrder()
 */
 void Test_WhiteSine()
 {
-  using namespace me_Ws2821b;
+  using namespace me_Ws2812b;
 
   TPixel Pixels[NumPixels];
 
@@ -197,14 +197,14 @@ TUint_1 MapColorComponent(
     );
 }
 
-me_Ws2821b::TPixel MapColor(
+me_Ws2812b::TPixel MapColor(
   TUint_1 PixelIdx,
   TUint_2 NumPixels,
-  me_Ws2821b::TPixel StartColor,
-  me_Ws2821b::TPixel EndColor
+  me_Ws2812b::TPixel StartColor,
+  me_Ws2812b::TPixel EndColor
 )
 {
-  me_Ws2821b::TPixel Result;
+  me_Ws2812b::TPixel Result;
 
   Result.Red =
     MapColorComponent(PixelIdx, NumPixels, StartColor.Red, EndColor.Red);
@@ -221,7 +221,7 @@ me_Ws2821b::TPixel MapColor(
 */
 void Test_ColorSmoothing()
 {
-  using namespace me_Ws2821b;
+  using namespace me_Ws2812b;
 
   TPixel StartColor = { .Green = 32, .Red = 96, .Blue = 0, };
   TPixel EndColor = { .Green = 32, .Red = 64, .Blue = 64, };

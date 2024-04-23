@@ -63,7 +63,7 @@ void EmitBytes(TBytes, TUint_2, TUint_1, TUint_1);
 /*
   Send array of bytes
 */
-TBool me_Ws2821b::SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
+TBool me_Ws2812b::SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
 {
   TUint_1 PortRegister;
   TUint_1 PortBit;
@@ -279,7 +279,7 @@ void EmitBytes(
 /*
   Send array of pixels
 */
-TBool me_Ws2821b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
+TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
 {
   // Assert that <Pixels> size is less than 64KiB
   {
