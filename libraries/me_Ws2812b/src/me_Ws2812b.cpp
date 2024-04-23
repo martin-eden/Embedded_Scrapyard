@@ -119,11 +119,7 @@ void EmitBytes(
     Disable interrupts while sending packet. Or something will happen
     every 1024 us with a duration near 6 us and spoil our signal.
 
-    Interrupt state is stored among other things in SREG.
-
-    1 ms == 100 bytes
-    60 leds per meter  => 1.8 ms per meter (~ 500 m/s)
-    3 byte per LED
+    Interrupt flag is stored among other things in SREG.
   */
   TUint_1 OrigSreg = SREG;
   cli();
@@ -283,8 +279,7 @@ TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
 {
   // Assert that <Pixels> size is less than 64KiB
   {
-    const TUint_2 MaxLength = 0xFFFF;
-    TUint_2 MaxPixelsLength = MaxLength / sizeof(TPixel);
+    const TUint_2 MaxPixelsLength = 0xFFFF / sizeof(TPixel);
 
     if (Length > MaxPixelsLength)
     {
@@ -330,12 +325,14 @@ TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
 
     1250 ns per bit is 20 ticks.
 
-    Besides flicking output pin, we can squeeze fancy stuff like scaling
-    and dithering in that tacts. (I am looking at you, FastLED!)
+    Current implementation can offer 9 spare ticks per bit.
 
-    But we won't. It is space-time-limited hack and ruins design.
+    So besides flipping output pin, we can squeeze fancy stuff like
+    scaling and dithering in that tacts. (I am looking at you, FastLED!)
 
-  3. Actually we have more time
+    But we won't. It's time-limited hack and ruins design.
+
+  3. More time on sides
 
     Client is calling SendPixels(), not SendBit().
 
@@ -362,11 +359,12 @@ TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
       generate direct code.
 
       Higher clock speeds will increase expansion factor.
-    3. But it's paramount in performance. No comparisons, no jumps.
+
+    But it's paramount in performance. No comparisons, no jumps.
 
   3.2 Prepare intermediate code
 
-    Can we encode level switches and waits in artificial instructions
+    Can we encode switches and waits in artificial instructions
     and interpret them fast?
 
     We can, but it will expand memory again. Let's not create additional
@@ -385,6 +383,31 @@ TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
     But I'm not going to implement bit granularity. My use case is
     sending triples of bytes. Byte granularity was just convenient in
     implementation.
+*/
+
+/*
+  Timings math fun
+
+    * bit = 1250 ns } ==> byte = 10 us <==> 1 ms = 100 bytes
+      byte = 8 bits }
+
+    * meter = 60 pixels } => meter = 1.8 ms ==> second ~ 500 m
+      pixel = 3 bytes   }
+
+    * reset delay = 50 us = 5 bytes
+
+    * Theoretical frame rate limits:
+
+        0 pixels:
+          1 000 000 / 50 = 20 000 FPS
+
+        60 pixels (1 m):
+          1 000 000 / (50 + 1800) ~ 540 FPS
+
+        100 FPS:
+          100 = 1 000 000 / (50 + 1800 * X)
+          X = 9950 / 1800
+          X ~ 5.5 m = 330 pixels
 */
 
 /*

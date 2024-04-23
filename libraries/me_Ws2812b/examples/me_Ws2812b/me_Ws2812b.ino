@@ -21,10 +21,10 @@
   Last mod.: 2024-04-23
 */
 
-#include <me_Types.h>
-#include <me_Uart.h>
-#include <me_Install_StandardStreams.h>
-#include <me_Math.h>
+#include <me_Types.h> // TUint's
+#include <me_Uart.h> // serial speed
+#include <me_Install_StandardStreams.h> // printf() to serial
+#include <me_Math.h> // deg to rad
 
 #include <me_Ws2812b.h>
 
@@ -243,10 +243,6 @@ void Test_ColorSmoothing()
 // --
 
 /*
-  2024-03-12
-  2024-03-22
-  2024-03-23
-  2024-03-25
-  2024-04-04
-  2024-04-09
+  2024-03
+  2024-04
 */
