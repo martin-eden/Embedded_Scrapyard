@@ -42,17 +42,16 @@ float RoundToDigits(float Value, int8_t LastSignificantDigitPosition)
   return Result;
 }
 
+const float RadsInCircle = 2 * M_PI;
+const float DegsInCircle = 360.0;
+
 float RadToDeg(float Radians)
 {
-  const float RadsInCircle = 2 * M_PI;
-  const float DegsInCircle = 360.0;
   return (Radians / RadsInCircle * DegsInCircle);
 }
 
 float DegToRad(float Degrees)
 {
-  const float RadsInCircle = 2 * M_PI;
-  const float DegsInCircle = 360.0;
   return (Degrees / DegsInCircle * RadsInCircle);
 }
 
@@ -60,4 +59,5 @@ float DegToRad(float Degrees)
   2023-11-03
   2023-11-04
   2024-03-23
+  2024-04-23
 */
