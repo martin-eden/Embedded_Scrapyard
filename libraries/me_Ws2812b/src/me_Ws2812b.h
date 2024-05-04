@@ -6,17 +6,23 @@
 */
 
 /*
-  SendBytes
+  Send pixels
 
-    Send bytes. Up to 64 KiB.
+    SendPixels
+      -<
+        Pixels[] : TPixel
+        Length : u2
+          Should be less than 21K.
+        OutputPin : u1
+          Must be constant.
+      -> bool
 
-    (u1 Bytes[], u2 Length, u1 OutputPin) -> bool
+  Pixel definition
 
-  SendPixels
-
-    Send pixels. Up to ~21K.
-
-    ((3*u1) Pixels[], u2 Length, u1 OutputPin) -> bool
+    TPixel
+      Green : ui1
+      Red : ui1
+      Blue : ui1
 */
 
 #pragma once
@@ -25,8 +31,6 @@
 
 namespace me_Ws2812b
 {
-  TBool SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin);
-
   struct TPixel
   {
     TUint_1 Green;
@@ -36,3 +40,8 @@ namespace me_Ws2812b
 
   TBool SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin);
 }
+
+/*
+  2024-03 Core
+  2023-05 Cleanup
+*/

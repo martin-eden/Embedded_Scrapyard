@@ -38,13 +38,77 @@
 #include <Arduino.h> // delayMicroseconds()
 #include <me_ArduinoUno.h> // PinToIoRegisterAndBit()
 
-// forwards
-void EmitBytes(TBytes, TUint_2, TUint_1, TUint_1);
+// Summary and forwards
+TBool me_Ws2812b::SendPixels(
+  TPixel Pixels[],
+  TUint_2 Length,
+  TUint_1 Pin
+);
+
+TBool SendBytes(
+  TBytes Bytes,
+  TUint_2 Length,
+  TUint_1 Pin
+);
+
+void EmitBytes(
+  TBytes Bytes,
+  TUint_2 Length,
+  TUint_1 PortRegister,
+  TUint_1 PortBit
+);
 
 /*
-  Send array of bytes
+  Send array of pixels to given pin
+
+    Length should be less than 21 K.
+
+      Maximum addressable memory is 64 KiB. Each pixel is 3 bytes.
+
+      Anyway, Uno has just 2 KiB memory, so your project should use
+      less than 700 pixels.
+
+    Pin must be constant.
+
+      See details in EmitBytes().
 */
-TBool me_Ws2812b::SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
+TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
+{
+  // Assert that <Pixels> size is less than 64KiB
+  {
+    const TUint_2 MaxPixelsLength = 0xFFFF / sizeof(TPixel);
+
+    if (Length > MaxPixelsLength)
+    {
+      printf(
+        "SendPixels(): <Length> is %u and is too long. Max value is %u.\n",
+        Length,
+        MaxPixelsLength
+      );
+      return false;
+    }
+  }
+
+  // Send pixels as bytes
+  {
+    TBytes* Bytes = (TBytes*) Pixels;
+    TUint_2 BytesLength = Length * sizeof(TPixel);
+
+    return SendBytes(*Bytes, BytesLength, Pin);
+  }
+}
+
+/*
+  Send array of bytes to given pin
+
+    Length is trimmed to multiple of three.
+
+      So you can't send one or five bytes to LED stripe with this
+      rule.
+
+        Don't wish to deviate from spec without need.
+*/
+TBool SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
 {
   TUint_1 PortRegister;
   TUint_1 PortBit;
@@ -61,14 +125,14 @@ TBool me_Ws2812b::SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
     }
   }
 
+  // Trim <Length> to a multiple of three
+  Length = Length - (Length % 3);
+
   // Prepare for transmission
   {
     pinMode(Pin, OUTPUT);
     digitalWrite(Pin, LOW);
   }
-
-  // Trim <Length> to a multiple of three
-  Length = Length - (Length % 3);
 
   // Transmit
   if (Length > 0)
@@ -88,6 +152,27 @@ TBool me_Ws2812b::SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
 
 /*
   Meat function for emitting bytes at 800 kBits
+
+    <PortRegister> and <PortBit> must be constants.
+
+      Because of "sbi" and "cbi".
+
+      It's amazing how gcc can hide seemingly variable parameters
+      into constants.
+
+        f(ui1 a)
+          ui1 b, ui1 c = g(a)
+          h(b, c)
+
+        ^ all will compile and work as long as upper level call of
+        f() is with compile-time-known constant.
+
+        g() here is PinToIoRegisterAndBit(ui, *ui, *ui).
+          It consists of if's and uses no other data. So looks like it's
+          results are just embedded into code when compiler knows it's
+          called with predefined value.
+
+          Performance breaks flexibility.
 */
 void EmitBytes(
   TBytes Bytes,
@@ -223,35 +308,6 @@ void EmitBytes(
   );
 
   SREG = OrigSreg;
-}
-
-/*
-  Send array of pixels
-*/
-TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
-{
-  // Assert that <Pixels> size is less than 64KiB
-  {
-    const TUint_2 MaxPixelsLength = 0xFFFF / sizeof(TPixel);
-
-    if (Length > MaxPixelsLength)
-    {
-      printf(
-        "SendPixels(): <Length> is %u and is too long. Max value is %u.\n",
-        Length,
-        MaxPixelsLength
-      );
-      return false;
-    }
-  }
-
-  // Send pixels as bytes
-  {
-    TBytes* Bytes = (TBytes*) Pixels;
-    TUint_2 BytesLength = Length * sizeof(TPixel);
-
-    return SendBytes(*Bytes, BytesLength, Pin);
-  }
 }
 
 /*
