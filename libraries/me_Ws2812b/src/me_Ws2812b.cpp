@@ -2,53 +2,34 @@
 
 /*
   Author: Martin Eden
-  Last mod.: 2024-04-23
+  Last mod.: 2024-05-04
 */
 
 /*
-  Protocol
+  Protocol summary
 
-    Summary
+    Packet
+      Sequence of colors
+      LOW >= 50 us after sending sequence
 
-      Packet
-        Sequence of colors
-        Delay >= 50 us after sending sequence
+    Color
+      Three bytes
+      Order is Green-Red-Blue
 
-      Color
-        Three bytes
-        Order is Green-Red-Blue
+    Bits
+      Sent from highest to lowest
 
-      Bits
-        Sent from highest to lowest
-        Bit rate 800 kBits (1250 ns per bit)
-        Temporal encoding (embroidered clock)
-          0: 1, 0, 0
-          1: 1, 1, 0
+      SendBit
+      ~~~~~~~
+        | HIGH
+        | Wait_ns(0: 350, 1: 900)
+        | LOW
+        | Wait_ns(0: 900, 1: 350)
 
-    Pseudo-code
-
-      SendBytes (Bytes)
-      ~~~~~~~~~~~~~~~~~~~
-
-        WHILE (Bytes.BytesRemained >= 3)
-
-          SendByte(Bytes.GetByte())  // green
-          SendByte(Bytes.GetByte())  // red
-          SendByte(Bytes.GetByte())  // blue
-
-        Wait_us(50)
-
-      SendByte (Byte)
-      ~~~~~~~~~~~~~~~
-
-        FOR BitIndex in (7 downto 0)
-
-          Bit = Byte.GetBit(BitIndex)
-
-          Line.SetHigh()
-          Wait_ns(Bit == 0: 350, Bit == 1: 900)
-          Line.SetLow()
-          Wait_ns(Bit == 0: 900, Bit == 1: 350)
+      Bit rate is 800 kBits (1250 ns per bit)
+      Temporal encoding (embroidered clock)
+        0: 1, 0, 0
+        1: 1, 1, 0
 */
 
 #include "me_Ws2812b.h"
@@ -86,6 +67,9 @@ TBool me_Ws2812b::SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
     digitalWrite(Pin, LOW);
   }
 
+  // Trim <Length> to a multiple of three
+  Length = Length - (Length % 3);
+
   // Transmit
   if (Length > 0)
   {
@@ -103,7 +87,7 @@ TBool me_Ws2812b::SendBytes(TBytes Bytes, TUint_2 Length, TUint_1 Pin)
 }
 
 /*
-  Meat function for emitting bytes at 800 kHz
+  Meat function for emitting bytes at 800 kBits
 */
 void EmitBytes(
   TBytes Bytes,
@@ -127,86 +111,55 @@ void EmitBytes(
   /*
     Double "for" in GNU asm.
 
-    --
-
     Implementation details
 
-      Data bytes counter and bits counter are decremented till zero.
-      Cleaner assembly code.
+      * Data bytes counter and bits counter are decremented till zero.
+        Cleaner assembly code.
 
-      --
+      * Bits counter is decremented inside "if"s. We have time slots
+        there.
 
-      Bits counter is decremented inside "if"s. We have time slots there.
+      * "mov <r>, <r>" is used as "nop". Compiler strips "nop"'s
+        when optimizing for code size (default "-Os" option).
 
-      --
+      * There is no instruction to get bit from by variable index.
 
-      Thank you Richard Stallman and ArduinoIDE guys for "-Os"
-      (optimize for size) default compiler option that removes
-      successive "nop"'s from "asm" code. Code is so tiny and
-      fast now!
+        We need bits from highest to lowest, so we can AND with
+        0x80 and shift left. But there is better option.
 
-      LED stripe is not controlled but who cares?
-
-      So "mov <r>, <r>" is our new "nop".
-
-      --
-
-      GNU asm is funny.
-
-      When specifying "x" to hold data in X register pair
-      (registers r26, r27) it generates code that uses that
-      registers. But if other data is marked as "r" (any register),
-      it can freely use r26 for it. Despite it's busy.
-
-      GCC will give warning about undefined code. Generated bad code
-      is "ld r26, X+". Yeah, just loading data to register that's
-      holding pointer to that data.
-
-      So I've used even more cryptic "la" for data. It means two
-      alternatives: place in "l" category or in "a" category.
-      "l" is r0 .. r15, "a" is r16 .. r23.
-
-      Also my GNU asm does not support "y" for Y register. "x" and "z"
-      are fine but not "y".
+        "lsl" (Logical Shift Left) stores high bit in carry flag and
+        shifts left. (Actually it's translated to "add <x>, <x>".)
   */
   asm volatile
   (
     R"(
+
+    # Init
+
       # Weird instructions to locate this place in disassembly
       ldi %[BitCounter], 0xA9
       ldi %[BitCounter], 0xAA
-
-      # DataLoop: Init
 
     DataLoop_Start:
 
       ld %[DataByte], %a[Bytes]+
 
-      # BitLoop: Init
+      # Eight bits in byte
       ldi %[BitCounter], 8
 
     BitLoop_Start:
 
-    # For both zero and one bit we first set pin HIGH:
+      # For both zero and one bit we first set pin HIGH:
       sbi %[PortRegister], %[PortBit]
 
-    # Get bit
-      /*
-        We don't have instruction to get bit from the register using
-        variable index.
-
-        So as we need bits from highest to lowest, we can AND with
-        0x80 and shift left. But there is better option.
-
-        "lsl" (Logical Shift Left) shifts left and stores high bit
-        in carry flag. Actually it translates to "add <x>, <x>".
-      */
+      # Get bit
       lsl %[DataByte]
 
       brcs IsOne
 
-    # Bit is zero. Write LOW, wait ~12 tacts.
     IsZero:
+
+      # Write LOW, wait ~12 tacts.
 
       mov %[BitCounter], %[BitCounter]
       mov %[BitCounter], %[BitCounter]
@@ -227,8 +180,9 @@ void EmitBytes(
       breq BitLoop_End
       rjmp BitLoop_Start
 
-    # Bit is one. Wait ~8 tacts, write LOW, wait ~4 tacts.
     IsOne:
+
+      # Wait ~8 tacts, write LOW, wait ~4 tacts.
 
       mov %[BitCounter], %[BitCounter]
       mov %[BitCounter], %[BitCounter]
@@ -255,7 +209,6 @@ void EmitBytes(
       sbiw %[RemainedLength], 1
       brne DataLoop_Start
 
-    DataLoop_End:
     )"
     :
     // temporary memory
@@ -302,115 +255,7 @@ TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
 }
 
 /*
-  EmitBytes(): design and implementation thoughts
-
-  1. Naive implementation
-
-    for bytes
-      for bits
-        if 0
-          High(); Wait_ns(350); Low(); Wait_ns(900);
-        if 1
-          High(); Wait_ns(900); Low(); Wait_ns(350);
-
-    Most likely won't work because of inter-bit and inter-byte delays
-    will be over 350 ns. Also you don't have nanoseconds delay.
-
-    Also you have no time control on C level, generating code for if's
-    and for for's is compiler's job.
-
-    4 tacts on 16MHz == 250 ns
-
-  2. Chill windows
-
-    1250 ns per bit is 20 ticks.
-
-    Current implementation can offer 9 spare ticks per bit.
-
-    So besides flipping output pin, we can squeeze fancy stuff like
-    scaling and dithering in that tacts. (I am looking at you, FastLED!)
-
-    But we won't. It's time-limited hack and ruins design.
-
-  3. More time on sides
-
-    Client is calling SendPixels(), not SendBit().
-
-    We can spend arbitrary long time drinking coffee and preparing
-    to send data. Then send it real fast. Then smoke cigarette and
-    do cleanup.
-
-  3.1 Prepare direct code
-
-    Can we just convert buffer to AVR instructions and execute them?
-
-    Well, I like this idea but no:
-
-    1. You can't execute memory on AVR. (You can on Intel tho.)
-    2. This will bloat memory. 20 ticks for bit means ~ 10-20
-      instructions. 10 instructions is like 20 bytes or 160 bits.
-      So expansion factor is 160.
-
-      2 KiB memory == 16 KiB bits
-      Pixel (3 bytes) == 24 bits
-      Expansion factor 160 bits
-
-      So in 2 KiB you can describe 682 LEDs. Or just 4 LEDs if you
-      generate direct code.
-
-      Higher clock speeds will increase expansion factor.
-
-    But it's paramount in performance. No comparisons, no jumps.
-
-  3.2 Prepare intermediate code
-
-    Can we encode switches and waits in artificial instructions
-    and interpret them fast?
-
-    We can, but it will expand memory again. Let's not create additional
-    buffers and just read data by bits. We need assembly level.
-
-  4. Granularity
-
-    Datasheet granularity is three bytes.
-    Implementation granularity is one byte.
-    Theoretical granularity is one bit.
-
-    So you can send just one byte to see how your LED stripe will
-    react. Implementation can be rewritten to send like 5 bits to
-    see what will happen.
-
-    But I'm not going to implement bit granularity. My use case is
-    sending triples of bytes. Byte granularity was just convenient in
-    implementation.
-*/
-
-/*
-  Timings math fun
-
-    * bit = 1250 ns } ==> byte = 10 us <==> 1 ms = 100 bytes
-      byte = 8 bits }
-
-    * meter = 60 pixels } => meter = 1.8 ms ==> second ~ 500 m
-      pixel = 3 bytes   }
-
-    * reset delay = 50 us = 5 bytes
-
-    * Theoretical frame rate limits:
-
-        0 pixels:
-          1 000 000 / 50 = 20 000 FPS
-
-        60 pixels (1 m):
-          1 000 000 / (50 + 1800) ~ 540 FPS
-
-        100 FPS:
-          100 = 1 000 000 / (50 + 1800 * X)
-          X = 9950 / 1800
-          X ~ 5.5 m = 330 pixels
-*/
-
-/*
   2024-03 Core
   2024-04 Cleanup
+  2024-05 Cleanup
 */
