@@ -2,11 +2,11 @@
 
 /*
   Author: Martin Eden
-  Last mod.: 2024-04-23
+  Last mod.: 2024-05-04
 */
 
 /*
-  SendPacket
+  SendBytes
 
     Send bytes. Up to 64 KiB.
 
