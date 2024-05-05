@@ -2,9 +2,9 @@
 
 namespace me_ArduinoUno
 {
-  TBool PinToIoRegisterAndBit(
+  TBool PinToAddressAndBit(
     TUint_1 Pin,
-    TUint_1 *Register,
+    TUint_2 *Address,
     TUint_1 *Bit
   );
 }

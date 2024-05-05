@@ -1,28 +1,16 @@
 #include "me_ArduinoUno.h"
 
-TBool me_ArduinoUno::PinToIoRegisterAndBit(
+TBool me_ArduinoUno::PinToAddressAndBit(
   TUint_1 Pin,
-  TUint_1 *Register,
+  TUint_2 *Address,
   TUint_1 *Bit
 )
 {
-  /*
-    "IO register addresses" are memory addresses 0x20..0x3F decreased
-    by 0x20.
-
-    That's because AVR have SetBit/ClearBit (sbi/cbi) instructions but
-    they require 5-bit addresses. (Can't fit more in 16-bit format.)
-    And the first 0x20 bytes of memory are CPU registers.
-
-    So they sacrificed clarity for performance. Flipping output level
-    every CPU tick is cool tho.
-  */
-
-  enum IoPortRegisters:TUint_1
+  enum PortAddresses:TUint_1
     {
-      B = 0x05,
-      C = 0x08,
-      D = 0x0B
+      B = 0x25,
+      C = 0x28,
+      D = 0x2B
     };
 
   /*
@@ -33,21 +21,21 @@ TBool me_ArduinoUno::PinToIoRegisterAndBit(
     do digital input/output and A4..A5 are used for I2C.
 
     Difference is that "analog" pins can digitize analog signal
-    to 10 bits while "digital" pins digitize signal to one bit.
+    to 10 bits while "digital" pins digitize to one bit.
   */
   if (Pin <= 7)
   {
-    *Register = IoPortRegisters::D;
+    *Address = PortAddresses::D;
     *Bit = Pin;
   }
   else if (Pin <= 13)
   {
-    *Register = IoPortRegisters::B;
+    *Address = PortAddresses::B;
     *Bit = Pin - 8;
   }
   else if (Pin <= 19)
   {
-    *Register = IoPortRegisters::C;
+    *Address = PortAddresses::C;
     *Bit = Pin - 14;
   }
   else
@@ -60,4 +48,5 @@ TBool me_ArduinoUno::PinToIoRegisterAndBit(
 
 /*
   2024-03-23 PinToIoRegisterAndBit()
+  2024-05-05 [/] to PinToAddressAndBit()
 */
