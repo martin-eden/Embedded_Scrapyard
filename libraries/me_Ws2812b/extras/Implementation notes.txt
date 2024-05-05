@@ -1,6 +1,6 @@
 # Quirks
 
-* Nops are "optimized"
+* gcc as effective manager: nops are optimized
 
   Thank you Richard Stallman and ArduinoIDE guys for "-Os"
   (optimize for size) default compiler option that removes
@@ -26,8 +26,8 @@
 
 * gasm: no Y register for an old man
 
-  Also my GNU asm does not support "y" for Y register. "x" and "z"
-  are fine but not "y".
+  My GNU asm does not support "y" for Y register. "x" and "z" are fine
+  but not "y".
 
 
 # GNU asm syntax
@@ -70,9 +70,7 @@ In my custom case the format for inlined asm code is
     "i" - constant value. Range of value depends of instruction where
       it is used (may be 3 bits, 5 bits, 8 bits).
 
-      Usage scenario is that we define some constant at upper level
-      (pin), may transform it to other constants (port and bit) and
-      provide it to asm code generation block.
+      Usage scenario is that constant is defined at higher level of code.
 
   /*
     My version of gasm does not check that register is not used by
@@ -99,11 +97,15 @@ In my custom case the format for inlined asm code is
 
     We can't have nanoseconds-delay function.
 
-      1000 ns is just 16 instructions (or less). Putting argument to
-      stack, calling function, getting argument from stack, using it,
-      waiting and returning will take like these 16 instructions.
+      1000 ns is just 16 instructions (or less). Overhead of calling
+      function with word argument most likely be near that 1000 ns.
 
       For delays over 1000 ns we have delayMicroseconds().
+
+      We can use macro tho.
+
+        Macros are ugly but that's the only viable option if we
+        want to avoid assembly.
 
     We have no instruction-level control in C (or any other "high-level"
     language). Generating code for if's and for for's is compiler's job.
@@ -124,7 +126,7 @@ In my custom case the format for inlined asm code is
 
     1250 ns per bit is 20 ticks.
 
-    Current implementation uses 11 ticks and can offer 9 spare ticks.
+    Current implementation uses can offer 7 spare ticks.
 
     So besides flipping output pin, we can squeeze fancy stuff like
     scaling and dithering in that tacts. (I am looking at you, FastLED!)
@@ -169,20 +171,6 @@ In my custom case the format for inlined asm code is
 
     We can, but it will expand memory again. Let's not create additional
     buffers and just read data by bits. We need assembly level.
-
-  4. Granularity
-
-    Datasheet granularity is three bytes.
-    Implementation granularity is one byte.
-    Theoretical granularity is one bit.
-
-    So you can send just one byte to see how your LED stripe will
-    react. Implementation can be rewritten to send like 5 bits to
-    see what will happen.
-
-    But I'm not going to implement bit granularity. My use case is
-    sending triples of bytes. Byte granularity was just convenient in
-    implementation.
 
 
 # Timings math fun

@@ -22,7 +22,7 @@
 */
 
 #include <me_Types.h> // TUint's
-#include <me_Uart.h> // serial speed
+#include <me_UartSpeeds.h> // serial speed
 #include <me_Install_StandardStreams.h> // printf() to serial
 #include <me_Math.h> // deg to rad
 
@@ -35,10 +35,15 @@ const TUint_1 LedStripePin = A0;
 const TUint_1 NumPixels = 60;
 
 // --
+void Test_ObserveBitsTiming(TUint_1 LedStripePin = LedStripePin);
+void Test_WhiteSine();
+void Test_ColorSmoothing();
+
+// --
 
 void setup()
 {
-  const TUint_4 SerialSpeed = me_Uart::Arduino_Normal_Bps;
+  const TUint_4 SerialSpeed = me_UartSpeeds::Arduino_Normal_Bps;
   Serial.begin(SerialSpeed);
   delay(500);
 
@@ -53,10 +58,12 @@ void loop()
 {
   // Choose one of the tests:
 
-  // Test_ObserveBitsTiming();
-  // Test_ObserveColorsOrder();
-  Test_ColorSmoothing();
-  // Test_WhiteSine();
+  /*
+  for (TUint_1 Pin = A5; Pin > 0; --Pin)
+    Test_ObserveBitsTiming(Pin);
+  */
+  // Test_ColorSmoothing();
+  Test_WhiteSine();
 }
 
 // --
@@ -64,8 +71,11 @@ void loop()
 /*
   Send several specific values to check timing margins with oscilloscope.
 */
-void Test_ObserveBitsTiming()
+void Test_ObserveBitsTiming(TUint_1 LedStripePin = LedStripePin)
 {
+
+  using namespace me_Ws2812b;
+
   /*
     I want to see timings between bits. And between bytes.
 
@@ -74,55 +84,25 @@ void Test_ObserveBitsTiming()
 
     And same transitions when bits are between bytes.
   */
-  TUint_1 TestPacket[] =
+  TPixel TestPixels[] =
     {
-      // Byte bit timings:
-      B00110000,
-
-      // Interbyte bit timings:
-      0x00,
-      0x00,
-      0xFF,
-      0xFF,
-      0x00,
+      {
+        // Byte bit timings
+        .Green = B00110000,
+        .Red = 0,
+        // Interbyte bit timings
+        .Blue = 0x00,
+      },
+      {
+        .Green = 0xFF,
+        .Red = 0xFF,
+        .Blue = 0x00,
+      },
     };
 
-  // me_Ws2812b::SendBytes(TestPacket, sizeof(TestPacket), LedStripePin);
+  SendPixels(TestPixels, sizeof(TestPixels) / sizeof(TPixel), LedStripePin);
 
-  delay(5000);
-}
-
-// --
-
-/*
-  Send bytes to observe colors order in stripe.
-
-  Core function is transmitting bytes, not colors. Okay, triples
-  of bytes. But color ordering is some permutation of RGB.
-
-  So we will send (0xFF, 0, 0) to first pixel and (0, 0, 0xFF) to the
-  last pixel. Observe two colors. Can deduce remained color component
-  from them.
-*/
-void Test_ObserveColorsOrder()
-{
-  const TUint_2 NumLeds = 3 * NumPixels;
-  TUint_1 TestPacket[NumLeds];
-  const TUint_2 TestPacket_Size = sizeof(TestPacket);
-
-  memset(TestPacket, 0, TestPacket_Size);
-
-  TestPacket[0] = 0xFF;
-  TestPacket[1] = 0x00;
-  TestPacket[2] = 0x00;
-
-  TestPacket[TestPacket_Size - 3] = 0x00;
-  TestPacket[TestPacket_Size - 2] = 0x00;
-  TestPacket[TestPacket_Size - 1] = 0xFF;
-
-  // me_Ws2812b::SendBytes(TestPacket, TestPacket_Size, LedStripePin);
-
-  delay(5000);
+  delay(500);
 }
 
 // --
