@@ -31,7 +31,7 @@
 
 #include <me_Types.h>
 
-namespace me_Uart
+namespace me_UartSpeeds
 {
   enum StandardSpeeds:TUint_4
   {
