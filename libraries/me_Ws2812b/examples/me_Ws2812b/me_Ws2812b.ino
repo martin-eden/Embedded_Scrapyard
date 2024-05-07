@@ -1,13 +1,21 @@
 // Test of [me_Ws2812b] library.
 
 /*
-  This library provides two functions:
+  Library exports:
 
-    * SendPacket(Bytes[], NumBytes, OutputPin): bool
+    * namespace "me_Ws2812b"
 
-    * SendPixels(Pixels[], NumPixels, OutputPin): bool
+      * struc TPixel
 
-      Pixel is a color from three components: { .Green, .Red, .Blue }
+          ui1 Green
+          ui1 Red
+          ui1 Blue
+
+      * bool SendPixels(...)
+
+          TPixel Pixels[]
+          ui2 NumPixels
+          ui1 OutputPin
 
   Keep in mind that each pixel of WS2821B LED stripe keeps last written
   value.
@@ -17,8 +25,8 @@
   Board: Arduino Uno
 
   Author: Martin Eden
-  Development: 2024-02/2024-04
-  Last mod.: 2024-05-04
+  Development: 2024-02/2024-05
+  Last mod.: 2024-05-06
 */
 
 #include <me_Types.h> // TUint's
@@ -35,6 +43,7 @@ const TUint_1 LedStripePin = A0;
 const TUint_1 NumPixels = 60;
 
 // --
+
 void Test_ObserveBitsTiming(TUint_1 LedStripePin = LedStripePin);
 void Test_WhiteSine();
 void Test_ColorSmoothing();
@@ -62,7 +71,9 @@ void loop()
   for (TUint_1 Pin = A5; Pin > 0; --Pin)
     Test_ObserveBitsTiming(Pin);
   */
+
   // Test_ColorSmoothing();
+
   Test_WhiteSine();
 }
 
@@ -73,7 +84,6 @@ void loop()
 */
 void Test_ObserveBitsTiming(TUint_1 LedStripePin = LedStripePin)
 {
-
   using namespace me_Ws2812b;
 
   /*
@@ -225,4 +235,5 @@ void Test_ColorSmoothing()
 /*
   2024-03
   2024-04
+  2024-05
 */

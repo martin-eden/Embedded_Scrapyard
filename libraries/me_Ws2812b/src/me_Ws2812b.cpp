@@ -2,7 +2,7 @@
 
 /*
   Author: Martin Eden
-  Last mod.: 2024-05-05
+  Last mod.: 2024-05-06
 */
 
 /*
@@ -68,14 +68,9 @@ TBool EmitBytes(
 
     Length should be less than 21 K.
 
-      Maximum addressable memory is 64 KiB. Each pixel is 3 bytes.
+      (Maximum addressable memory is 64 KiB. Each pixel is 3 bytes.)
 
-      Anyway, Uno has just 2 KiB memory, so your project should use
-      less than 700 pixels.
-
-    Pin must be constant.
-
-      See details in EmitBytes().
+      Uno has just 2 KiB memory which is less than 700 pixels.
 */
 TBool me_Ws2812b::SendPixels(TPixel Pixels[], TUint_2 Length, TUint_1 Pin)
 {
@@ -208,12 +203,12 @@ TBool EmitBytes(
 
         Set:
 
-          We need output to specific pin. It means we need to write to
+          We need output to specific pin. It means we need to write
           some bit at some byte address.
 
           We have port address and bit number. We are creating bit masks
           for OR and AND. Reading byte from port at beginning, then
-          ORing and writing back to set HIGH. ANDing to set LOW.
+          OR-ing and writing back to set HIGH. AND-ing to set LOW.
   */
   asm volatile
   (

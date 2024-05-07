@@ -2,7 +2,7 @@
 
 /*
   Author: Martin Eden
-  Last mod.: 2024-05-04
+  Last mod.: 2024-05-06
 */
 
 /*
@@ -14,7 +14,6 @@
         Length : u2
           Should be less than 21K.
         OutputPin : u1
-          Must be constant.
       -> bool
 
   Pixel definition

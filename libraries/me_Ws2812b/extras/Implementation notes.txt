@@ -115,8 +115,8 @@ In my custom case the format for inlined asm code is
 
       I think the actual parser in WS2812B
         just triggers on HIGH,
-        waits 350 ns,
-        reads line as value and is
+        waits 600 ns,
+        reads line as value and
         disarmed until line is LOW.
 
       So naive implementation _may_ work. But meh, it's out of spec
@@ -126,7 +126,7 @@ In my custom case the format for inlined asm code is
 
     1250 ns per bit is 20 ticks.
 
-    Current implementation uses can offer 7 spare ticks.
+    Current implementation can offer 7 spare ticks.
 
     So besides flipping output pin, we can squeeze fancy stuff like
     scaling and dithering in that tacts. (I am looking at you, FastLED!)
