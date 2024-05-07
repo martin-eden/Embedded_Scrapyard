@@ -1,3 +1,15 @@
+/*
+  This code is not mine!
+
+  I've copied it from some RTC DS3231 module library in 2019 with
+  intention to strip and adjust code to my needs. At that time
+  "Sketchbook/" was just internal directory, not a repo.
+
+  So sorry for that.
+
+  -- Martin, 2024-05-07
+*/
+
 #pragma once
 
 #include <Arduino.h>
