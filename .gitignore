@@ -6,3 +6,4 @@ libraries/*
 !libraries/joystick/
 libraries/me_Types/
 libraries/me_WifiShip/
+libraries/me_Ws2812b/
