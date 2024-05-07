@@ -1,5 +1,11 @@
 #include "me_ArduinoUno.h"
 
+/*
+  Given pin number return port address and bit.
+
+  These data was used in assembler routine to write to do sorta
+  digitalRead()/digitalWrite().
+*/
 TBool me_ArduinoUno::PinToAddressAndBit(
   TUint_1 Pin,
   TUint_2 *Address,
