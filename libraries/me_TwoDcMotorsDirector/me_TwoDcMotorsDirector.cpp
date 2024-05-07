@@ -1,4 +1,4 @@
-// Mapping diraction angle and power to actual PWMs for two DC motors.
+// Mapping direction angle and power to actual PWMs for two DC motors.
 
 /*
   Version: 3
@@ -55,7 +55,7 @@ void TwoDcMotorsDirector::Update()
   RightMotor->Update();
 }
 
-// -= private =-
+// -- private
 
 float sign(float a)
 {
