@@ -37,7 +37,6 @@ void loop()
     acknowledge from Uno.
   */
 
-
   TUint_2 Uint_2;
   if (GetUint_2(&Uint_2))
   {
@@ -54,6 +53,7 @@ void loop()
     {
       if (!isspace(Char))
       {
+        // Entity was not consumed
         printf("'%c'..?\n", Char);
         PurgeEntity();
       }
