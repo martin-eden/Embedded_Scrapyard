@@ -1,4 +1,14 @@
-// Designing stream tokenizer
+// Stream tokenizer demo
+
+/*
+  Enter random space/newline separated strings to Serial.
+
+  Integers in range (0 .. 65535) are caught by GetUint_2() and
+  ready for further processing. Entities starting with digit
+  are silently eaten.
+
+    "123 1a a3 65535 65536 99999" -> "(123) 'a'..? (65535)"
+*/
 
 /*
   Author: Martin Eden
@@ -27,16 +37,6 @@ void loop()
   delay(50);
   // Post-condition: we gave enough time for Stream to receive data
 
-  /*
-    On Uno in Stream implementation buffer size is 64 bytes.
-    So ("0"<*63> "1") is parsed like 1, but not ("0" <*64> "1").
-    Streaming data is bad idea in my Arduino experience.
-
-    General rule is that we are sending packets less than
-    64 bytes each. And doing pauses between them. Or waiting
-    acknowledge from Uno.
-  */
-
   TUint_2 Uint_2;
   if (GetUint_2(&Uint_2))
   {
@@ -44,7 +44,7 @@ void loop()
   }
   else {
     /*
-      GetUint_2 may or may not consume entity.
+      GetUint_2() may or may not consume entity.
         It consumes entity when it starts with digit.
           And leaves cursor at end of stream or on space.
     */
