@@ -1,0 +1,28 @@
+# Design splitting
+
+Originally I've implemented reading and parsing uint2 directly
+from stream. It was more tricky then it seems.
+
+Looking for spaces, looking for end of stream, thinking should we wait
+now for next character or not, difference between looking at character
+and extracting it..
+
+Then I threw code and created GetEntity() to get non-space sequence
+from stream. Now parsing does not know about stream at all. It receives
+pointer to array of bytes and tries to convert them to integer.
+
+Splitting design reduces complexity more than twice.
+
+
+# Stock parseInt()
+
+For alternative implementation look at stock parseInt()
+
+  https://github.com/arduino/ArduinoCore-avr/blob/master/cores/arduino/Stream.cpp#L130
+
+#defines, reading from stream, murky specification, additions from
+other people.
+
+I bet that code will happily parse "-----------1" or "9999999999999999999".
+
+-- Martin, 2024-05-13
