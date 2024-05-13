@@ -21,9 +21,16 @@ Correct output of GetEntity() with entity size 8 is
 (EF)
 (F)
 
-That was for timeout between 1 and 10 ms.
-  20 ms are bad.
-    Range between 10 and 20 ms is not explored.
+That was for setTimeout(1 .. 10). 20 ms are bad.
+
+Theoretically
+
+  57600 baud == 5760 bytes/s ~= 174 us / byte
+
+  64 bytes == 11+ ms
+
+That explains data starving at setTimeout(0) and data loss at
+setTimeout(20).
 
 So despite input buffer size of 64 bytes, code can handle longer
 packets. Additional conditions apply.

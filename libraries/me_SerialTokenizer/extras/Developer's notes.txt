@@ -1,4 +1,6 @@
-# What to do when we don't have capacity to store entity?
+# Interface design
+
+What to do when we don't have capacity to store entity?
 
 Say our stream is
 
@@ -45,3 +47,26 @@ We can set entry capacity to 4, so for
 
   Size 4 is more than allowed 3. So the entry is too big and maybe
   was trimmed.
+
+
+# UART transmission is like blinking flashlight..
+
+When you missed it, you missed it.
+
+Luckily for you, Arduino firmware can catch it. That stuff is called
+"hardware interrupts".
+
+Serial's code places bytes it saw in a buffer. When your call
+Serial.read() it gets byte from that buffer.
+
+Serial input buffer size is 64 bytes. You can't afford large buffer
+with 2k memory.
+
+When buffer is full, you are losing bytes again.
+
+Typically 8 bits of byte is transmitted as 10 bits. Inflation, my friend.
+
+So 57600 baud is 5760 bytes per second. Less than 12 ms to fill that
+buffer.
+
+-- Martin, 2024-05-13
