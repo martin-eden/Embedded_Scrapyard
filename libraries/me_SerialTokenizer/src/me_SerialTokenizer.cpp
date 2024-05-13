@@ -1,117 +1,105 @@
-// Getting uint_2 from Serial plus implementation functions
+// Getting entity from Serial
+
+/*
+  "Entity" is a non-gap sequence surrounded by "gaps".
+
+  "Gap" is space character, newline or "end of stream" condition.
+*/
 
 /*
   Author: Martin Eden
-  Last mod.: 2024-05-08
+  Last mod.: 2024-05-13
 */
 
-#include <me_SerialTokenizer.h>
+#include "me_SerialTokenizer.h"
 
-#include <HardwareSerial.h> // Serial.
+#include <HardwareSerial.h> // Serial: available(), peek(), getTimeout(), read()
 #include <Arduino.h> // delay()
-#include <ctype.h> // isspace() etc..
+#include <ctype.h> // isspace()
+
+#include <me_Types.h>
 
 using namespace me_SerialTokenizer;
 
 /*
-  Get integer in range 0 .. 65535 from ascii stream.
+  Get entity from serial stream.
 
-  Stream consumption
+  Arguments
 
-    Leading spaces are consumed.
+    <@ Entity: u1> - Memory address to store entity bytes
+    <@ EntityLengthPtr: u2> - Memory address to store entity size
+    <EntityCapacity: u2> - Size of memory to hold entity
 
-    When character is '0' .. '9'
+  Result
 
-      Consume all characters until next space (or end of stream)
-      If consumed entity is integer in given range
-        Fill result and return true
+    true - when we got entity
 
-    Else
-      We return false
+  Notes
 
-  Beware
+    When entity length exceeds capacity, we read until gap and return
+    true. Entity is trimmed to capacity.
 
-    With this logic this function will stuck on stream entries which
-    does not start with digit. Like "a".
+    We do not write zero byte at end of entity data.
 
-    It's intended behavior: we can't load integer and will not spoil
-    stream.
+      Bytes between "entity length" and "entity capacity" can
+      have any values.
 */
-TBool me_SerialTokenizer::GetUint_2(TUint_2 * Uint_2)
+TBool me_SerialTokenizer::GetEntity(
+  TChar * Entity,
+  TUint_2 * EntityLengthPtr,
+  TUint_2 EntityCapacity
+)
 {
+  if (EntityCapacity == 0)
+    // you gonna be kidding me!
+    return false;
+
   PurgeSpaces();
 
-  if (StreamIsEmpty())
-    return false;
+  TUint_2 EntityLength;
 
-  TUint_1 Digit;
+  EntityLength = 0;
 
-  if (!GetDigit(&Digit))
-    return false;
-
-  *Uint_2 = Digit;
-
-  const TUint_2 Uint_2_Max_Div10 = 0xFFFF / 10;
-  const TUint_1 Uint_2_Max_Mod10 = 0xFFFF % 10;
-
-  while (!StreamIsEmpty())
+  TChar Char;
+  while (PeekCharacter(&Char))
   {
-    /*
-      GetDigit() failed. Stream is not empty.
-      Stream cursor is on problem character.
-      Possible reasons:
-        * Space/newline ("1 "). That's okay.
-        * Other character ("1a"). That's bad.
-    */
-    if (!GetDigit(&Digit))
+    if (isspace(Char))
+      break;
+
+    PurgeCharacter();
+
+    // store character
+    *Entity = Char;
+
+    // advance pointer
+    Entity = Entity + sizeof(Char);
+
+    // update length
+    EntityLength = EntityLength + 1;
+
+    // no place to store?
+    if (EntityLength == EntityCapacity)
     {
-      TChar Char;
-      if (!PeekCharacter(&Char))
-        // End of stream is not expected but we have result.
-        return true;
-
-      // Space after digit is okay
-      if (isspace(Char))
-        return true;
-
-      // Other symbol after digit is not okay
       PurgeEntity();
-      return false;
+      break;
     }
-
-    // Avoid overflow without casting larger datatype:
-    if (
-      (*Uint_2 > Uint_2_Max_Div10)
-      ||
-      (
-        (*Uint_2 == Uint_2_Max_Div10) &&
-        (Digit > Uint_2_Max_Mod10)
-      )
-    )
-    {
-      /*
-        Case like "99999" or "65536".
-
-        Even if it's valid digit's sequence, we can't fit it in
-        our range.
-          We can't unroll stream at this point.
-            So purge entity.
-      */
-
-      // printf("Overflow imminent! Eject eject EJECT!!1\n");
-
-      PurgeEntity();
-      return false;
-    }
-
-    *Uint_2 = (*Uint_2) * 10 + Digit;
   }
+  // Post-condition: we got space or reached end of stream or reached capacity
+
+  if (EntityLength == 0)
+    return false;
+
+  // store entity length
+  *EntityLengthPtr = EntityLength;
 
   return true;
 }
 
 /*
-  Drop all characters from stream until non-space character.
+  Drop characters from stream
+  until
+    non-space character or
+    end of stream
 */
 void me_SerialTokenizer::PurgeSpaces()
 {
@@ -181,43 +169,10 @@ void me_SerialTokenizer::PurgeCharacter()
 }
 
 /*
-  Extract one decimal ascii digit from stream and convert it to 0 .. 9.
-
-  Character is consumed only if it is digit: '0' .. '9'.
-*/
-TBool me_SerialTokenizer::GetDigit(TUint_1 * Digit)
-{
-  TChar Char;
-  if (!PeekCharacter(&Char))
-    return false;
-
-  if (!isdigit(Char))
-    return false;
-
-  PurgeCharacter();
-
-  *Digit = Char - '0';
-
-  return true;
-}
-
-/*
-  Extract one character from the stream.
-*/
-TBool me_SerialTokenizer::GetCharacter(TChar * Char)
-{
-  TBool Result;
-
-  Result = PeekCharacter(Char);
-
-  if (Result)
-    PurgeCharacter();
-
-  return Result;
-}
-
-/*
-  Drop all characters from stream until first space.
+  Drop characters from stream
+  until
+    space character or
+    end of stream
 */
 void me_SerialTokenizer::PurgeEntity()
 {
@@ -236,4 +191,5 @@ void me_SerialTokenizer::PurgeEntity()
 
 /*
   2024-05-08
+  2024-05-13
 */

@@ -1,54 +1,47 @@
-Well, writing this _correctly_ was harder than it seems.
+# What to do when we don't have capacity to store entity?
 
-You need to be very careful between looking at the character in
-the buffer (peeking) and actually extracting it.
+Say our stream is
 
-Also receive buffer size. You typed long string in arduino-cli
-monitor. 100 characters! You pressed Enter. What will happen?
+  "123 45"
 
-UART transmission is like blinking flashlight. When you missed it, you
-missed it.
+and we are calling
 
-That 100 bytes is blinked to RX pin, usually 10 bits per bit, 5.76 ms
-per byte if baud is 57600. Half a second for hundred bytes.
+  GetEntity(&Entity, &EntityLen, 2)  <- Entity capacity is 2 characters
 
-If your sketch is scratching balls this time, string will go to Serial
-buffer which is 64 bytes and fill it (if it was empty lol).
-  Your mileage may vary if you change SERIAL_RX_BUFFER_SIZE in
-  [HardwareSerial.h]. But it won't change general principle.
-Remaining 36 bytes will be discarded.
+What our call should return, place into <Entity> and what state of stream?
 
-If your sketch is processing bytes slower than it receives it, buffer
-will overflow again. But just later. I hope you wasn't parsing
-context-specific grammars.
+  true, "12", "3 45"
 
-If your sketch processing bytes faster than it receives it (< 5.76 ms
-per byte), we will continue talking.
+    Bad. Next call will return (true, "3", " 45"). We splat entity "123"
+    to "12" and "3" because of our implementation details.
 
+  true, "12", " 45"
 
-So you are catching every byte and immediately start processing it?
-Bad idea. Data starving. You will get phantom stream ends in a middle
-or your parsing. (Stream.available() == 0) but stream.read() succeeds
-later in the code? That's it. Wait some time. Like 50 ms. Smoke
-cigarette maybe.
+    Practical. We trimmed entity "123" to "12". Implemented.
 
-You want a condition when data packet is transferred and new packet
-transmission has not started. That's why packet size should be less
-than buffer size (64 bytes for typical Uno firmware).
+  false, "12", " 45"
+
+    Not bad, but we are forcing our caller to check for empty stream
+    before our call to understand that entry does not fit.
+
+  true, "45", ""
+
+    Somewhat correct. But we lost position in parsing entries sequence.
+    That makes outer logic senseless.
 
 
-Your data depends on your project. Your protocol depends on your
-project and your data.
+# How to understand entry was trimmed?
 
-"120". 18 ms to transfer. How long it will take to apply that "120"?
-Do you need feedback? What is your typical commands?
+You can't but I can offer practical workaround.
 
-How would you transfer 180 bytes (in decimal ASCII)? (For 60 LEDS of
-RGB stripe, which is just 1 meter and takes 2 ms to send it to LED
-controller.)
+Say you are reading 3-character entries that are supposed to
+store "0" .. "255".
 
+Here we just want to read entries up to 3 characters.
 
-Communication is not free in real world. Finding good balance between
-responsiveness and reliability is your job.
+We can set entry capacity to 4, so for
 
--- Martin, 2024-05-08
+  "25501" it will set entry to "2550" and it's length to 4.
+
+  Size 4 is more than allowed 3. So the entry is too big and maybe
+  was trimmed.

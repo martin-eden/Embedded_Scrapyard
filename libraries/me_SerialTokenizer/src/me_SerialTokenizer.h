@@ -1,4 +1,13 @@
-// Get uint_2 from Serial plus implementation functions
+// Get entity from Serial
+
+/*
+  Entity is a sequence of non-space characters.
+*/
+
+/*
+  Author: Martin Eden
+  Last mod.: 2024-05-13
+*/
 
 #pragma once
 
@@ -6,6 +15,14 @@
 
 namespace me_SerialTokenizer
 {
+  TBool GetEntity(
+    TChar * Entity,
+    TUint_2 * EntityLength,
+    TUint_2 EntityCapacity
+  );
+
+  // Implementation
+
   TBool StreamIsEmpty();
   TBool StockPeek(TChar * Char);
   TBool PeekCharacter(TChar * Char);
@@ -13,13 +30,9 @@ namespace me_SerialTokenizer
   void PurgeCharacter();
   void PurgeSpaces();
   void PurgeEntity();
-
-  TBool GetDigit(TUint_1 * Digit);
-  TBool GetCharacter(TChar * Char);
-
-  TBool GetUint_2(TUint_2 * Uint_2);
 }
 
 /*
   2024-05-08
+  2024-05-13
 */
