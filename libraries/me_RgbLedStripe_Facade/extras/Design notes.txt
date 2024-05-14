@@ -16,22 +16,22 @@ Example
   >
     wtf
   <
-    Sorry can't parse "wtf".
+    -
   >
     ?
   <
-    ?
+    /
 
     Available commands are
 
-      ? - usage help
-      S - State (or Status or Set) - represent/modify current state
+      S - Settings (or Set or State) - represent/modify current state
       R - Run - write state to LED stripe
+      H - usage help
     .
   >
-    ?
+    H
   <
-    ? ?
+    / H
 
     Hello there!
 
@@ -39,29 +39,68 @@ Example
 
     I am not very chatty because of general no-nonsense attitude.
 
-    But there is one more command you need to know:
+    Interface is one-char command, optional modifier, integer arguments.
 
-      ^ - go one level up
+    Omnipresent commands are
 
-    And one more of my possible replies:
+      / - go to root menu
+      ^ - go one level up in menu
+      @ - print position in menu tree
+      ? - list available commands
 
+    Modifiers are
+
+      V - verbose output
+
+    Replies are
+
+      . - done, ready for next command
       - - please stop sending commands, I can't process them any more
-      / - command is partly applied (can't revert, can't finish)
+      / - command is partially applied (can't revert, can't finish)
     .
   >
-    ^
+    / H V
   <
+    / H V
+
+    Nah, there is no verbose version of help.
+
+    .
+  >
+    / @
+  <
+    /
+    .
+  >
+    / @ V
+  <
+    You are in "/" menu branch.
+    .
+  >
+    ?
+
+
+
+
+  <
+    -
+  >
+    &
+  <
+    / wtf
+
+    Can't parse.
     .
   >
     ?
   <
-    ?
+    /
 
     Available commands are
 
-      S - State (or Status or Set) - represent/modify current state
+      S - Settings (or Set or State) - represent/modify current state
       R - Run - write state to LED stripe
-      ? - usage help
+      H - usage help
     .
   >
     S
@@ -70,36 +109,68 @@ Example
   >
     ?
   <
-    S
+    / S
 
     Led stripe:
 
       Output pin: 14
-      Number of LEDs: 60
+      Number of LEDs: 60 (180 bytes)
 
     Available commands are
 
-      M - get/set Memory
       O - set Output pin
       N - set Number of LEDs
+      M - get/set Memory
     .
   >
     M ?
   <
-    S M
+    / S M
 
     Memory range is [1, 60].
 
     Available commands are
 
-      R - set Range
-      D - Dump memory (180 bytes)
-      S - set memory (180 bytes)
+      R - get/set Range
+      G - Get memory (180 bytes).
+      S - set memory (180 bytes).
     .
   >
     R ?
   <
-    S M R
+    / S M R
+
+    Available commands are
+
+      G - get range.
+      S - set range.
+    .
+  >
+    G
+  <
+    1 60
+    .
+  >
+    / S M R G ?
+  <
+    / S M R G
+
+    Memory range is [1, 60].
+    .
+  >
+    ?
+  <
+    / S M R
+
+    Available commands are
+
+      G - get range.
+      S - set range.
+    .
+  >
+    S ?
+  <
+    / S M R S
 
     Enter two integers for subrange of [1, 60].
     .
@@ -110,25 +181,32 @@ Example
   >
     ?
   <
-    S M
-
-    Memory range is [1, 2].
+    / S M R
 
     Available commands are
 
-      R - set Range
-      D - Dump memory (6 bytes)
-      S - Set memory (6 bytes)
+      G - get range.
+      S - set range.
     .
   >
-    D ?
+    S 2 3 G
   <
-    0 0 0 0 0 0
     .
+    2 3
+    .
+  >
+    G ?
   <
-    S M
+    / S M R G
 
-    Memory range is [1, 2].
+    Memory range is [2, 3].
+    .
+  >
+    ^ ?
+  <
+    / S M
+
+    Memory range is [2, 3].
 
     Available commands are
 
