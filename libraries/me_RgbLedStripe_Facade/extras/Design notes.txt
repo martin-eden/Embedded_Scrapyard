@@ -1,0 +1,225 @@
+RBG LED stripe facade. Design notes.
+
+Facade
+
+Okay I want
+
+  Serial text interface to control RGB LED stripe.
+
+  It should be human controllable, moderately verbose output,
+  terse input.
+
+Example
+
+  <
+    .
+  >
+    wtf
+  <
+    Sorry can't parse "wtf".
+  >
+    ?
+  <
+    ?
+
+    Available commands are
+
+      ? - usage help
+      S - State (or Status or Set) - represent/modify current state
+      R - Run - write state to LED stripe
+    .
+  >
+    ?
+  <
+    ? ?
+
+    Hello there!
+
+    I am text interface for LED stripe.
+
+    I am not very chatty because of general no-nonsense attitude.
+
+    But there is one more command you need to know:
+
+      ^ - go one level up
+
+    And one more of my possible replies:
+
+      - - please stop sending commands, I can't process them any more
+      / - command is partly applied (can't revert, can't finish)
+    .
+  >
+    ^
+  <
+    .
+  >
+    ?
+  <
+    ?
+
+    Available commands are
+
+      S - State (or Status or Set) - represent/modify current state
+      R - Run - write state to LED stripe
+      ? - usage help
+    .
+  >
+    S
+  <
+    .
+  >
+    ?
+  <
+    S
+
+    Led stripe:
+
+      Output pin: 14
+      Number of LEDs: 60
+
+    Available commands are
+
+      M - get/set Memory
+      O - set Output pin
+      N - set Number of LEDs
+    .
+  >
+    M ?
+  <
+    S M
+
+    Memory range is [1, 60].
+
+    Available commands are
+
+      R - set Range
+      D - Dump memory (180 bytes)
+      S - set memory (180 bytes)
+    .
+  >
+    R ?
+  <
+    S M R
+
+    Enter two integers for subrange of [1, 60].
+    .
+  >
+    1 2
+  <
+    .
+  >
+    ?
+  <
+    S M
+
+    Memory range is [1, 2].
+
+    Available commands are
+
+      R - set Range
+      D - Dump memory (6 bytes)
+      S - Set memory (6 bytes)
+    .
+  >
+    D ?
+  <
+    0 0 0 0 0 0
+    .
+  <
+    S M
+
+    Memory range is [1, 2].
+
+    Available commands are
+
+      R - set Range
+      D - Dump memory (6 bytes)
+      S - Set memory (6 bytes)
+    .
+  >
+    S ?
+  <
+    Enter 6 bytes for green-red-blue values for LEDs in range [1, 2].
+    .
+  >
+    255 0 0  0 0 255
+  <
+    .
+  >
+    D
+  <
+    255 0 0 0 0 255
+  >
+    How get the fucking range?!
+  <
+    Sorry, can't parse that.
+    .
+  >
+    ?
+  <
+    S M
+
+    Memory range is [1, 2].
+
+    Available commands are
+
+      R - set Range
+      D - Dump memory (6 bytes)
+      S - Set memory (6 bytes)
+    .
+  >
+    ^ ?
+  <
+    .
+  <
+    S
+
+    Led stripe:
+
+      Output pin: 14
+      Number of LEDs: 60
+
+    Available commands are
+
+      M - get/set Memory
+      O - set Output pin
+      N - set Number of LEDs
+    .
+  >
+    ^ ?
+  <
+    ?
+
+    Commands at this level are
+
+      S - State (or Status or Set) - represent/modify current state
+      R - Run - write state to LED stripe
+    .
+  >
+    R
+  <
+    .
+
+/*
+  Well, a bit daunting but the interface is interesting.
+
+  Probably tree should be
+
+    ? - help
+    S - Set/Status/Settings
+      M - Memory
+        R - Range
+          G - Get
+          S - Set
+        G
+        S
+      O - Output pin
+        G
+        S
+      N - Num leds
+        G
+        S
+    R - Run
+*/
+
+-- Martin, 2024-05-14
