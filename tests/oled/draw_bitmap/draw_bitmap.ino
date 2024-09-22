@@ -1,9 +1,8 @@
-// Draw bitmap at startup
+// Draw Canada's flag as bitmap on startup
 
 /*
-  Status: done
-  Version: 1.0
-  Last mod.: 2021-06-12
+  Author: Martin Eden
+  Last mod.: 2024-09-22
 */
 
 #include <U8g2lib.h>
@@ -174,3 +173,8 @@ void loop() {
   delay(300);
   */
 }
+
+/*
+  2021-06-12
+  2024-09-24 Annotation
+*/
