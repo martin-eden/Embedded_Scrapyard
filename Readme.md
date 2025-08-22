@@ -7,6 +7,8 @@ Personal projects/libraries for Arduino framework.
 
 ## Archived
 
+(2025)
+
 This code is for historical scavenging purposes.
 
 That's how I started with embedded and C++.
